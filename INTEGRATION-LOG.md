@@ -131,16 +131,29 @@ All third-party sources, licences, and decisions tracked here.
 ## Session 6 — Morphing System
 
 ### TypeScript: `src/remotion/morph/`
-- **`MorphShape.tsx`** — flubber `interpolate(fromPath, toPath)` memoized per path pair; `t = interpolate(frame, [start, start+dur], [0,1])`; renders `<svg><path d={morphFn(t)}/></svg>`; used for shape-to-shape transitions (arrow→circle, etc.)
-- **`MorphText.tsx`** — kinetic character-level text transition; exit phase (chars 0→invisible, staggered) + enter phase (chars invisible→1, staggered); each char driven by `spring({ frame: localFrame, fps, config: { damping:18, stiffness:260, mass:0.7 }, durationInFrames: 10 })`; scale 0.4→1 + translateY 18→0 + opacity 0→1
-- **`Counter.tsx`** — pure `interpolate(frame, [delay, delay+dur], [from, to], { easing: Easing.out(Easing.cubic) })` value; `toLocaleString` formatting with configurable decimals/prefix/suffix; spring scale entrance (0.6→1) on count start; no countUp.js RAF loop
+- **`MorphShape.tsx`** — flubber `interpolate(fromPath, toPath)` memoized per path pair; `t = interpolate(frame, [start, start+dur], [0,1])`; renders `<svg><path d={morphFn(t)}/></svg>`; used for shape-to-shape transitions
+- **`MorphText.tsx`** — kinetic character-level text transition; exit phase (chars 0→invisible, staggered) + enter phase (chars invisible→1, staggered); each char driven by spring (damping 18, stiffness 260, mass 0.7); scale 0.4→1 + translateY 18→0 + opacity 0→1
+- **`Counter.tsx`** — pure `interpolate` value with `Easing.out(Easing.cubic)`; `toLocaleString` formatting; spring scale entrance; no countUp.js RAF loop
 - **`index.ts`** — barrel: `Counter`, `MorphShape`, `MorphText`
 
 ### Type declaration
-- `src/types/flubber.d.ts` — TypeScript module declaration: `interpolate`, `separate`, `combine`, `interpolateAll` with `InterpolateOptions.maxSegmentLength`
+- `src/types/flubber.d.ts` — TypeScript module declaration for flubber
 
 ## Session 7 — Sound System
-_To be filled after S7._
+
+### Python: `src/scripts/sound_design.py`
+- `CHANNEL_HIT` map: per-channel beat-entrance SFX name (hit_electronic/corporate/dark/soft/cinematic/space)
+- Beat-entrance hit: fires `HIT_PREROLL=2` frames before each section cut; `HIT_DUR=9` frames (0.3s)
+- Kind-specific SFX: `person` → reveal.mp3; `brand/product/app` → pop.mp3; `stat` → tick.mp3 every 6 frames (45%→90% of beat); `map/distance` → swoosh.mp3; `twist` section → sting.mp3; `outro` section → bell.mp3 at +30 frames
+- Deduplicates exact `(startFrame, name)` pairs; sorts by startFrame
+- `build_sound_design(manifest)` → returns sorted `SoundEvent[]` list without mutating manifest
+
+### TypeScript: `src/remotion/sound/`
+- **`SfxLayer.tsx`** — renders one `<Audio src={staticFile('sfx/{name}.mp3')}>` per `SoundEvent` inside a `<Sequence from={startFrame} durationInFrames={durationFrames} layout="none">`; 3-frame linear fade-in/out to avoid click artifacts
+- **`Soundtrack.tsx`** — `<Audio src={staticFile('music/{channelId}.mp3')} loop>`; volume driven by `interpolate(frame, [0, 30, 1020, 1050], [0, musicVolume, musicVolume, 0])`; default `musicVolume=0.18`; per-channel music file comments note CC0/CC BY 4.0 sources
+
+### Pipeline update
+- `pipeline.py` Stage 7 wired: `build_sound_design(manifest)` → `manifest['soundDesign']`; completion message updated to S1-S7
 
 ## Sessions 8–13 — Channel Components
 _To be filled after each channel session._

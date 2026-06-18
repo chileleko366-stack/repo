@@ -11,7 +11,8 @@ Pipeline stages (ported from ShortGPT's numbered step dict):
   4. tts        — edge-tts word-boundary audio per beat
   5. assets     — resolver: person/brand/place/map
   6. stock      — contextual stock media selection
-  7. render     — npx remotion render                    [S8-S13 — not built yet]
+  7. sound      — SFX event schedule + music bed assignment
+  8. render     — npx remotion render                    [S8-S13 — not built yet]
 """
 
 import argparse
@@ -33,6 +34,7 @@ from mock_data import get_mock_brief
 from tts import generate_all_beats, manifest_to_captions
 from asset_resolver import resolve_all_beats as resolve_assets
 from stock_selector import select_all_stock
+from sound_design import build_sound_design
 
 
 # ── Auto topic seeds per channel ──────────────────────────────────────────────
@@ -170,11 +172,19 @@ def run_pipeline(channel_id: str, topic: str, dry_run: bool = False, mock: bool 
     except Exception as _e:
         print(f"  ✗ Stock selector failed: {_e} (requires PEXELS_API_KEY / PIXABAY_API_KEY)\n")
 
-    # Stage 7: Render — stub (built in S8-S13)
-    print("▶ Stage 7: Remotion render — pending S8-S13")
+    # Stage 7: Sound design
+    print("▶ Stage 7: Sound design (SFX schedule)")
+    sound_events = build_sound_design(manifest)
+    manifest["soundDesign"] = sound_events
+    if not dry_run:
+        save_manifest(manifest, manifest_path)
+    print(f"  ✓ {len(sound_events)} SFX events scheduled\n")
+
+    # Stage 8: Render — stub (built in S8-S13)
+    print("▶ Stage 8: Remotion render — pending S8-S13")
     print("  ⏳ skipped — run after channel components are complete\n")
 
-    print("✅  Pipeline complete (S1-S6 stages)")
+    print("✅  Pipeline complete (S1-S7 stages)")
     print(f"    Manifest: {manifest_path}\n")
     return manifest
 
@@ -197,4 +207,5 @@ if __name__ == "__main__":
         "totalFrames": manifest["totalFrames"],
         "totalSeconds": manifest["totalSeconds"],
         "beatCount": len(manifest["beats"]),
+        "sfxCount": len(manifest.get("soundDesign", [])),
     }, indent=2))
