@@ -10,7 +10,7 @@ Pipeline stages (ported from ShortGPT's numbered step dict):
   3. manifest   — timing layout → manifest JSON
   4. tts        — edge-tts word-boundary audio per beat
   5. assets     — resolver: person/brand/place/map
-  6. stock      — contextual stock media selection       [S5 — not built yet]
+  6. stock      — contextual stock media selection
   7. render     — npx remotion render                    [S8-S13 — not built yet]
 """
 
@@ -32,6 +32,7 @@ from manifest_builder import build_manifest, save_manifest
 from mock_data import get_mock_brief
 from tts import generate_all_beats, manifest_to_captions
 from asset_resolver import resolve_all_beats as resolve_assets
+from stock_selector import select_all_stock
 
 
 # ── Auto topic seeds per channel ──────────────────────────────────────────────
@@ -157,15 +158,23 @@ def run_pipeline(channel_id: str, topic: str, dry_run: bool = False, mock: bool 
     except Exception as _e:
         print(f"  ✗ Asset resolver failed: {_e} (requires network + staticmap installed)\n")
 
-    # Stage 6: Stock media — stub (built in S5)
-    print("▶ Stage 6: Stock media — pending S5")
-    print("  ⏳ skipped — run after Session 5 is complete\n")
+    # Stage 6: Stock media
+    print("▶ Stage 6: Stock media (Pexels + Pixabay)")
+    try:
+        import asyncio as _asyncio3
+        manifest = _asyncio3.run(select_all_stock(manifest))
+        stock_count = len(manifest.get("usedStockIds", []))
+        if not dry_run:
+            save_manifest(manifest, manifest_path)
+        print(f"  ✓ {stock_count} stock assets selected\n")
+    except Exception as _e:
+        print(f"  ✗ Stock selector failed: {_e} (requires PEXELS_API_KEY / PIXABAY_API_KEY)\n")
 
     # Stage 7: Render — stub (built in S8-S13)
     print("▶ Stage 7: Remotion render — pending S8-S13")
     print("  ⏳ skipped — run after channel components are complete\n")
 
-    print("✅  Pipeline complete (S1-S5 stages)")
+    print("✅  Pipeline complete (S1-S6 stages)")
     print(f"    Manifest: {manifest_path}\n")
     return manifest
 

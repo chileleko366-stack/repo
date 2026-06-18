@@ -42,7 +42,7 @@ All third-party sources, licences, and decisions tracked here.
 
 ### Scripts built
 | File | Purpose |
-|------|--------|
+|------|----------|
 | `src/scripts/research.py` | Fetches real facts: Wikipedia, PubMed, NASA, ArXiv, NIH, LoC, Wikimedia Commons |
 | `src/scripts/script_gen.py` | Groq LLM → 35s script JSON, 3-attempt validate/retry loop |
 | `src/scripts/manifest_builder.py` | Script → VideoManifest with exact frame timing |
@@ -107,7 +107,26 @@ All third-party sources, licences, and decisions tracked here.
 - `requirements.txt`: added `staticmap`
 
 ## Session 5 — Stock Media
-_To be filled after S5._
+
+### Python: `src/scripts/stock_selector.py`
+- `_build_query(beat)` → uses `visual.query` if set; else stop-word filters narration to top-3 keywords
+- **Pexels Videos** (portrait-preferred) → `_best_pexels_video_file()` picks hd>sd, portrait-first from `video_files[]`
+- **Pixabay Videos** fallback → medium quality MP4
+- **Pexels Photos** fallback → large2x JPEG
+- **Pixabay Photos** last resort → largeImageURL
+- No-repeat: `used_ids` set (seeded from `manifest['usedStockIds']`) prevents same `source:id` appearing twice
+- `select_all_stock(manifest)` → sequential per-beat (avoids rate limits); fills `beat['resolvedAsset']` + `manifest['usedStockIds']`
+
+### TypeScript: `src/remotion/stock/StockClip.tsx`
+- `StockVideoClip` — `<Video volume={0} playbackRate={1}>` + `interpolate` push-in zoom (1.0→1.07); `objectFit: 'cover'` handles landscape→portrait crop; 22% dark overlay
+- `StockPhotoClip` — `<Img>` Ken Burns (scale 1.06→1.14, translateX 0→−20px); gradient overlay
+- `StockClip` dispatcher: routes by `asset.kind === 'video' | 'photo'`
+
+### AssetLayer update
+- `stock_video` kind now dispatches to `StockClip` in `AssetLayer.tsx`
+
+### Pipeline update
+- `pipeline.py` Stage 6 wired: calls `select_all_stock()`, saves updated manifest
 
 ## Session 6 — Morphing System
 _To be filled after S6._
