@@ -80,7 +80,7 @@ All third-party sources, licences, and decisions tracked here.
 ### TypeScript: `src/remotion/captions/`
 - **`CaptionPage.tsx`** — single TikTok-style page; active word: accentColor + accentFont + scale 1.12; past: white/0.55; upcoming: white/0.20; spring `translateY` entrance via `enterProgress` prop
 - **`CaptionTrack.tsx`** — full-video overlay; builds flat `Caption[]` skipping `captionsVisible === false` beats; groups via `createTikTokStyleCaptions({ combineTokensWithinMilliseconds: 1200 })`; renders each page as `<Sequence>`; `CaptionPageAnimated` inner component uses `useCurrentFrame()` for spring (damping 14, stiffness 240, mass 0.8, 6 frames)
-- **`useWordBoundaries.ts`** — `delayRender`/`continueRender` hook; fetches all `_words.json` files for caption-visible beats; returns `Record<string, WordBoundary[]> | null`
+- **`useWordBoundaries.ts`** — `delayRender`/`continueRender` hook; fetches all `_words.json` for caption-visible beats; returns `Record<string, WordBoundary[]> | null`
 
 ### Pipeline update
 - `pipeline.py` Stage 4 wired: calls `generate_all_beats()` + `manifest_to_captions()`, writes captions JSON and updated manifest
@@ -129,7 +129,15 @@ All third-party sources, licences, and decisions tracked here.
 - `pipeline.py` Stage 6 wired: calls `select_all_stock()`, saves updated manifest
 
 ## Session 6 — Morphing System
-_To be filled after S6._
+
+### TypeScript: `src/remotion/morph/`
+- **`MorphShape.tsx`** — flubber `interpolate(fromPath, toPath)` memoized per path pair; `t = interpolate(frame, [start, start+dur], [0,1])`; renders `<svg><path d={morphFn(t)}/></svg>`; used for shape-to-shape transitions (arrow→circle, etc.)
+- **`MorphText.tsx`** — kinetic character-level text transition; exit phase (chars 0→invisible, staggered) + enter phase (chars invisible→1, staggered); each char driven by `spring({ frame: localFrame, fps, config: { damping:18, stiffness:260, mass:0.7 }, durationInFrames: 10 })`; scale 0.4→1 + translateY 18→0 + opacity 0→1
+- **`Counter.tsx`** — pure `interpolate(frame, [delay, delay+dur], [from, to], { easing: Easing.out(Easing.cubic) })` value; `toLocaleString` formatting with configurable decimals/prefix/suffix; spring scale entrance (0.6→1) on count start; no countUp.js RAF loop
+- **`index.ts`** — barrel: `Counter`, `MorphShape`, `MorphText`
+
+### Type declaration
+- `src/types/flubber.d.ts` — TypeScript module declaration: `interpolate`, `separate`, `combine`, `interpolateAll` with `InterpolateOptions.maxSegmentLength`
 
 ## Session 7 — Sound System
 _To be filled after S7._
