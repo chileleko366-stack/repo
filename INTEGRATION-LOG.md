@@ -46,7 +46,7 @@ All third-party sources, licences, and decisions tracked here.
 | `src/scripts/research.py` | Fetches real facts: Wikipedia, PubMed, NASA, ArXiv, NIH, LoC, Wikimedia Commons |
 | `src/scripts/script_gen.py` | Groq LLM → 35s script JSON, 3-attempt validate/retry loop |
 | `src/scripts/manifest_builder.py` | Script → VideoManifest with exact frame timing |
-| `src/scripts/pipeline.py` | Orchestrator: research → script → manifest → (TTS/assets/render stubs) |
+| `src/scripts/pipeline.py` | Orchestrator: research → script → manifest → TTS → assets → stock → sfx → render |
 | `src/scripts/mock_data.py` | Offline test briefs for sandbox environments |
 
 ### 35-second video timing (1050 frames at 30fps)
@@ -224,6 +224,25 @@ All third-party sources, licences, and decisions tracked here.
 - Registers all 6 compositions: Ch1–Ch6
 - All 1080×1920 @ 30fps, VIDEO_FRAMES=1050
 - `defaultProps: { manifest: {} as VideoManifest }` on each
+
+## Session 14 — Render Stage
+
+### Python: `src/scripts/render.py`
+- `render_video(manifest, output_path, concurrency, scale)` → drives `npx remotion render`
+- Wraps manifest as `{ "manifest": ... }` (matching each composition's `defaultProps` shape)
+- Writes props to a temp JSON file in repo root (avoids shell argument length limits for large SVG-embedded manifests)
+- Maps `channelId` → Remotion composition ID: `ch1–ch6` → `Ch1–Ch6`
+- Auto-generates output filename: `output/{channelId}_{topic-slug}_{unix-timestamp}.mp4`
+- Streams `npx remotion` stdout/stderr live via `subprocess.Popen`
+- Raises `RuntimeError` on non-zero exit so callers can catch cleanly
+- Standalone CLI: `python src/scripts/render.py <manifest.json> [--output path] [--concurrency N] [--scale 1.0]`
+
+### `pipeline.py` — Stage 7 live
+- Imports `render_video` from `render`; Stage 7 now calls it unless `--skip-render` or `--dry-run`
+- `--skip-render` flag: run S1–S6 only, write manifest, exit without rendering
+- `manifest['outputPath']` set on success; printed in final summary
+- Completion message prints both manifest path and video path
+- Sound design promoted to Stage 6.5 (was implicit in S7, now explicit in pipeline)
 
 ---
 

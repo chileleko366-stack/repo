@@ -3,6 +3,7 @@ Main pipeline orchestrator.
 Usage:
   python src/scripts/pipeline.py --channel ch1 --topic "Dunning-Kruger effect"
   python src/scripts/pipeline.py --channel ch6 --topic auto   # auto-picks a topic
+  python src/scripts/pipeline.py --channel ch1 --topic auto --skip-render
 
 Pipeline stages (ported from ShortGPT's numbered step dict):
   1. research   — fetch real facts from Wikipedia / PubMed / NASA etc.
@@ -11,8 +12,7 @@ Pipeline stages (ported from ShortGPT's numbered step dict):
   4. tts        — edge-tts word-boundary audio per beat
   5. assets     — resolver: person/brand/place/map
   6. stock      — contextual stock media selection
-  7. sound      — SFX event schedule + music bed assignment
-  8. render     — npx remotion render                    [S8-S13 — not built yet]
+  7. render     — npx remotion render → MP4
 """
 
 import argparse
@@ -34,10 +34,11 @@ from mock_data import get_mock_brief
 from tts import generate_all_beats, manifest_to_captions
 from asset_resolver import resolve_all_beats as resolve_assets
 from stock_selector import select_all_stock
-from sound_design import build_sound_design
+from sound_design import assign_sfx
+from render import render_video
 
 
-# ── Auto topic seeds per channel ──────────────────────────────────────────────
+# ── Auto topic seeds per channel ─────────────────────────────────────────────────────
 
 AUTO_TOPICS: dict[str, list[str]] = {
     "ch1": [
@@ -92,9 +93,15 @@ def pick_topic(channel_id: str) -> str:
 
 # ── Step runner ───────────────────────────────────────────────────────────────
 
-def run_pipeline(channel_id: str, topic: str, dry_run: bool = False, mock: bool = False) -> dict:
+def run_pipeline(
+    channel_id: str,
+    topic: str,
+    dry_run: bool = False,
+    mock: bool = False,
+    skip_render: bool = False,
+) -> dict:
     """
-    Runs all currently-implemented pipeline stages.
+    Runs all pipeline stages.
     Returns the manifest dict.
     """
     print(f"\n{'='*60}")
@@ -115,7 +122,7 @@ def run_pipeline(channel_id: str, topic: str, dry_run: bool = False, mock: bool 
     # Stage 2: Script generation
     print("▶ Stage 2: Script generation")
     script = generate_script(topic, channel_id, brief)
-    beats = script.get("beats", [])
+    beats  = script.get("beats", [])
     print(f"  ✓ hook + context + {len(beats)} beats + twist + outro")
     print(f"  ✓ hook: {script.get('hook', '')[:60]}...")
     print()
@@ -123,7 +130,7 @@ def run_pipeline(channel_id: str, topic: str, dry_run: bool = False, mock: bool 
     # Stage 3: Manifest
     print("▶ Stage 3: Manifest builder")
     manifest = build_manifest(script, channel_id)
-    out_dir = Path("public/manifests")
+    out_dir  = Path("public/manifests")
     out_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = out_dir / f"{channel_id}_manifest.json"
     if not dry_run:
@@ -172,40 +179,62 @@ def run_pipeline(channel_id: str, topic: str, dry_run: bool = False, mock: bool 
     except Exception as _e:
         print(f"  ✗ Stock selector failed: {_e} (requires PEXELS_API_KEY / PIXABAY_API_KEY)\n")
 
-    # Stage 7: Sound design
-    print("▶ Stage 7: Sound design (SFX schedule)")
-    sound_events = build_sound_design(manifest)
-    manifest["soundDesign"] = sound_events
-    if not dry_run:
-        save_manifest(manifest, manifest_path)
-    print(f"  ✓ {len(sound_events)} SFX events scheduled\n")
+    # Stage 6.5: Sound design
+    print("▶ Stage 6.5: Sound design")
+    try:
+        manifest = assign_sfx(manifest)
+        sfx_count = len(manifest.get("soundDesign", []))
+        if not dry_run:
+            save_manifest(manifest, manifest_path)
+        print(f"  ✓ {sfx_count} SFX events assigned\n")
+    except Exception as _e:
+        print(f"  ✗ Sound design failed: {_e}\n")
 
-    # Stage 8: Render — stub (built in S8-S13)
-    print("▶ Stage 8: Remotion render — pending S8-S13")
-    print("  ⏳ skipped — run after channel components are complete\n")
+    # Stage 7: Render
+    print("▶ Stage 7: Remotion render")
+    if skip_render or dry_run:
+        print("  ⏳ skipped (--skip-render / --dry-run)\n")
+    else:
+        try:
+            out_path = render_video(manifest)
+            print(f"  ✓ rendered → {out_path}\n")
+            manifest["outputPath"] = str(out_path)
+        except Exception as _e:
+            print(f"  ✗ Render failed: {_e}")
+            print("    Tip: run `npx remotion browser ensure` to install Chromium")
+            print("    Tip: ensure Node.js 22+ is on PATH\n")
 
-    print("✅  Pipeline complete (S1-S7 stages)")
-    print(f"    Manifest: {manifest_path}\n")
+    print("✅  Pipeline complete")
+    print(f"    Manifest : {manifest_path}")
+    if "outputPath" in manifest:
+        print(f"    Video    : {manifest['outputPath']}")
+    print()
     return manifest
 
 
-# ── CLI ───────────────────────────────────────────────────────────────────────
+# ── CLI ────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Dopamine Studios pipeline")
     parser.add_argument("--channel", required=True, choices=["ch1","ch2","ch3","ch4","ch5","ch6"])
-    parser.add_argument("--topic", default="auto", help='Topic string or "auto"')
-    parser.add_argument("--dry-run", action="store_true", help="Skip file writes")
-    parser.add_argument("--mock", action="store_true", help="Use mock research data (no API calls)")
+    parser.add_argument("--topic",       default="auto", help='Topic string or "auto"')
+    parser.add_argument("--dry-run",     action="store_true", help="Skip file writes and render")
+    parser.add_argument("--mock",        action="store_true", help="Use mock research data (no API calls)")
+    parser.add_argument("--skip-render", action="store_true", help="Run S1-S6 only, skip S7 render")
     args = parser.parse_args()
 
-    topic = pick_topic(args.channel) if args.topic == "auto" else args.topic
-    manifest = run_pipeline(args.channel, topic, dry_run=args.dry_run, mock=args.mock)
+    topic    = pick_topic(args.channel) if args.topic == "auto" else args.topic
+    manifest = run_pipeline(
+        args.channel, topic,
+        dry_run=args.dry_run,
+        mock=args.mock,
+        skip_render=args.skip_render,
+    )
     print(json.dumps({
-        "channelId": manifest["channelId"],
-        "topic": manifest["topic"],
+        "channelId":   manifest["channelId"],
+        "topic":       manifest["topic"],
         "totalFrames": manifest["totalFrames"],
-        "totalSeconds": manifest["totalSeconds"],
-        "beatCount": len(manifest["beats"]),
-        "sfxCount": len(manifest.get("soundDesign", [])),
+        "totalSeconds":manifest["totalSeconds"],
+        "beatCount":   len(manifest["beats"]),
+        "outputPath":  manifest.get("outputPath"),
     }, indent=2))
