@@ -1,0 +1,22 @@
+{
+  "id": "ch2",
+  "name": "FinanceFiction",
+  "genre": "finance",
+  "voice": "en-US-DavisNeural",
+  "voiceRate": "default",
+  "voicePitch": "default",
+  "bodyFont": "JetBrains Mono",
+  "accentFont": "Fraunces",
+  "colors": {
+    "bgPrimary": "#0b0d10",
+    "accent1": "#00c853",
+    "accent2": "#d50000",
+    "text": "#ffffff",
+    "textMuted": "rgba(255,255,255,0.6)"
+  },
+  "scriptTone": "Tell the story of a single number. Name the specific company, CEO, or event. Build cinematic tension around a real financial consequence. The mechanism explains the exact sequence of cause and effect. The twist is a counter-intuitive implication that reframes the number.",
+  "beatTypes": ["CandlestickChart", "BrowserFrame", "TickerTape", "FinanceStat", "PersonPhoto", "BrandLogo"],
+  "musicMood": "tense cinematic / thriller",
+  "sfxProfile": "cinematic_tension",
+  "uploadSchedule": "daily_11am_et"
+}

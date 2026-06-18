@@ -1,0 +1,22 @@
+{
+  "id": "ch5",
+  "name": "The Quiet Record",
+  "genre": "history",
+  "voice": "en-GB-SoniaNeural",
+  "voiceRate": "-8%",
+  "voicePitch": "-1st",
+  "bodyFont": "EB Garamond",
+  "accentFont": "EB Garamond",
+  "colors": {
+    "bgPrimary": "#14110d",
+    "accent1": "#5c4a2a",
+    "accent2": "#2c2015",
+    "text": "#e8dcc8",
+    "textMuted": "rgba(232,220,200,0.6)"
+  },
+  "scriptTone": "Reflective, past-tense documentary voice. Specific date, specific location, specific person. The twist is a quiet historical irony that recontextualises the event. The outro lands on a resonant connection to the present.",
+  "beatTypes": ["KenBurns", "CrossDissolve", "DocumentaryQuote", "MapBeat", "PersonPhoto", "MorphText"],
+  "musicMood": "melancholic piano / orchestral / documentary",
+  "sfxProfile": "orchestral_subtle",
+  "uploadSchedule": "daily_5pm_et"
+}
