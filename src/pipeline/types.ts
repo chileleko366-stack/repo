@@ -27,6 +27,7 @@ export interface VisualTag {
   // stat
   prefix?: string;
   suffix?: string;
+  stat_value?: number;
   // stock_video
   query?: string;
 }
@@ -120,20 +121,43 @@ export interface SoundEvent {
   volume?: number;
 }
 
+export type SectionKey =
+  | 'hook' | 'context'
+  | 'beat_0' | 'beat_1' | 'beat_2' | 'beat_3' | 'beat_4'
+  | 'twist' | 'outro';
+
+export const FPS = 30;
+export const VIDEO_FRAMES = 1050; // 35s
+export const SECTION_FRAMES: Record<SectionKey, [number, number]> = {
+  hook:    [0,    90],
+  context: [90,   90],
+  beat_0:  [180, 120],
+  beat_1:  [300, 120],
+  beat_2:  [420, 120],
+  beat_3:  [540, 120],
+  beat_4:  [660, 120],
+  twist:   [780,  90],
+  outro:   [870, 180],
+};
+
 export interface VideoManifest {
   channelId: ChannelId;
   topic: string;
+  fps: typeof FPS;
+  totalFrames: typeof VIDEO_FRAMES;
+  totalSeconds: 35;
   script: Script;
   beats: ManifestBeat[];
-  totalFrames: number;
-  fps: number;
   soundDesign: SoundEvent[];
   usedStockIds: string[];
+  resolvedAssets: Record<string, PersonAsset | BrandAsset | PlaceAsset | DistanceAsset | StockAsset>;
+  ctaText: string;
 }
 
 export interface ManifestBeat {
   beatIndex: number;
   beatId: string;
+  sectionKey: SectionKey;
   startFrame: number;
   durationFrames: number;
   narration: string;
@@ -141,7 +165,12 @@ export interface ManifestBeat {
   emphasis_keyword: string;
   morph_from: string | null;
   bg_color: string;
-  audio: BeatAudio;
+  captionsVisible: boolean;
+  audioPath: string;
+  wordBoundariesPath: string;
+  // Populated after TTS stage:
+  audio?: BeatAudio;
+  // Populated after asset resolver stage:
   resolvedAsset?: PersonAsset | BrandAsset | PlaceAsset | DistanceAsset | StockAsset | null;
 }
 

@@ -1,0 +1,8 @@
+edge-tts
+piper-tts
+rembg
+Pillow
+requests
+aiohttp
+groq
+python-dotenv

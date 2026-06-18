@@ -31,7 +31,44 @@ All third-party sources, licences, and decisions tracked here.
 ---
 
 ## Session 2 — Script Engine
-_To be filled after S2._
+
+### Reference repos read
+| Repo | URL | Files ported |
+|------|-----|--------------|
+| SaarD00/AI-Youtube-Shorts-Generator | https://github.com/SaarD00/AI-Youtube-Shorts-Generator | `modules/brain.py` — Hook→Context→Mechanism→Twist structure, dual-visual tagging pattern |
+| RayVentura/ShortGPT | https://github.com/RayVentura/ShortGPT | `content_short_engine.py` — numbered step dict, approve/reject retry loop |
+| harry0703/MoneyPrinterTurbo | https://github.com/harry0703/MoneyPrinterTurbo | `app/controllers/v1/llm.py` — finance-specific prompt structure |
+| prajwal-y/video_explainer | https://github.com/prajwal-y/video_explainer | `src/planning/prompts.py` — research-first pipeline, scene type taxonomy |
+
+### Scripts built
+| File | Purpose |
+|------|--------|
+| `src/scripts/research.py` | Fetches real facts: Wikipedia, PubMed, NASA, ArXiv, NIH, LoC, Wikimedia Commons |
+| `src/scripts/script_gen.py` | Groq LLM → 35s script JSON, 3-attempt validate/retry loop |
+| `src/scripts/manifest_builder.py` | Script → VideoManifest with exact frame timing |
+| `src/scripts/pipeline.py` | Orchestrator: research → script → manifest → (TTS/assets/render stubs) |
+| `src/scripts/mock_data.py` | Offline test briefs for sandbox environments |
+
+### 35-second video timing (1050 frames at 30fps)
+| Section | Start | Duration | End |
+|---------|-------|----------|-----|
+| hook | 0 | 90 | 90 |
+| context | 90 | 90 | 180 |
+| beat_0–4 | 180 | 120 each | 780 |
+| twist | 780 | 90 | 870 |
+| outro | 870 | 180 | 1050 |
+
+### LLM model
+- Provider: Groq
+- Model: `llama-3.3-70b-versatile`
+- `response_format: {"type": "json_object"}` enforced
+- Retries: up to 3, with errors fed back into next prompt
+
+### Caption visibility rule (implemented)
+- `person`, `brand`, `product`, `place`, `distance`, `map`, `anatomy`, `celestial`, `app`, `stock_video` → captions HIDDEN
+- All others → captions VISIBLE
+
+---
 
 ## Session 3 — Voice + Captions
 _To be filled after S3._
