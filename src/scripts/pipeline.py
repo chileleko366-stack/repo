@@ -9,7 +9,7 @@ Pipeline stages (ported from ShortGPT's numbered step dict):
   2. script     — Groq LLM → validated 35s script JSON
   3. manifest   — timing layout → manifest JSON
   4. tts        — edge-tts word-boundary audio per beat
-  5. assets     — resolver: person/brand/place/map       [S4 — not built yet]
+  5. assets     — resolver: person/brand/place/map
   6. stock      — contextual stock media selection       [S5 — not built yet]
   7. render     — npx remotion render                    [S8-S13 — not built yet]
 """
@@ -31,6 +31,7 @@ from script_gen import generate_script
 from manifest_builder import build_manifest, save_manifest
 from mock_data import get_mock_brief
 from tts import generate_all_beats, manifest_to_captions
+from asset_resolver import resolve_all_beats as resolve_assets
 
 
 # ── Auto topic seeds per channel ──────────────────────────────────────────────
@@ -144,9 +145,17 @@ def run_pipeline(channel_id: str, topic: str, dry_run: bool = False, mock: bool 
     except Exception as _e:
         print(f"  ✗ TTS failed: {_e} (requires network + edge-tts installed)\n")
 
-    # Stage 5: Asset resolver — stub (built in S4)
-    print("▶ Stage 5: Asset resolver — pending S4")
-    print("  ⏳ skipped — run after Session 4 is complete\n")
+    # Stage 5: Asset resolver
+    print("▶ Stage 5: Asset resolver (person/brand/place/map/distance)")
+    try:
+        import asyncio as _asyncio2
+        manifest = _asyncio2.run(resolve_assets(manifest))
+        resolved_count = len(manifest.get("resolvedAssets", {}))
+        if not dry_run:
+            save_manifest(manifest, manifest_path)
+        print(f"  ✓ {resolved_count} assets resolved\n")
+    except Exception as _e:
+        print(f"  ✗ Asset resolver failed: {_e} (requires network + staticmap installed)\n")
 
     # Stage 6: Stock media — stub (built in S5)
     print("▶ Stage 6: Stock media — pending S5")
@@ -156,7 +165,7 @@ def run_pipeline(channel_id: str, topic: str, dry_run: bool = False, mock: bool 
     print("▶ Stage 7: Remotion render — pending S8-S13")
     print("  ⏳ skipped — run after channel components are complete\n")
 
-    print("✅  Pipeline complete (S1-S4 stages)")
+    print("✅  Pipeline complete (S1-S5 stages)")
     print(f"    Manifest: {manifest_path}\n")
     return manifest
 

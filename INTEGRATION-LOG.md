@@ -86,7 +86,25 @@ All third-party sources, licences, and decisions tracked here.
 - `pipeline.py` Stage 4 wired: calls `generate_all_beats()` + `manifest_to_captions()`, writes captions JSON and updated manifest
 
 ## Session 4 — Asset Resolver
-_To be filled after S4._
+
+### Python: `src/scripts/asset_resolver.py`
+- **person** → `_wikipedia_thumbnail()` MediaWiki API → download → `rembg.remove()` PNG cutout; fallback to initials badge
+- **brand / product / app** → Node.js subprocess queries `simple-icons` package by name; returns `{svgString, hex, title}`
+- **place** → `_wikipedia_thumbnail()` at 1200px; saves JPEG
+- **map** → OSM Nominatim geocode → `staticmap.StaticMap` renders 1080×960 OSM tile image; single red marker
+- **distance** → geocode both ends; `_haversine_km()`; `_auto_zoom()` to fit both markers; `_latlon_to_px()` Web Mercator → pixel coords for the SVG line; supports km/miles/ly units
+- `resolve_all_beats(manifest)` → `asyncio.gather` all beats concurrently; fills `manifest['resolvedAssets']` + `beat['resolvedAsset']`
+
+### TypeScript: `src/remotion/assets/`
+- **`PersonCard.tsx`** — spring entrance (damping 18, stiffness 180); max 900×800px cutout; initials fallback badge
+- **`BrandLogo.tsx`** — spring pop-in (damping 14, stiffness 280); injects brand hex into SVG fill; ambient glow div
+- **`PlacePhoto.tsx`** — full-frame Ken Burns pan+zoom, pure `interpolate` on scale/translateX/Y; dark vignette gradient overlay
+- **`DistanceMap.tsx`** — 1080×960 map in upper half; SVG `strokeDashoffset` line draw (0→60% of beat); frame-driven counter (45%→90%); to-marker pulse via `frame % 30`
+- **`AssetLayer.tsx`** — dispatcher; reads `beat.resolvedAsset` + `beat.visual.kind`; passes to correct component; returns null for anatomy/celestial (handled by ch4/ch6)
+
+### Pipeline update
+- `pipeline.py` Stage 5 wired: calls `resolve_assets()`, saves updated manifest
+- `requirements.txt`: added `staticmap`
 
 ## Session 5 — Stock Media
 _To be filled after S5._
