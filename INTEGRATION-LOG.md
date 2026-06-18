@@ -33,12 +33,12 @@ All third-party sources, licences, and decisions tracked here.
 ## Session 2 — Script Engine
 
 ### Reference repos read
-| Repo | URL | Files ported |
-|------|-----|--------------|
-| SaarD00/AI-Youtube-Shorts-Generator | https://github.com/SaarD00/AI-Youtube-Shorts-Generator | `modules/brain.py` — Hook→Context→Mechanism→Twist structure, dual-visual tagging pattern |
-| RayVentura/ShortGPT | https://github.com/RayVentura/ShortGPT | `content_short_engine.py` — numbered step dict, approve/reject retry loop |
-| harry0703/MoneyPrinterTurbo | https://github.com/harry0703/MoneyPrinterTurbo | `app/controllers/v1/llm.py` — finance-specific prompt structure |
-| prajwal-y/video_explainer | https://github.com/prajwal-y/video_explainer | `src/planning/prompts.py` — research-first pipeline, scene type taxonomy |
+| Repo | URL | Commit (depth=1) | Files ported |
+|------|-----|-----------------|--------------|
+| SaarD00/AI-Youtube-Shorts-Generator | https://github.com/SaarD00/AI-Youtube-Shorts-Generator | depth=1 | `modules/brain.py` — Hook→Context→Mechanism→Twist structure, dual-visual tagging pattern |
+| RayVentura/ShortGPT | https://github.com/RayVentura/ShortGPT | depth=1 | `shortGPT/engine/content_short_engine.py` — numbered step dict, approve/reject retry loop |
+| harry0703/MoneyPrinterTurbo | https://github.com/harry0703/MoneyPrinterTurbo | depth=1 | `app/controllers/v1/llm.py` — finance-specific prompt structure concept |
+| prajwal-y/video_explainer | https://github.com/prajwal-y/video_explainer | depth=1 | `src/planning/prompts.py` — research-first pipeline structure, scene type taxonomy |
 
 ### Scripts built
 | File | Purpose |
@@ -68,10 +68,22 @@ All third-party sources, licences, and decisions tracked here.
 - `person`, `brand`, `product`, `place`, `distance`, `map`, `anatomy`, `celestial`, `app`, `stock_video` → captions HIDDEN
 - All others → captions VISIBLE
 
----
-
 ## Session 3 — Voice + Captions
-_To be filled after S3._
+
+### Python: `src/scripts/tts.py`
+- **edge-tts** async voice engine; `VOICE_PROFILES` maps all 6 channels to Azure Neural voices
+- `generate_beat_audio()` → streams MP3 + WordBoundary events; converts 100ns ticks to ms (`tick // 10_000`)
+- Writes `public/audio/{beat_id}.mp3` + `public/audio/{beat_id}_words.json`
+- `generate_all_beats(manifest)` → parallel `asyncio.gather` across all beats, back-fills `beat.audio`, `beat.audioPath`, `beat.wordBoundariesPath`
+- `manifest_to_captions(manifest)` → flat `Caption[]` for entire video, timestamps offset by `beat.startFrame / fps * 1000`
+
+### TypeScript: `src/remotion/captions/`
+- **`CaptionPage.tsx`** — single TikTok-style page; active word: accentColor + accentFont + scale 1.12; past: white/0.55; upcoming: white/0.20; spring `translateY` entrance via `enterProgress` prop
+- **`CaptionTrack.tsx`** — full-video overlay; builds flat `Caption[]` skipping `captionsVisible === false` beats; groups via `createTikTokStyleCaptions({ combineTokensWithinMilliseconds: 1200 })`; renders each page as `<Sequence>`; `CaptionPageAnimated` inner component uses `useCurrentFrame()` for spring (damping 14, stiffness 240, mass 0.8, 6 frames)
+- **`useWordBoundaries.ts`** — `delayRender`/`continueRender` hook; fetches all `_words.json` files for caption-visible beats; returns `Record<string, WordBoundary[]> | null`
+
+### Pipeline update
+- `pipeline.py` Stage 4 wired: calls `generate_all_beats()` + `manifest_to_captions()`, writes captions JSON and updated manifest
 
 ## Session 4 — Asset Resolver
 _To be filled after S4._
