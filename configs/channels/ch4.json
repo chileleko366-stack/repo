@@ -1,0 +1,22 @@
+{
+  "id": "ch4",
+  "name": "The Grey Matter",
+  "genre": "neuroscience",
+  "voice": "en-US-AndrewNeural",
+  "voiceRate": "default",
+  "voicePitch": "default",
+  "bodyFont": "Space Grotesk",
+  "accentFont": "Space Grotesk",
+  "colors": {
+    "bgPrimary": "#12161b",
+    "accent1": "#00bcd4",
+    "accent2": "#7c4dff",
+    "text": "#ffffff",
+    "textMuted": "rgba(255,255,255,0.6)"
+  },
+  "scriptTone": "Calm, analogy-led. Name the specific brain region, specific neurotransmitter, specific study. Explain the mechanism with one physical analogy. The outro poses the open scientific question the field has not yet answered.",
+  "beatTypes": ["BrainExplainer", "PsychCard", "Counter", "StockVideo", "PersonPhoto", "AnatomyLabel"],
+  "musicMood": "ambient electronic / calm science",
+  "sfxProfile": "soft_electronic",
+  "uploadSchedule": "daily_7am_et"
+}

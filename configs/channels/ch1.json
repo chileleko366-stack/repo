@@ -1,0 +1,22 @@
+{
+  "id": "ch1",
+  "name": "Dopamine Loop",
+  "genre": "behavioural psychology",
+  "voice": "en-US-AvaNeural",
+  "voiceRate": "+8%",
+  "voicePitch": "default",
+  "bodyFont": "JetBrains Mono",
+  "accentFont": "Anton",
+  "colors": {
+    "bgPrimary": "#16121f",
+    "accent1": "#d400ff",
+    "accent2": "#00f0ff",
+    "text": "#ffffff",
+    "textMuted": "rgba(255,255,255,0.6)"
+  },
+  "scriptTone": "Second-person, fast sentences. The hook must make the viewer question their own behaviour. The mechanism explains the brain chemistry or psychology mechanism — specific neurotransmitter names, study citations. The twist is a 'you do this right now without knowing it' reveal.",
+  "beatTypes": ["KineticTitle", "PsychCard", "HardCutFlash", "Counter", "StockVideo", "PersonPhoto"],
+  "musicMood": "synthwave / retro electronic",
+  "sfxProfile": "kenney_retro",
+  "uploadSchedule": "daily_9am_et"
+}

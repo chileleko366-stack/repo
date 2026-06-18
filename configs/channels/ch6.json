@@ -1,0 +1,22 @@
+{
+  "id": "ch6",
+  "name": "Red Space Facts",
+  "genre": "space",
+  "voice": "en-US-AriaNeural",
+  "voiceRate": "default",
+  "voicePitch": "default",
+  "bodyFont": "Orbitron",
+  "accentFont": "Orbitron",
+  "colors": {
+    "bgPrimary": "#05060a",
+    "accent1": "#ff1744",
+    "accent2": "#00e5ff",
+    "text": "#ffffff",
+    "textMuted": "rgba(255,255,255,0.6)"
+  },
+  "scriptTone": "Awe first, precision second. Name the specific body, mission, or phenomenon. Every beat includes one mind-expanding specific number with real context (not 'millions' — say '4.6 billion'). Facts checked against research sources.",
+  "beatTypes": ["CelestialBody", "Starfield", "SpaceBackdrop", "Counter", "DistanceMap", "NASAImageBackdrop"],
+  "musicMood": "cosmic space-synth / orchestral",
+  "sfxProfile": "cosmic_ambient",
+  "uploadSchedule": "daily_6pm_et"
+}

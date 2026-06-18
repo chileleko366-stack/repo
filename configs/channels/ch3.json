@@ -1,0 +1,22 @@
+{
+  "id": "ch3",
+  "name": "Redacted",
+  "genre": "history/declassified/conspiracy",
+  "voice": "en-US-BrianNeural",
+  "voiceRate": "-5%",
+  "voicePitch": "-2st",
+  "bodyFont": "Special Elite",
+  "accentFont": "Special Elite",
+  "colors": {
+    "bgPrimary": "#000000",
+    "accent1": "#cc0000",
+    "accent2": "#1a1305",
+    "text": "#e8e0cc",
+    "textMuted": "rgba(232,224,204,0.6)"
+  },
+  "scriptTone": "Clipped, declassified-file cadence. Name real people, real dates, real operations. Withhold the key fact until the twist. Every sentence earns the next. The outro implies there is more still classified.",
+  "beatTypes": ["RedactionBar", "ScrambleReveal", "ClassifiedStamp", "GlitchWord", "PersonPhoto", "MapBeat"],
+  "musicMood": "dark ambient / suspense drone",
+  "sfxProfile": "cinematic_suspense",
+  "uploadSchedule": "daily_2pm_et"
+}

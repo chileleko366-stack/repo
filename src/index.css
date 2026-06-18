@@ -1,0 +1,4 @@
+/* Global CSS reset — no framework */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
