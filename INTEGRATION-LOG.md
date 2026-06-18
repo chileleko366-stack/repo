@@ -149,13 +149,31 @@ All third-party sources, licences, and decisions tracked here.
 - `build_sound_design(manifest)` → returns sorted `SoundEvent[]` list without mutating manifest
 
 ### TypeScript: `src/remotion/sound/`
-- **`SfxLayer.tsx`** — renders one `<Audio src={staticFile('sfx/{name}.mp3')}>` per `SoundEvent` inside a `<Sequence from={startFrame} durationInFrames={durationFrames} layout="none">`; 3-frame linear fade-in/out to avoid click artifacts
-- **`Soundtrack.tsx`** — `<Audio src={staticFile('music/{channelId}.mp3')} loop>`; volume driven by `interpolate(frame, [0, 30, 1020, 1050], [0, musicVolume, musicVolume, 0])`; default `musicVolume=0.18`; per-channel music file comments note CC0/CC BY 4.0 sources
+- **`SfxLayer.tsx`** — renders one `<Audio src={staticFile('sfx/{name}.mp3')}>` per `SoundEvent` inside a `<Sequence>`; `useCurrentFrame()` drives 3-frame linear fade-in/out (bugfix applied S8)
+- **`Soundtrack.tsx`** — `<Audio src={staticFile('music/{channelId}.mp3')} loop>`; volume driven by `interpolate(frame, [0, 30, 1020, 1050], [0, musicVolume, musicVolume, 0])`; default `musicVolume=0.18`
 
 ### Pipeline update
 - `pipeline.py` Stage 7 wired: `build_sound_design(manifest)` → `manifest['soundDesign']`; completion message updated to S1-S7
 
-## Sessions 8–13 — Channel Components
+## Session 8 — Channel 1 (Dopamine Loop)
+
+### TypeScript: `src/pipeline/channelConfigs.ts`
+- All 6 `ChannelConfig` records: ch1 (#16121f/#d400ff/#00f0ff, Anton/Space Grotesk), ch2 (#0a0e1a/#00ff88/#ff4444, JetBrains Mono), ch3 (#080808/#cc0000/#f0f0f0, Special Elite), ch4 (#12121e/#e94560/#4cc9f0, Fraunces/Anton), ch5 (#100d08/#c8a96e/#f5f0e8, EB Garamond/Fraunces), ch6 (#050010/#ff4500/#a0c4ff, Orbitron)
+
+### TypeScript: `src/remotion/channels/ch1/`
+- **`KineticTitle.tsx`** — word-by-word spring entrance (stagger 4 frames, damping 18, stiffness 200); emphasisWord: Anton 94px + #d400ff + glow; normal words: Anton 76px + white; translateY 52→0 + opacity 0→1
+- **`PsychCard.tsx`** — glassmorphism card (960px wide, rgba border + box-shadow); spring pop-in scale 0.84→1; keyword in Anton 78/110px #d400ff; Counter for stat beats (delay=54, dur=54 frames = 45%→90% of 120-frame beat); cyan underline interpolate 0→300px
+- **`HardCutFlash.tsx`** — `interpolate(frame, [0,5], [peakOpacity,0])`; renders null after frame 5; default color #ffffff, peakOpacity 0.55
+- **`Ch1Composition.tsx`** — AbsoluteFill root; iterates `manifest.beats` mapping each to a `<Sequence>`; `BeatSection` sub-component renders bg+AssetLayer+gradient-scrim+PsychCard+KineticTitle+Audio+HardCutFlash; global: Soundtrack ch1, SfxLayer, CaptionTrack (guarded by `wordBoundaries !== null`); imports `@fontsource/anton` + `@fontsource/space-grotesk`
+
+### Updated: `src/Root.tsx`
+- Registers `<Composition id="Ch1" component={Ch1Composition} durationInFrames={VIDEO_FRAMES} fps={FPS} width={1080} height={1920} defaultProps={{ manifest: {} as VideoManifest }} />`
+- Replaces placeholder stub
+
+### Bugfix: `src/remotion/sound/SfxLayer.tsx`
+- `SfxEvent` was using hardcoded `0` instead of `useCurrentFrame()` — volume was always 0; fixed by importing and using `useCurrentFrame()`
+
+## Sessions 9–13 — Channel Components
 _To be filled after each channel session._
 
 ---
