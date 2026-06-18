@@ -1,21 +1,24 @@
 """
 Main pipeline orchestrator.
 Usage:
+  python src/scripts/pipeline.py --channel ch1
   python src/scripts/pipeline.py --channel ch1 --topic "Dunning-Kruger effect"
-  python src/scripts/pipeline.py --channel ch6 --topic auto   # auto-picks a topic
+  python src/scripts/pipeline.py --all            # runs all channels, auto-picks topics
+  python src/scripts/pipeline.py --all --mock     # mock research, no API calls
+  python src/scripts/pipeline.py --channel ch1 --dry-run  # skip file writes
 
-Pipeline stages (ported from ShortGPT's numbered step dict):
+Pipeline stages:
   1. research   — fetch real facts from Wikipedia / PubMed / NASA etc.
   2. script     — Groq LLM → validated 35s script JSON
-  3. manifest   — timing layout → manifest JSON
+  3. manifest   — timing layout → out/{channel_id}/manifest.json
   4. tts        — edge-tts word-boundary audio per beat
   5. assets     — resolver: person/brand/place/map
   6. stock      — contextual stock media selection
-  7. sound      — SFX event schedule + music bed assignment
-  8. render     — npx remotion render                    [S8-S13 — not built yet]
+  7. sound      — SFX event schedule
 """
 
 import argparse
+import glob
 import json
 import os
 import sys
@@ -37,9 +40,24 @@ from stock_selector import select_all_stock
 from sound_design import build_sound_design
 
 
-# ── Auto topic seeds per channel ──────────────────────────────────────────────
+# ── Channel discovery ────────────────────────────────────────────────────────
 
-AUTO_TOPICS: dict[str, list[str]] = {
+def load_all_channel_ids() -> list:
+    """Returns channel IDs in alphabetical config-file order."""
+    paths = sorted(glob.glob("configs/channels/*.json"))
+    if not paths:
+        raise FileNotFoundError("No channel configs found in configs/channels/*.json")
+    ids = []
+    for p in paths:
+        with open(p) as f:
+            cfg = json.load(f)
+        ids.append(cfg["id"])
+    return ids
+
+
+# ── Auto topic seeds per channel ───────────────────────────────────────────────────
+
+AUTO_TOPICS = {
     "ch1": [
         "Dunning-Kruger effect",
         "confirmation bias mechanism",
@@ -90,12 +108,13 @@ def pick_topic(channel_id: str) -> str:
     return random.choice(AUTO_TOPICS.get(channel_id, ["interesting fact"]))
 
 
-# ── Step runner ───────────────────────────────────────────────────────────────
+# ── Single-channel pipeline ────────────────────────────────────────────────────────
 
 def run_pipeline(channel_id: str, topic: str, dry_run: bool = False, mock: bool = False) -> dict:
     """
-    Runs all currently-implemented pipeline stages.
-    Returns the manifest dict.
+    Runs all pipeline stages for one channel.
+    Raises on any stage failure so callers receive a non-zero exit code.
+    Returns the final manifest dict.
     """
     print(f"\n{'='*60}")
     print(f"  DOPAMINE STUDIOS PIPELINE")
@@ -123,54 +142,45 @@ def run_pipeline(channel_id: str, topic: str, dry_run: bool = False, mock: bool 
     # Stage 3: Manifest
     print("▶ Stage 3: Manifest builder")
     manifest = build_manifest(script, channel_id)
-    out_dir = Path("public/manifests")
+    out_dir = Path("out") / channel_id
     out_dir.mkdir(parents=True, exist_ok=True)
-    manifest_path = out_dir / f"{channel_id}_manifest.json"
+    manifest_path = out_dir / "manifest.json"
     if not dry_run:
         save_manifest(manifest, manifest_path)
     print(f"  ✓ {manifest['totalFrames']} frames ({manifest['totalSeconds']}s) → {manifest_path}\n")
 
     # Stage 4: TTS
+    # Raises on failure — no try/except so CI marks the step failed.
     print("▶ Stage 4: TTS (voice + word boundaries)")
-    try:
-        import asyncio as _asyncio
-        import json as _json
-        manifest = _asyncio.run(generate_all_beats(manifest))
-        captions = manifest_to_captions(manifest)
-        caps_path = Path("public") / "audio" / f"{channel_id}_captions.json"
-        if not dry_run:
-            caps_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(caps_path, "w") as _f:
-                _json.dump(captions, _f, indent=2)
-            save_manifest(manifest, manifest_path)
-        dur = manifest.get("actualDurationS", "?")
-        print(f"  ✓ {dur}s audio, {len(captions)} caption tokens → {caps_path}\n")
-    except Exception as _e:
-        print(f"  ✗ TTS failed: {_e} (requires network + edge-tts installed)\n")
+    import asyncio as _asyncio
+    manifest = _asyncio.run(generate_all_beats(manifest))
+    captions = manifest_to_captions(manifest)
+    caps_path = Path("public") / "audio" / f"{channel_id}_captions.json"
+    if not dry_run:
+        caps_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(caps_path, "w") as _f:
+            json.dump(captions, _f, indent=2)
+        save_manifest(manifest, manifest_path)
+    dur = manifest.get("actualDurationS", "?")
+    print(f"  ✓ {dur}s audio, {len(captions)} caption tokens → {caps_path}\n")
 
     # Stage 5: Asset resolver
     print("▶ Stage 5: Asset resolver (person/brand/place/map/distance)")
-    try:
-        import asyncio as _asyncio2
-        manifest = _asyncio2.run(resolve_assets(manifest))
-        resolved_count = len(manifest.get("resolvedAssets", {}))
-        if not dry_run:
-            save_manifest(manifest, manifest_path)
-        print(f"  ✓ {resolved_count} assets resolved\n")
-    except Exception as _e:
-        print(f"  ✗ Asset resolver failed: {_e} (requires network + staticmap installed)\n")
+    import asyncio as _asyncio2
+    manifest = _asyncio2.run(resolve_assets(manifest))
+    resolved_count = len(manifest.get("resolvedAssets", {}))
+    if not dry_run:
+        save_manifest(manifest, manifest_path)
+    print(f"  ✓ {resolved_count} assets resolved\n")
 
     # Stage 6: Stock media
     print("▶ Stage 6: Stock media (Pexels + Pixabay)")
-    try:
-        import asyncio as _asyncio3
-        manifest = _asyncio3.run(select_all_stock(manifest))
-        stock_count = len(manifest.get("usedStockIds", []))
-        if not dry_run:
-            save_manifest(manifest, manifest_path)
-        print(f"  ✓ {stock_count} stock assets selected\n")
-    except Exception as _e:
-        print(f"  ✗ Stock selector failed: {_e} (requires PEXELS_API_KEY / PIXABAY_API_KEY)\n")
+    import asyncio as _asyncio3
+    manifest = _asyncio3.run(select_all_stock(manifest))
+    stock_count = len(manifest.get("usedStockIds", []))
+    if not dry_run:
+        save_manifest(manifest, manifest_path)
+    print(f"  ✓ {stock_count} stock assets selected\n")
 
     # Stage 7: Sound design
     print("▶ Stage 7: Sound design (SFX schedule)")
@@ -180,32 +190,60 @@ def run_pipeline(channel_id: str, topic: str, dry_run: bool = False, mock: bool 
         save_manifest(manifest, manifest_path)
     print(f"  ✓ {len(sound_events)} SFX events scheduled\n")
 
-    # Stage 8: Render — stub (built in S8-S13)
-    print("▶ Stage 8: Remotion render — pending S8-S13")
-    print("  ⏳ skipped — run after channel components are complete\n")
-
-    print("✅  Pipeline complete (S1-S7 stages)")
+    print("✅  Pipeline complete (S1–S7)")
     print(f"    Manifest: {manifest_path}\n")
     return manifest
 
 
-# ── CLI ───────────────────────────────────────────────────────────────────────
+# ── CLI ────────────────────────────────────────────────────────────────────────
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description="Dopamine Studios pipeline")
-    parser.add_argument("--channel", required=True, choices=["ch1","ch2","ch3","ch4","ch5","ch6"])
-    parser.add_argument("--topic", default="auto", help='Topic string or "auto"')
-    parser.add_argument("--dry-run", action="store_true", help="Skip file writes")
-    parser.add_argument("--mock", action="store_true", help="Use mock research data (no API calls)")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--channel", type=str, metavar="ID",
+                       help="Single channel ID (e.g. ch1)")
+    group.add_argument("--all", action="store_true",
+                       help="Run all channels sequentially")
+    parser.add_argument("--topic", default="auto",
+                        help='Topic string or "auto" (only used with --channel)')
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Skip file writes")
+    parser.add_argument("--mock", action="store_true",
+                        help="Use mock research data (no network calls)")
     args = parser.parse_args()
 
-    topic = pick_topic(args.channel) if args.topic == "auto" else args.topic
-    manifest = run_pipeline(args.channel, topic, dry_run=args.dry_run, mock=args.mock)
-    print(json.dumps({
-        "channelId": manifest["channelId"],
-        "topic": manifest["topic"],
-        "totalFrames": manifest["totalFrames"],
-        "totalSeconds": manifest["totalSeconds"],
-        "beatCount": len(manifest["beats"]),
-        "sfxCount": len(manifest.get("soundDesign", [])),
-    }, indent=2))
+    channel_ids = load_all_channel_ids()
+
+    if args.all:
+        failed = []
+        for cid in channel_ids:
+            topic = pick_topic(cid)
+            try:
+                run_pipeline(cid, topic, dry_run=args.dry_run, mock=args.mock)
+            except Exception as exc:
+                print(f"[pipeline] ✗ {cid}: {exc}", file=sys.stderr)
+                failed.append(cid)
+        if failed:
+            print(f"[pipeline] FAILED channels: {failed}", file=sys.stderr)
+            sys.exit(1)
+    else:
+        if args.channel not in channel_ids:
+            print(f"[pipeline] Unknown channel: {args.channel}. "
+                  f"Available: {channel_ids}", file=sys.stderr)
+            sys.exit(1)
+        topic = pick_topic(args.channel) if args.topic == "auto" else args.topic
+        manifest = run_pipeline(args.channel, topic,
+                                dry_run=args.dry_run, mock=args.mock)
+        print(json.dumps({
+            "channelId":    manifest["channelId"],
+            "topic":        manifest["topic"],
+            "title":        manifest.get("title", ""),
+            "totalFrames":  manifest["totalFrames"],
+            "totalSeconds": manifest["totalSeconds"],
+            "beatCount":    len(manifest["beats"]),
+            "sfxCount":     len(manifest.get("soundDesign", [])),
+        }, indent=2))
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,124 @@
+"""
+Render stage — drives `npx remotion render` for each channel's manifest.
+
+Usage:
+  python src/scripts/render_all.py --channel ch1
+  python src/scripts/render_all.py --all
+
+Reads  : out/{channel_id}/manifest.json
+Writes : out/{channel_id}/short.mp4
+
+The Remotion composition ID is looked up from CHANNEL_COMPS.
+The registered composition on this branch is "DopamineStudios".
+Update CHANNEL_COMPS when per-channel compositions land.
+"""
+
+import argparse
+import glob
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+# Map channel IDs → Remotion composition IDs registered in src/Root.tsx.
+# "DopamineStudios" is the current placeholder; update when Ch1–Ch6 land.
+CHANNEL_COMPS = {
+    "ch1": "DopamineStudios",
+    "ch2": "DopamineStudios",
+    "ch3": "DopamineStudios",
+    "ch4": "DopamineStudios",
+    "ch5": "DopamineStudios",
+    "ch6": "DopamineStudios",
+}
+
+
+def load_all_channel_ids() -> list:
+    """Returns channel IDs in alphabetical config-file order."""
+    paths = sorted(glob.glob("configs/channels/*.json"))
+    if not paths:
+        raise FileNotFoundError("No channel configs found in configs/channels/*.json")
+    ids = []
+    for p in paths:
+        with open(p) as f:
+            cfg = json.load(f)
+        ids.append(cfg["id"])
+    return ids
+
+
+def render_channel(channel_id: str) -> None:
+    """
+    Renders one channel's short.
+    Raises RuntimeError (with stderr) if the Remotion process exits non-zero.
+    """
+    manifest_path = Path("out") / channel_id / "manifest.json"
+    output_path   = Path("out") / channel_id / "short.mp4"
+
+    if not manifest_path.exists():
+        raise FileNotFoundError(
+            f"Manifest not found: {manifest_path}. "
+            "Run pipeline.py first."
+        )
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    comp_id = CHANNEL_COMPS.get(channel_id, "DopamineStudios")
+
+    # Ensure Chromium path is forwarded to the subprocess.
+    chrome_exe = os.environ.get("REMOTION_CHROME_EXECUTABLE", "chromium-browser")
+    env = {**os.environ, "REMOTION_CHROME_EXECUTABLE": chrome_exe}
+
+    cmd = [
+        "npx", "remotion", "render",
+        f"--composition={comp_id}",
+        f"--props={manifest_path}",
+        f"--output={output_path}",
+        "--chromium-flags=--no-sandbox",
+        "--log=verbose",
+    ]
+
+    print(f"[render] {channel_id}: npx remotion render "
+          f"--composition={comp_id} → {output_path}")
+
+    result = subprocess.run(
+        cmd,
+        env=env,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"Remotion render failed for {channel_id} "
+            f"(exit {result.returncode}):\n{result.stderr}"
+        )
+
+    print(f"[render] ✓ {channel_id}")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Render Dopamine Studios Shorts via Remotion")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--channel", type=str, metavar="ID",
+                       help="Single channel ID (e.g. ch1)")
+    group.add_argument("--all", action="store_true",
+                       help="Render all channels sequentially")
+    args = parser.parse_args()
+
+    channel_ids = load_all_channel_ids()
+    targets = channel_ids if args.all else [args.channel]
+
+    failed = []
+    for cid in targets:
+        try:
+            render_channel(cid)
+        except Exception as exc:
+            print(f"[render] ✗ {cid}: {exc}", file=sys.stderr)
+            failed.append(cid)
+
+    if failed:
+        print(f"[render] FAILED channels: {failed}", file=sys.stderr)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
