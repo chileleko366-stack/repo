@@ -8,9 +8,8 @@ Usage:
 Reads  : out/{channel_id}/manifest.json
 Writes : out/{channel_id}/short.mp4
 
-The Remotion composition ID is looked up from CHANNEL_COMPS.
-The registered composition on this branch is "DopamineStudios".
-Update CHANNEL_COMPS when per-channel compositions land.
+The Remotion composition ID is looked up from CHANNEL_COMPS. Each channel
+renders its own composition (Ch1…Ch6), registered in src/Root.tsx.
 """
 
 import argparse
@@ -22,15 +21,19 @@ import sys
 from pathlib import Path
 
 # Map channel IDs → Remotion composition IDs registered in src/Root.tsx.
-# "DopamineStudios" is the current placeholder; update when Ch1–Ch6 land.
 CHANNEL_COMPS = {
-    "ch1": "DopamineStudios",
-    "ch2": "DopamineStudios",
-    "ch3": "DopamineStudios",
-    "ch4": "DopamineStudios",
-    "ch5": "DopamineStudios",
-    "ch6": "DopamineStudios",
+    "ch1": "Ch1",
+    "ch2": "Ch2",
+    "ch3": "Ch3",
+    "ch4": "Ch4",
+    "ch5": "Ch5",
+    "ch6": "Ch6",
 }
+
+
+def _comp_id(channel_id: str) -> str:
+    """Composition ID for a channel, deriving Ch<N> as a fallback."""
+    return CHANNEL_COMPS.get(channel_id, channel_id.capitalize())
 
 
 def load_all_channel_ids() -> list:
@@ -61,7 +64,7 @@ def render_channel(channel_id: str) -> None:
         )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    comp_id = CHANNEL_COMPS.get(channel_id, "DopamineStudios")
+    comp_id = _comp_id(channel_id)
 
     # Ensure Chromium path is forwarded to the subprocess.
     chrome_exe = os.environ.get("REMOTION_CHROME_EXECUTABLE", "chromium-browser")
