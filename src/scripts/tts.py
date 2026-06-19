@@ -120,17 +120,19 @@ async def generate_beat_audio(
 async def _generate_beat_with_retry(
     narration: str, channel_id: str, beat_id: str, retries: int = 3
 ) -> dict:
-    """Wraps generate_beat_audio with retry on exception only.
+    """Wraps generate_beat_audio with retry on exception.
     0ms-audio (no word boundaries) is accepted as-is — Microsoft's TTS servers
-    sometimes omit WordBoundary events in CI environments; retrying doesn't help."""
+    sometimes omit WordBoundary events in CI environments; retrying doesn't help.
+    "No audio was received" is a transient Microsoft error and IS retried."""
+    last_exc = None
     for attempt in range(1, retries + 1):
         try:
             return await generate_beat_audio(narration, channel_id, beat_id)
         except Exception as e:
+            last_exc = e
             if attempt < retries:
                 await asyncio.sleep(3 * attempt)
-            else:
-                raise
+    raise last_exc
 
 
 async def generate_all_beats(manifest: dict) -> dict:

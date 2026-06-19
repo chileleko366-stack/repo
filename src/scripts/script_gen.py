@@ -64,7 +64,7 @@ PROVIDERS = [
 
 
 def _call_provider(provider: dict, system: str, user: str) -> str:
-    """Call one provider. Raises RateLimitError on 429, RuntimeError on other failures."""
+    """Call one provider. Raises _SkipProvider on 429/403, RuntimeError on other failures."""
     api_key = os.getenv(provider["key_env"])
     if not api_key:
         raise EnvironmentError(f"{provider['key_env']} not set")
@@ -90,8 +90,8 @@ def _call_provider(provider: dict, system: str, user: str) -> str:
         timeout=60,
     )
 
-    if resp.status_code == 429:
-        raise _RateLimitError(provider["name"])
+    if resp.status_code in (429, 403):
+        raise _SkipProvider(provider["name"], resp.status_code)
     if not resp.ok:
         raise RuntimeError(
             f"[{provider['name']}] HTTP {resp.status_code}: {resp.text[:300]}"
@@ -101,8 +101,11 @@ def _call_provider(provider: dict, system: str, user: str) -> str:
     return data["choices"][0]["message"]["content"] or ""
 
 
-class _RateLimitError(Exception):
-    pass
+class _SkipProvider(Exception):
+    def __init__(self, name, status):
+        self.name = name
+        self.status = status
+        super().__init__(f"{name} HTTP {status}")
 
 
 def llm_complete(system: str, user: str) -> str:
@@ -123,9 +126,10 @@ def llm_complete(system: str, user: str) -> str:
             else:
                 print(f"[script_gen] used {provider['name']}")
             return result
-        except _RateLimitError:
-            print(f"[script_gen] {provider['name']} rate limited, trying next...")
-            skipped.append(f"{provider['name']} (429)")
+        except _SkipProvider as e:
+            reason = "rate limited" if e.status == 429 else f"unavailable ({e.status})"
+            print(f"[script_gen] {provider['name']} {reason}, trying next...")
+            skipped.append(f"{provider['name']} ({e.status})")
         except EnvironmentError:
             skipped.append(f"{provider['name']} (no key)")
 
