@@ -1,6 +1,11 @@
 node_modules/
 .env
 out/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
 assets/cache/
 public/audio/*.mp3
 public/audio/*_words.json
