@@ -1,9 +1,11 @@
 """
 Voice engine — generates per-beat audio + word-boundary JSON.
 
-edge-tts TTSChunk offsets are in 100-nanosecond ticks:
-  1 tick = 100ns  →  10,000 ticks = 1ms
-  offset_ms = tick_value // 10_000
+Provider chain:
+  1. ElevenLabs  ELEVENLABS_API_KEY  /v1/text-to-speech/{voice_id}/with-timestamps
+                                     Returns character-level timestamps → converted to words.
+  2. edge-tts    (no key required)   Microsoft Edge TTS via WebSocket.
+                                     Returns WordBoundary events (omitted in some CI IPs).
 
 Word boundary JSON written to public/audio/{beat_id}_words.json:
 [
@@ -19,12 +21,14 @@ The word boundary JSON is in our own format; CaptionTrack.tsx converts it.
 """
 
 import asyncio
+import base64
 import json
 import os
 import ssl
 import sys
 from pathlib import Path
 
+import requests as _requests
 import edge_tts
 import edge_tts.communicate as _et_comm
 
@@ -37,9 +41,20 @@ _unverified_ssl_ctx.check_hostname = False
 _unverified_ssl_ctx.verify_mode = ssl.CERT_NONE
 _et_comm._SSL_CTX = _unverified_ssl_ctx
 
-# ── Channel voice profiles ────────────────────────────────────────────────────
+# ── Voice profiles ────────────────────────────────────────────────────────────
 
-VOICE_PROFILES: dict[str, dict] = {
+# ElevenLabs pre-made voices mapped to match the edge-tts voice personalities.
+ELEVENLABS_VOICES: dict[str, str] = {
+    "ch1": "21m00000000000000000001",  # Rachel  — fast, female, US
+    "ch2": "TxGEqnHWrfWFTfGW9XjX",    # Josh    — narrative, male
+    "ch3": "VR6AewLTigWG4xSOukaG",    # Arnold  — firm, male
+    "ch4": "pNInz6obpgDQGcFmaJgB",    # Adam    — calm, male
+    "ch5": "EXAVITQu4vr4xnSDxMaL",    # Bella   — reflective, female
+    "ch6": "MF3mGyEYCl7XYWbV9V6O",    # Elli    — awe, female
+}
+
+# edge-tts fallback voice profiles
+EDGE_VOICE_PROFILES: dict[str, dict] = {
     "ch1": {"voice": "en-US-AvaNeural",    "rate": "+8%",  "pitch": "+0Hz"},
     "ch2": {"voice": "en-US-DavisNeural",  "rate": "+0%",  "pitch": "+0Hz"},
     "ch3": {"voice": "en-US-BrianNeural",  "rate": "-5%",  "pitch": "-2Hz"},
@@ -51,25 +66,112 @@ VOICE_PROFILES: dict[str, dict] = {
 TICKS_TO_MS = 10_000  # 100ns ticks → milliseconds
 
 
-# ── Core TTS function ─────────────────────────────────────────────────────────
+# ── ElevenLabs TTS ────────────────────────────────────────────────────────────
 
-async def generate_beat_audio(
+def _chars_to_words(
+    chars: list[str],
+    starts: list[float],
+    ends: list[float],
+) -> list[dict]:
+    """Aggregate ElevenLabs character-level timestamps into word-level boundaries."""
+    words = []
+    word_chars: list[str] = []
+    word_start: float | None = None
+    word_end: float = 0.0
+
+    for i, char in enumerate(chars):
+        if char in (" ", "\n", "\t"):
+            if word_chars:
+                s_ms = round(word_start * 1000)
+                e_ms = round(word_end * 1000)
+                words.append({
+                    "word":       "".join(word_chars),
+                    "startMs":    s_ms,
+                    "durationMs": e_ms - s_ms,
+                    "endMs":      e_ms,
+                })
+                word_chars = []
+                word_start = None
+        else:
+            if word_start is None:
+                word_start = starts[i]
+            word_chars.append(char)
+            word_end = ends[i]
+
+    if word_chars and word_start is not None:
+        s_ms = round(word_start * 1000)
+        e_ms = round(word_end * 1000)
+        words.append({
+            "word":       "".join(word_chars),
+            "startMs":    s_ms,
+            "durationMs": e_ms - s_ms,
+            "endMs":      e_ms,
+        })
+    return words
+
+
+def _elevenlabs_generate(
     narration: str,
     channel_id: str,
-    beat_id: str,
-    output_dir: str = "public/audio",
-) -> dict:
+    audio_path: Path,
+    words_path: Path,
+) -> list[dict] | None:
     """
-    Generates MP3 + word boundary JSON for a single beat.
-    Returns a dict with word boundaries and duration.
+    Calls ElevenLabs /with-timestamps synchronously.
+    Returns word boundaries list on success, None if key absent or request fails.
     """
-    profile = VOICE_PROFILES.get(channel_id, VOICE_PROFILES["ch1"])
-    out_dir = Path(output_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
+    api_key = os.getenv("ELEVENLABS_API_KEY")
+    if not api_key:
+        return None
 
-    audio_path = out_dir / f"{beat_id}.mp3"
-    words_path = out_dir / f"{beat_id}_words.json"
+    voice_id = ELEVENLABS_VOICES.get(channel_id, ELEVENLABS_VOICES["ch1"])
 
+    try:
+        resp = _requests.post(
+            f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}/with-timestamps",
+            headers={"xi-api-key": api_key, "Content-Type": "application/json"},
+            json={
+                "text": narration,
+                "model_id": "eleven_turbo_v2_5",
+                "voice_settings": {"stability": 0.5, "similarity_boost": 0.75},
+            },
+            timeout=30,
+        )
+    except Exception as exc:
+        print(f"[tts] ElevenLabs request failed: {exc}")
+        return None
+
+    if not resp.ok:
+        print(f"[tts] ElevenLabs error {resp.status_code}: {resp.text[:200]}")
+        return None
+
+    data = resp.json()
+    audio_bytes = base64.b64decode(data["audio_base64"])
+    with open(audio_path, "wb") as f:
+        f.write(audio_bytes)
+
+    alignment = data.get("alignment", {})
+    word_boundaries = _chars_to_words(
+        alignment.get("characters", []),
+        alignment.get("character_start_times_seconds", []),
+        alignment.get("character_end_times_seconds", []),
+    )
+    with open(words_path, "w") as f:
+        json.dump(word_boundaries, f, indent=2)
+
+    return word_boundaries
+
+
+# ── edge-tts fallback ─────────────────────────────────────────────────────────
+
+async def _edge_tts_generate(
+    narration: str,
+    channel_id: str,
+    audio_path: Path,
+    words_path: Path,
+) -> list[dict]:
+    """Generates audio via edge-tts. Returns word boundaries (may be empty in CI)."""
+    profile = EDGE_VOICE_PROFILES.get(channel_id, EDGE_VOICE_PROFILES["ch1"])
     communicate = edge_tts.Communicate(
         narration,
         voice=profile["voice"],
@@ -93,14 +195,40 @@ async def generate_beat_audio(
                 "endMs":      start_ms + dur_ms,
             })
 
-    # Write audio
     with open(audio_path, "wb") as f:
         for chunk in audio_chunks:
             f.write(chunk)
 
-    # Write word boundaries
     with open(words_path, "w") as f:
         json.dump(word_boundaries, f, indent=2)
+
+    return word_boundaries
+
+
+# ── Core TTS function ─────────────────────────────────────────────────────────
+
+async def generate_beat_audio(
+    narration: str,
+    channel_id: str,
+    beat_id: str,
+    output_dir: str = "public/audio",
+) -> dict:
+    """
+    Generates MP3 + word boundary JSON for a single beat.
+    Tries ElevenLabs first (real word timestamps), falls back to edge-tts.
+    Returns a dict with word boundaries and duration.
+    """
+    out_dir = Path(output_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    audio_path = out_dir / f"{beat_id}.mp3"
+    words_path = out_dir / f"{beat_id}_words.json"
+
+    # Try ElevenLabs first — provides real word timestamps from any IP.
+    word_boundaries = _elevenlabs_generate(narration, channel_id, audio_path, words_path)
+
+    if word_boundaries is None:
+        # Fall back to edge-tts (word boundaries may be empty in some CI environments).
+        word_boundaries = await _edge_tts_generate(narration, channel_id, audio_path, words_path)
 
     duration_ms = word_boundaries[-1]["endMs"] if word_boundaries else 0
     print(
@@ -121,9 +249,7 @@ async def _generate_beat_with_retry(
     narration: str, channel_id: str, beat_id: str, retries: int = 3
 ) -> dict:
     """Wraps generate_beat_audio with retry on exception.
-    0ms-audio (no word boundaries) is accepted as-is — Microsoft's TTS servers
-    sometimes omit WordBoundary events in CI environments; retrying doesn't help.
-    "No audio was received" is a transient Microsoft error and IS retried."""
+    0ms-audio (no word boundaries) is accepted as-is."""
     last_exc = None
     for attempt in range(1, retries + 1):
         try:
@@ -160,7 +286,6 @@ async def generate_all_beats(manifest: dict) -> dict:
             beat["audioPath"] = result_map[beat_id]["audioPath"]
             beat["wordBoundariesPath"] = result_map[beat_id]["wordBoundariesPath"]
 
-    # Recompute total duration from actual audio
     total_ms = sum(
         beat.get("audio", {}).get("durationMs", 0)
         for beat in manifest["beats"]
@@ -181,14 +306,10 @@ def word_boundaries_to_captions(
     """
     Converts our word-boundary format to @remotion/captions Caption format.
     beat_start_ms shifts all timestamps to absolute video time.
-
-    Caption format:
-      { text, startMs, endMs, timestampMs, confidence }
     """
     captions = []
     for i, wb in enumerate(word_boundaries):
         text = wb["word"]
-        # Add space before all words except the first
         if i > 0:
             text = " " + text
         captions.append({
@@ -204,8 +325,6 @@ def word_boundaries_to_captions(
 def manifest_to_captions(manifest: dict) -> list[dict]:
     """
     Builds a flat Caption[] for the entire video from all beat word boundaries.
-    Each beat's timestamps are shifted by the beat's start time in the video
-    (derived from startFrame / fps).
     """
     fps = manifest.get("fps", 30)
     all_captions: list[dict] = []
@@ -240,19 +359,16 @@ async def _main():
         return
 
     manifest_path = sys.argv[1]
-    out_dir = sys.argv[2] if len(sys.argv) > 2 else "public/audio"
 
     with open(manifest_path) as f:
         manifest = json.load(f)
 
     manifest = await generate_all_beats(manifest)
 
-    # Write updated manifest
     with open(manifest_path, "w") as f:
         json.dump(manifest, f, indent=2)
     print(f"[tts] manifest updated: {manifest_path}")
 
-    # Also write the flat captions file
     captions = manifest_to_captions(manifest)
     channel_id = manifest["channelId"]
     caps_path = f"public/audio/{channel_id}_captions.json"
