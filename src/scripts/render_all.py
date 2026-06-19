@@ -66,6 +66,16 @@ def render_channel(channel_id: str) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     comp_id = _comp_id(channel_id)
 
+    # Remotion compositions expect { "manifest": <VideoManifest> } as their
+    # input props (matching defaultProps={{ manifest: EMPTY_MANIFEST }} in
+    # Root.tsx). The pipeline writes the raw manifest to manifest.json, so we
+    # wrap it here before passing to --props.
+    with open(manifest_path) as f:
+        manifest_data = json.load(f)
+    props_path = output_path.parent / "props.json"
+    with open(props_path, "w") as f:
+        json.dump({"manifest": manifest_data}, f)
+
     # Ensure Chromium path is forwarded to the subprocess.
     chrome_exe = os.environ.get("REMOTION_CHROME_EXECUTABLE", "chromium-browser")
     env = {**os.environ, "REMOTION_CHROME_EXECUTABLE": chrome_exe}
@@ -77,7 +87,7 @@ def render_channel(channel_id: str) -> None:
         "npx", "remotion", "render",
         comp_id,              # positional: composition ID
         str(output_path),     # positional: output file
-        f"--props={manifest_path}",
+        f"--props={props_path}",
         "--chromium-flags=--no-sandbox",
         "--log=verbose",
     ]
