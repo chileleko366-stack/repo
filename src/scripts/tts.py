@@ -106,29 +106,44 @@ async def generate_beat_audio(
     }
 
 
+async def _generate_beat_with_retry(
+    narration: str, channel_id: str, beat_id: str, retries: int = 3
+) -> dict:
+    """Wraps generate_beat_audio with retry on empty-audio or exception."""
+    import asyncio as _asyncio
+    for attempt in range(1, retries + 1):
+        try:
+            result = await generate_beat_audio(narration, channel_id, beat_id)
+            if result["durationMs"] > 0:
+                return result
+            # Got 0ms — likely a silent rate-limit response; retry after a pause
+            if attempt < retries:
+                await _asyncio.sleep(2 * attempt)
+        except Exception as e:
+            if attempt < retries:
+                await _asyncio.sleep(2 * attempt)
+            else:
+                raise
+    return await generate_beat_audio(narration, channel_id, beat_id)
+
+
 async def generate_all_beats(manifest: dict) -> dict:
     """
-    Runs TTS for every beat in a manifest.
+    Runs TTS for every beat sequentially (edge-tts is throttled under concurrency).
     Updates manifest.beats[*].audio in-place and returns the updated manifest.
     """
     channel_id = manifest["channelId"]
-    tasks = []
+    result_map: dict[str, dict] = {}
 
     for beat in manifest["beats"]:
         narration = beat.get("narration", "").strip()
         if not narration:
             continue
-        tasks.append(generate_beat_audio(narration, channel_id, beat["beatId"]))
-
-    results = await asyncio.gather(*tasks, return_exceptions=True)
-
-    # Map results back to manifest beats
-    result_map: dict[str, dict] = {}
-    for r in results:
-        if isinstance(r, Exception):
-            print(f"[tts] ERROR: {r}")
-            continue
-        result_map[r["beatId"]] = r
+        try:
+            r = await _generate_beat_with_retry(narration, channel_id, beat["beatId"])
+            result_map[r["beatId"]] = r
+        except Exception as exc:
+            print(f"[tts] ERROR: {exc}")
 
     for beat in manifest["beats"]:
         beat_id = beat["beatId"]

@@ -286,7 +286,11 @@ def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
         if not beat.get("visual") or not beat["visual"].get("kind"):
             errors.append(f"beat {i}: missing visual.kind")
         if beat.get("visual", {}).get("kind") == "none" and i < 4:
-            errors.append(f"beat {i}: kind=none not allowed for beats 0-3")
+            # auto-correct: replace none-kind on early beats with stock_video
+            beat["visual"] = {
+                "kind": "stock_video",
+                "query": f"{script.get('topic', 'nature')} cinematic footage",
+            }
         if not beat.get("emphasis_keyword"):
             errors.append(f"beat {i}: missing emphasis_keyword")
         if not beat.get("bg_color", "").startswith("#"):
