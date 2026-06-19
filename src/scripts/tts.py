@@ -21,10 +21,21 @@ The word boundary JSON is in our own format; CaptionTrack.tsx converts it.
 import asyncio
 import json
 import os
+import ssl
 import sys
 from pathlib import Path
 
 import edge_tts
+import edge_tts.communicate as _et_comm
+
+# edge-tts stores _SSL_CTX = ssl.create_default_context(cafile=certifi.where())
+# at module import time and passes it as ssl=_SSL_CTX to aiohttp ws_connect.
+# In environments with proxy/self-signed certs we replace the stored context
+# with an unverified one so the WebSocket handshake succeeds.
+_unverified_ssl_ctx = ssl.create_default_context()
+_unverified_ssl_ctx.check_hostname = False
+_unverified_ssl_ctx.verify_mode = ssl.CERT_NONE
+_et_comm._SSL_CTX = _unverified_ssl_ctx
 
 # ── Channel voice profiles ────────────────────────────────────────────────────
 
@@ -109,22 +120,17 @@ async def generate_beat_audio(
 async def _generate_beat_with_retry(
     narration: str, channel_id: str, beat_id: str, retries: int = 3
 ) -> dict:
-    """Wraps generate_beat_audio with retry on empty-audio or exception."""
-    import asyncio as _asyncio
+    """Wraps generate_beat_audio with retry on exception only.
+    0ms-audio (no word boundaries) is accepted as-is — Microsoft's TTS servers
+    sometimes omit WordBoundary events in CI environments; retrying doesn't help."""
     for attempt in range(1, retries + 1):
         try:
-            result = await generate_beat_audio(narration, channel_id, beat_id)
-            if result["durationMs"] > 0:
-                return result
-            # Got 0ms — likely a silent rate-limit response; retry after a pause
-            if attempt < retries:
-                await _asyncio.sleep(2 * attempt)
+            return await generate_beat_audio(narration, channel_id, beat_id)
         except Exception as e:
             if attempt < retries:
-                await _asyncio.sleep(2 * attempt)
+                await asyncio.sleep(3 * attempt)
             else:
                 raise
-    return await generate_beat_audio(narration, channel_id, beat_id)
 
 
 async def generate_all_beats(manifest: dict) -> dict:

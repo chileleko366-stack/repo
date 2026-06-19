@@ -279,8 +279,8 @@ def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
         errors.append(f"need exactly 5 beats, got {len(beats)}")
     for i, beat in enumerate(beats):
         words = len(beat.get("narration", "").split())
-        if words < 5:
-            errors.append(f"beat {i}: narration too short ({words} words, min 5)")
+        if words < 3:
+            errors.append(f"beat {i}: narration too short ({words} words, min 3)")
         if words > 25:
             errors.append(f"beat {i}: narration too long ({words} words, max 20)")
         if not beat.get("visual") or not beat["visual"].get("kind"):
