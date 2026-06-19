@@ -150,7 +150,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
           }}
         >
           <Counter
-            value={parseFloat(visual.stat_value?.toString() ?? visual.value ?? '0')}
+            to={parseFloat(visual.stat_value?.toString() ?? visual.value ?? '0') || 0}
             prefix={visual.prefix}
             suffix={visual.suffix}
             delayFrames={54}
