@@ -70,17 +70,20 @@ def render_channel(channel_id: str) -> None:
     chrome_exe = os.environ.get("REMOTION_CHROME_EXECUTABLE", "chromium-browser")
     env = {**os.environ, "REMOTION_CHROME_EXECUTABLE": chrome_exe}
 
+    # Remotion 4.x CLI: composition-id and output are positional args.
+    # parsedCli._ contains only positional args — --composition= flags are
+    # stripped before reaching getCompName() and are silently ignored.
     cmd = [
         "npx", "remotion", "render",
-        f"--composition={comp_id}",
+        comp_id,              # positional: composition ID
+        str(output_path),     # positional: output file
         f"--props={manifest_path}",
-        f"--output={output_path}",
         "--chromium-flags=--no-sandbox",
         "--log=verbose",
     ]
 
     print(f"[render] {channel_id}: npx remotion render "
-          f"--composition={comp_id} → {output_path}")
+          f"{comp_id} → {output_path}")
 
     result = subprocess.run(
         cmd,
