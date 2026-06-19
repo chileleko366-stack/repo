@@ -7,6 +7,8 @@ Provider chain (tries each in order on 429 / unavailable key):
   3. xAI / Grok    XAI_API_KEY         grok-3-mini
   4. Gemini        GEMINI_API_KEY      gemini-2.0-flash
   5. Cerebras      CEREBRAS_API_KEY    llama-3.3-70b  (free tier 60K TPM)
+  6. NVIDIA NIM    NVIDIA_API_KEY      meta/llama-3.3-70b-instruct (free 1K credits)
+  7. Mistral       MISTRAL_API_KEY     mistral-small-latest (free tier)
 
 All providers expose an OpenAI-compatible /chat/completions endpoint,
 so a single requests-based caller handles everything.
@@ -66,6 +68,18 @@ PROVIDERS = [
         "url": "https://api.cerebras.ai/v1/chat/completions",
         "key_env": "CEREBRAS_API_KEY",
         "model": "llama-3.3-70b",
+    },
+    {
+        "name": "nvidia",
+        "url": "https://integrate.api.nvidia.com/v1/chat/completions",
+        "key_env": "NVIDIA_API_KEY",
+        "model": "meta/llama-3.3-70b-instruct",
+    },
+    {
+        "name": "mistral",
+        "url": "https://api.mistral.ai/v1/chat/completions",
+        "key_env": "MISTRAL_API_KEY",
+        "model": "mistral-small-latest",
     },
 ]
 

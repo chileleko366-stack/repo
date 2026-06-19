@@ -141,6 +141,10 @@ def _elevenlabs_generate(
         print(f"[tts] ElevenLabs request failed: {exc}")
         return None
 
+    if resp.status_code == 402:
+        # Free plan cannot use library voices — silently fall back to edge-tts.
+        print("[tts] ElevenLabs: free plan requires paid subscription for library voices, using edge-tts")
+        return None
     if not resp.ok:
         print(f"[tts] ElevenLabs error {resp.status_code}: {resp.text[:200]}")
         return None
