@@ -87,7 +87,7 @@ SCRIPT_SCHEMA = '''
   "context": "<<=18 words, specific stakes with a real number from research>",
   "beats": [
     {
-      "narration": "<20-28 words, one specific mechanism or fact>",
+      "narration": "<10-20 words, one specific mechanism or fact>",
       "visual": {
         "kind": "<person|brand|product|place|distance|map|anatomy|celestial|stat|stock_video|none>",
         "value": "<exact name: Daniel Kahneman / Tesla / Chernobyl / Mars>",
@@ -119,8 +119,7 @@ SCRIPT_SCHEMA = '''
 def build_system_prompt(channel_id: str, topic: str, brief: ResearchBrief) -> str:
     tone = CHANNEL_TONES.get(channel_id, CHANNEL_TONES["ch1"])
     name = CHANNEL_NAMES.get(channel_id, channel_id)
-    facts_str = "\
-".join(f"- {f}" for f in brief.key_facts)
+    facts_str = "\n".join(f"- {f}" for f in brief.key_facts)
     entities_str = ", ".join(brief.named_entities[:10]) if brief.named_entities else "none found"
 
     return f"""You write scripts for the YouTube Shorts channel: {name}
@@ -130,7 +129,7 @@ Tone: {tone}
 TARGET LENGTH: 35 seconds total.
 - hook:    <=12 words  (~3s)
 - context: <=18 words  (~3s)
-- beats:   exactly 5 beats, each 20-28 words (~4s each = 20s)
+- beats:   exactly 5 beats, each 10-20 words (~4s each = 20s)
 - twist:   <=20 words  (~3s)
 - outro.narration: <=18 words  (~3.5s)
 
@@ -152,14 +151,13 @@ Return ONLY valid JSON - no markdown fences, no commentary outside the JSON."""
 
 
 def build_user_prompt(topic: str, brief: ResearchBrief) -> str:
-    numbers = "\
-".join(f"- {n}" for n in brief.specific_numbers) if brief.specific_numbers else "- none"
+    numbers = "\n".join(f"- {n}" for n in brief.specific_numbers) if brief.specific_numbers else "- none"
     return f"""Write a 35-second Shorts script about: {topic}
 
 Use these real facts (mandatory - no invented claims):
 {chr(10).join(f'- {f}' for f in brief.key_facts)}
 
-Specific numbers found in research (at least 2 must appear in the script):
+Specific numbers found in research (at least 1 must appear in the script):
 {numbers}
 
 Return ONLY this JSON structure - nothing else:
@@ -194,10 +192,10 @@ def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
         errors.append(f"need exactly 5 beats, got {len(beats)}")
     for i, beat in enumerate(beats):
         words = len(beat.get("narration", "").split())
-        if words < 18:
-            errors.append(f"beat {i}: narration too short ({words} words, min 18)")
-        if words > 32:
-            errors.append(f"beat {i}: narration too long ({words} words, max 28)")
+        if words < 8:
+            errors.append(f"beat {i}: narration too short ({words} words, min 8)")
+        if words > 25:
+            errors.append(f"beat {i}: narration too long ({words} words, max 20)")
         if not beat.get("visual") or not beat["visual"].get("kind"):
             errors.append(f"beat {i}: missing visual.kind")
         if beat.get("visual", {}).get("kind") == "none" and i < 4:
@@ -220,9 +218,9 @@ def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
         script.get("twist", ""),
         outro.get("narration", ""),
     ])
-    number_count = len(re.findall(r"\\b\\d[\\d,\\.]*\\b", full_text))
-    if number_count < 2:
-        errors.append(f"only {number_count} specific number(s) in script - need >=2")
+    number_count = len(re.findall(r"\d[\d,\.]*", full_text))
+    if number_count < 1:
+        errors.append(f"no specific numbers in script - need at least 1")
     return errors
 
 
