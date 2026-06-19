@@ -1,22 +1,73 @@
 import './index.css';
+import React from 'react';
 import { Composition } from 'remotion';
+import type { VideoManifest } from './pipeline/types';
+import { FPS, VIDEO_FRAMES } from './pipeline/types';
+import { Ch1Composition } from './remotion/channels/ch1/Ch1Composition';
+import { Ch2Composition } from './remotion/channels/ch2/Ch2Composition';
+import { Ch3Composition } from './remotion/channels/ch3/Ch3Composition';
+import { Ch4Composition } from './remotion/channels/ch4/Ch4Composition';
+import { Ch5Composition } from './remotion/channels/ch5/Ch5Composition';
+import { Ch6Composition } from './remotion/channels/ch6/Ch6Composition';
 
-// Placeholder — channel-specific compositions are registered in S8-S13.
-// All Shorts are 1080x1920 (9:16) at 30fps.
+const EMPTY_MANIFEST = {} as VideoManifest;
+
 export const RemotionRoot: React.FC = () => {
   return (
     <>
       <Composition
-        id="DopamineStudios"
-        component={() => (
-          <div style={{ background: '#16121f', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ color: '#d400ff', fontFamily: 'monospace', fontSize: 40 }}>Dopamine Studios</span>
-          </div>
-        )}
-        durationInFrames={540}
-        fps={30}
+        id="Ch1"
+        component={Ch1Composition}
+        durationInFrames={VIDEO_FRAMES}
+        fps={FPS}
         width={1080}
         height={1920}
+        defaultProps={{ manifest: EMPTY_MANIFEST }}
+      />
+      <Composition
+        id="Ch2"
+        component={Ch2Composition}
+        durationInFrames={VIDEO_FRAMES}
+        fps={FPS}
+        width={1080}
+        height={1920}
+        defaultProps={{ manifest: EMPTY_MANIFEST }}
+      />
+      <Composition
+        id="Ch3"
+        component={Ch3Composition}
+        durationInFrames={VIDEO_FRAMES}
+        fps={FPS}
+        width={1080}
+        height={1920}
+        defaultProps={{ manifest: EMPTY_MANIFEST }}
+      />
+      <Composition
+        id="Ch4"
+        component={Ch4Composition}
+        durationInFrames={VIDEO_FRAMES}
+        fps={FPS}
+        width={1080}
+        height={1920}
+        defaultProps={{ manifest: EMPTY_MANIFEST }}
+      />
+      <Composition
+        id="Ch5"
+        component={Ch5Composition}
+        durationInFrames={VIDEO_FRAMES}
+        fps={FPS}
+        width={1080}
+        height={1920}
+        defaultProps={{ manifest: EMPTY_MANIFEST }}
+      />
+      <Composition
+        id="Ch6"
+        component={Ch6Composition}
+        durationInFrames={VIDEO_FRAMES}
+        fps={FPS}
+        width={1080}
+        height={1920}
+        defaultProps={{ manifest: EMPTY_MANIFEST }}
       />
     </>
   );

@@ -1,4 +1,4 @@
-"""
+""" 
 Main pipeline orchestrator.
 Usage:
   python src/scripts/pipeline.py --channel ch1

@@ -9,18 +9,20 @@
  */
 
 import React from 'react';
-import { Audio, Sequence, interpolate, staticFile } from 'remotion';
+import { Audio, Sequence, interpolate, staticFile, useCurrentFrame } from 'remotion';
 import type { SoundEvent } from '../../pipeline/types';
 
 const FADE_FRAMES = 3;
 
 const SfxEvent: React.FC<{ event: SoundEvent }> = ({ event }) => {
+  const frame = useCurrentFrame();
   const { name, durationFrames, volume = 1 } = event;
 
-  // Tiny linear fade-in/out to avoid click artifacts
+  // Tiny linear fade-in/out to avoid click artifacts at boundaries
+  const fadeOut = Math.max(0, durationFrames - FADE_FRAMES);
   const vol = interpolate(
-    0,  // useCurrentFrame() is 0 inside this Sequence
-    [0, FADE_FRAMES, durationFrames - FADE_FRAMES, durationFrames],
+    frame,
+    [0, FADE_FRAMES, fadeOut, durationFrames],
     [0, volume, volume, 0],
     { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
   );
