@@ -153,6 +153,9 @@ def llm_complete(system: str, user: str) -> str:
             skipped.append(f"{provider['name']} ({e.status})")
         except EnvironmentError:
             skipped.append(f"{provider['name']} (no key)")
+        except Exception as e:
+            print(f"[script_gen] {provider['name']} error: {e}, trying next...")
+            skipped.append(f"{provider['name']} (error)")
 
     raise RuntimeError(
         f"All LLM providers failed or rate limited: {', '.join(skipped)}"
