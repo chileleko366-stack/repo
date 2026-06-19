@@ -4,6 +4,5 @@ rembg
 Pillow
 requests
 aiohttp
-groq
 python-dotenv
 staticmap

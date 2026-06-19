@@ -1,11 +1,19 @@
 """
-Script generation stage.
-Research brief -> Groq LLM -> validated JSON script targeting 35-second Shorts.
+Script generation stage — multi-provider LLM with automatic rate-limit fallback.
+
+Provider chain (tries each in order on 429 / unavailable key):
+  1. Groq          GROQ_API_KEY        llama-3.3-70b-versatile
+  2. SambaNova     SAMBANOVA_API_KEY   Meta-Llama-3.3-70B-Instruct
+  3. xAI / Grok    XAI_API_KEY         grok-3-mini
+  4. Gemini        GEMINI_API_KEY      gemini-2.0-flash
+
+All providers expose an OpenAI-compatible /chat/completions endpoint,
+so a single requests-based caller handles everything.
 
 35s structure:
   hook     (~3s, <=12 words)
   context  (~3s, <=18 words)
-  5 beats  (~4s each, 20-28 words each)  -> 20s
+  5 beats  (~4s each, 8-20 words each)  -> 20s
   twist    (~3s, <=20 words)
   outro    (~3.5s, <=18 words)
   Total ~35s
@@ -18,26 +26,115 @@ import sys
 import time
 from pathlib import Path
 
+import requests
+
 sys.path.insert(0, str(Path(__file__).parent))
 
 from research import ResearchBrief
 
-try:
-    from groq import Groq
-    _groq_client = None
 
-    def _get_client() -> Groq:
-        global _groq_client
-        if _groq_client is None:
-            api_key = os.getenv("GROQ_API_KEY")
-            if not api_key:
-                raise EnvironmentError("GROQ_API_KEY not set in environment")
-            _groq_client = Groq(api_key=api_key)
-        return _groq_client
+# ── Provider registry ─────────────────────────────────────────────────────────
 
-except ImportError:
-    raise ImportError("groq package required: pip install groq")
+PROVIDERS = [
+    {
+        "name": "groq",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "key_env": "GROQ_API_KEY",
+        "model": "llama-3.3-70b-versatile",
+    },
+    {
+        "name": "sambanova",
+        "url": "https://api.sambanova.ai/v1/chat/completions",
+        "key_env": "SAMBANOVA_API_KEY",
+        "model": "Meta-Llama-3.3-70B-Instruct",
+    },
+    {
+        "name": "xai",
+        "url": "https://api.x.ai/v1/chat/completions",
+        "key_env": "XAI_API_KEY",
+        "model": "grok-3-mini",
+    },
+    {
+        "name": "gemini",
+        "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+        "key_env": "GEMINI_API_KEY",
+        "model": "gemini-2.0-flash",
+    },
+]
 
+
+def _call_provider(provider: dict, system: str, user: str) -> str:
+    """Call one provider. Raises RateLimitError on 429, RuntimeError on other failures."""
+    api_key = os.getenv(provider["key_env"])
+    if not api_key:
+        raise EnvironmentError(f"{provider['key_env']} not set")
+
+    payload = {
+        "model": provider["model"],
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+        "temperature": 0.7,
+        "max_tokens": 2000,
+        "response_format": {"type": "json_object"},
+    }
+
+    resp = requests.post(
+        provider["url"],
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        json=payload,
+        timeout=60,
+    )
+
+    if resp.status_code == 429:
+        raise _RateLimitError(provider["name"])
+    if not resp.ok:
+        raise RuntimeError(
+            f"[{provider['name']}] HTTP {resp.status_code}: {resp.text[:300]}"
+        )
+
+    data = resp.json()
+    return data["choices"][0]["message"]["content"] or ""
+
+
+class _RateLimitError(Exception):
+    pass
+
+
+def llm_complete(system: str, user: str) -> str:
+    """
+    Try each provider in order. On 429, move to the next immediately.
+    If all providers are rate-limited or missing keys, raises RuntimeError.
+    """
+    skipped = []
+    for provider in PROVIDERS:
+        key = os.getenv(provider["key_env"])
+        if not key:
+            skipped.append(f"{provider['name']} (no key)")
+            continue
+        try:
+            result = _call_provider(provider, system, user)
+            if skipped:
+                print(f"[script_gen] used {provider['name']} (skipped: {', '.join(skipped)})")
+            else:
+                print(f"[script_gen] used {provider['name']}")
+            return result
+        except _RateLimitError:
+            print(f"[script_gen] {provider['name']} rate limited, trying next...")
+            skipped.append(f"{provider['name']} (429)")
+        except EnvironmentError:
+            skipped.append(f"{provider['name']} (no key)")
+
+    raise RuntimeError(
+        f"All LLM providers failed or rate limited: {', '.join(skipped)}"
+    )
+
+
+# ── Channel config ────────────────────────────────────────────────────────────
 
 CHANNEL_TONES = {
     "ch1": (
@@ -117,79 +214,57 @@ SCRIPT_SCHEMA = '''
 }'''
 
 
+# ── Prompt builders ───────────────────────────────────────────────────────────
+
 def build_system_prompt(channel_id: str, topic: str, brief: ResearchBrief) -> str:
     tone = CHANNEL_TONES.get(channel_id, CHANNEL_TONES["ch1"])
     name = CHANNEL_NAMES.get(channel_id, channel_id)
     facts_str = "\n".join(f"- {f}" for f in brief.key_facts)
     entities_str = ", ".join(brief.named_entities[:10]) if brief.named_entities else "none found"
 
-    return f"""You write scripts for the YouTube Shorts channel: {name}
-Topic: {topic}
-Tone: {tone}
-
-TARGET LENGTH: 35 seconds total.
-- hook:    <=12 words  (~3s)
-- context: <=18 words  (~3s)
-- beats:   exactly 5 beats, each 8-20 words (~4s each = 20s)
-- twist:   <=20 words  (~3s)
-- outro.narration: <=18 words  (~3.5s)
-
-RULES:
-1. This script is about the SPECIFIC topic above - NOT a generic overview of the channel niche.
-2. Every factual claim must use one of the research facts provided below.
-3. Every mechanism beat must explain HOW something works (mechanism + implication), not just WHAT it is.
-4. Every beat must name at least one specific entity (person, place, brand, statistic, distance).
-5. The outro loops back to the hook's specific promise and opens exactly one new curiosity gap.
-6. WORD COUNT IS STRICT - each section must stay within its word limit.
-
-RESEARCH FACTS (use these, never invent):
-{facts_str}
-
-NAMED ENTITIES FOUND IN RESEARCH:
-{entities_str}
-
-Return ONLY valid JSON - no markdown fences, no commentary outside the JSON."""
+    return (
+        f"You write scripts for the YouTube Shorts channel: {name}\n"
+        f"Topic: {topic}\n"
+        f"Tone: {tone}\n"
+        "\n"
+        "TARGET LENGTH: 35 seconds total.\n"
+        "- hook:    <=12 words  (~3s)\n"
+        "- context: <=18 words  (~3s)\n"
+        "- beats:   exactly 5 beats, each 8-20 words (~4s each = 20s)\n"
+        "- twist:   <=20 words  (~3s)\n"
+        "- outro.narration: <=18 words  (~3.5s)\n"
+        "\n"
+        "RULES:\n"
+        "1. This script is about the SPECIFIC topic above - NOT a generic overview of the channel niche.\n"
+        "2. Every factual claim must use one of the research facts provided below.\n"
+        "3. Every mechanism beat must explain HOW something works (mechanism + implication), not just WHAT.\n"
+        "4. Every beat must name at least one specific entity (person, place, brand, statistic, distance).\n"
+        "5. The outro loops back to the hook's specific promise and opens exactly one new curiosity gap.\n"
+        "6. WORD COUNT IS STRICT - each section must stay within its word limit.\n"
+        "\n"
+        f"RESEARCH FACTS (use these, never invent):\n{facts_str}\n"
+        "\n"
+        f"NAMED ENTITIES FOUND IN RESEARCH:\n{entities_str}\n"
+        "\n"
+        "Return ONLY valid JSON - no markdown fences, no commentary outside the JSON."
+    )
 
 
 def build_user_prompt(topic: str, brief: ResearchBrief) -> str:
+    facts_lines = "\n".join(f"- {f}" for f in brief.key_facts)
     numbers = "\n".join(f"- {n}" for n in brief.specific_numbers) if brief.specific_numbers else "- none"
-    return f"""Write a 35-second Shorts script about: {topic}
+    return (
+        f"Write a 35-second Shorts script about: {topic}\n"
+        "\n"
+        f"Use these real facts (mandatory - no invented claims):\n{facts_lines}\n"
+        "\n"
+        f"Specific numbers found in research (at least 1 must appear in the script):\n{numbers}\n"
+        "\n"
+        f"Return ONLY this JSON structure - nothing else:\n{SCRIPT_SCHEMA}"
+    )
 
-Use these real facts (mandatory - no invented claims):
-{chr(10).join(f'- {f}' for f in brief.key_facts)}
 
-Specific numbers found in research (at least 1 must appear in the script):
-{numbers}
-
-Return ONLY this JSON structure - nothing else:
-{SCRIPT_SCHEMA}"""
-
-
-def groq_complete(system: str, user: str, model: str = "llama-3.3-70b-versatile") -> str:
-    client = _get_client()
-    for attempt in range(5):
-        try:
-            response = client.chat.completions.create(
-                model=model,
-                messages=[
-                    {"role": "system", "content": system},
-                    {"role": "user",   "content": user},
-                ],
-                temperature=0.7,
-                max_tokens=2000,
-                response_format={"type": "json_object"},
-            )
-            return response.choices[0].message.content or ""
-        except Exception as e:
-            msg = str(e)
-            if "rate_limit_exceeded" in msg or "429" in msg:
-                wait = 15 * (2 ** attempt)
-                print(f"[script_gen] rate limit hit, waiting {wait}s...")
-                time.sleep(wait)
-            else:
-                raise
-    raise RuntimeError("Groq rate limit: max retries exceeded")
-
+# ── Validation ────────────────────────────────────────────────────────────────
 
 def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
     errors = []
@@ -232,7 +307,7 @@ def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
     ])
     number_count = len(re.findall(r"\d[\d,\.]*", full_text))
     if number_count < 1:
-        errors.append(f"no specific numbers in script - need at least 1")
+        errors.append("no specific numbers in script - need at least 1")
     return errors
 
 
@@ -242,19 +317,20 @@ class ValidationError(Exception):
         super().__init__("; ".join(errors))
 
 
+# ── Main entry point ──────────────────────────────────────────────────────────
+
 def generate_script(topic: str, channel_id: str, brief: ResearchBrief, max_retries: int = 3) -> dict:
     system = build_system_prompt(channel_id, topic, brief)
-    user   = build_user_prompt(topic, brief)
+    user = build_user_prompt(topic, brief)
+    script = {}
 
     for attempt in range(1, max_retries + 1):
         print(f"[script_gen] attempt {attempt}/{max_retries} for topic: {topic!r}")
-        raw = groq_complete(system, user)
+        raw = llm_complete(system, user)
         clean = raw.strip()
         if clean.startswith("```"):
-            clean = re.sub(r"^```[a-z]*\
-?", "", clean)
-            clean = re.sub(r"\
-?```$", "", clean)
+            clean = re.sub(r"^```[a-z]*\n?", "", clean)
+            clean = re.sub(r"\n?```$", "", clean)
         try:
             script = json.loads(clean)
         except json.JSONDecodeError as e:
@@ -269,26 +345,18 @@ def generate_script(topic: str, channel_id: str, brief: ResearchBrief, max_retri
             print(f"[script_gen] script validated on attempt {attempt}")
             return script
         print(f"[script_gen] validation failed on attempt {attempt}: {errors}")
-        user = (
-            user
-            + f"\
-\
-PREVIOUS ATTEMPT FAILED VALIDATION - fix these errors:\
-"
-            + "\
-".join(f"- {e}" for e in errors)
-        )
+        error_lines = "\n".join(f"- {e}" for e in errors)
+        user = user + f"\n\nPREVIOUS ATTEMPT FAILED VALIDATION - fix these errors:\n{error_lines}"
 
     raise ValidationError(validate_script(script, brief))
 
 
 if __name__ == "__main__":
-    import os
     from dotenv import load_dotenv
     load_dotenv()
     from research import research
-    topic   = sys.argv[1] if len(sys.argv) > 1 else "Dunning-Kruger effect"
+    topic = sys.argv[1] if len(sys.argv) > 1 else "Dunning-Kruger effect"
     channel = sys.argv[2] if len(sys.argv) > 2 else "ch1"
-    brief  = research(topic, channel)
+    brief = research(topic, channel)
     script = generate_script(topic, channel, brief)
     print(json.dumps(script, indent=2))
