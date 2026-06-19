@@ -23,7 +23,7 @@ export const PlacePhoto: React.FC<{
   return (
     <AbsoluteFill style={{ overflow: 'hidden' }}>
       <Img
-        src={staticFile(asset.path)}
+        src={staticFile(asset.path.replace(/^public\//, ''))}
         style={{
           width: '100%',
           height: '100%',

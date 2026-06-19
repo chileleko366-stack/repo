@@ -18,14 +18,21 @@ const SfxEvent: React.FC<{ event: SoundEvent }> = ({ event }) => {
   const frame = useCurrentFrame();
   const { name, durationFrames, volume = 1 } = event;
 
-  // Tiny linear fade-in/out to avoid click artifacts at boundaries
-  const fadeOut = Math.max(0, durationFrames - FADE_FRAMES);
-  const vol = interpolate(
-    frame,
-    [0, FADE_FRAMES, fadeOut, durationFrames],
-    [0, volume, volume, 0],
-    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
-  );
+  // Tiny linear fade-in/out to avoid click artifacts at boundaries.
+  // Guard: when durationFrames is very short, skip fading to keep inputRange monotonic.
+  const canFade = durationFrames > FADE_FRAMES * 2;
+  const fadeOut = canFade ? durationFrames - FADE_FRAMES : durationFrames;
+  const vol = canFade
+    ? interpolate(
+        frame,
+        [0, FADE_FRAMES, fadeOut, durationFrames],
+        [0, volume, volume, 0],
+        { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
+      )
+    : interpolate(frame, [0, durationFrames], [volume, volume], {
+        extrapolateLeft: 'clamp',
+        extrapolateRight: 'clamp',
+      });
 
   return (
     <Audio

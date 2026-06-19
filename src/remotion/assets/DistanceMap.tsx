@@ -75,7 +75,7 @@ export const DistanceMap: React.FC<{
         }}
       >
         <Img
-          src={staticFile(asset.map_image)}
+          src={staticFile(asset.map_image.replace(/^public\//, ''))}
           style={{ width: 1080, height: MAP_H, objectFit: 'fill' }}
         />
 

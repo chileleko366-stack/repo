@@ -63,7 +63,7 @@ export const PersonCard: React.FC<{
         }}
       >
         <Img
-          src={staticFile(asset.path)}
+          src={staticFile(asset.path.replace(/^public\//, ''))}
           style={{
             maxHeight: 900,
             maxWidth: 800,

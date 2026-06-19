@@ -40,7 +40,7 @@ const StockVideoClip: React.FC<{
   return (
     <AbsoluteFill style={{ overflow: 'hidden' }}>
       <Video
-        src={staticFile(asset.path)}
+        src={staticFile(asset.path.replace(/^public\//, ''))}
         style={{
           width: '100%',
           height: '100%',
@@ -79,7 +79,7 @@ const StockPhotoClip: React.FC<{
   return (
     <AbsoluteFill style={{ overflow: 'hidden' }}>
       <Img
-        src={staticFile(asset.path)}
+        src={staticFile(asset.path.replace(/^public\//, ''))}
         style={{
           width: '100%',
           height: '100%',
