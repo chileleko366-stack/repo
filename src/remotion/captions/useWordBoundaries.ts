@@ -22,7 +22,7 @@ export function useWordBoundaries(
     try {
       const entries = await Promise.all(
         captionBeats.map(async (beat) => {
-          const path = staticFile(beat.wordBoundariesPath);
+          const path = staticFile(beat.wordBoundariesPath.replace(/^public\//, ''));
           const res = await fetch(path);
           if (!res.ok) {
             // If the file doesn't exist yet (pre-TTS), return empty array

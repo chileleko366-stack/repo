@@ -87,6 +87,15 @@ jobs:
             python src/scripts/pipeline.py --channel "$CH"
           fi
 
+      - name: Create silent music placeholders if missing
+        run: |
+          for ch in ch1 ch2 ch3 ch4 ch5 ch6; do
+            if [ ! -f "public/music/${ch}.mp3" ]; then
+              ffmpeg -f lavfi -i anullsrc=r=44100:cl=stereo -t 35 \
+                -b:a 32k "public/music/${ch}.mp3" -y -loglevel quiet
+            fi
+          done
+
       - name: Bundle Remotion
         run: npx remotion bundle
 
