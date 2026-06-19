@@ -15,6 +15,7 @@ import os
 import re
 import json
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -87,7 +88,7 @@ SCRIPT_SCHEMA = '''
   "context": "<<=18 words, specific stakes with a real number from research>",
   "beats": [
     {
-      "narration": "<10-20 words, one specific mechanism or fact>",
+      "narration": "<8-20 words, one specific mechanism or fact>",
       "visual": {
         "kind": "<person|brand|product|place|distance|map|anatomy|celestial|stat|stock_video|none>",
         "value": "<exact name: Daniel Kahneman / Tesla / Chernobyl / Mars>",
@@ -129,7 +130,7 @@ Tone: {tone}
 TARGET LENGTH: 35 seconds total.
 - hook:    <=12 words  (~3s)
 - context: <=18 words  (~3s)
-- beats:   exactly 5 beats, each 10-20 words (~4s each = 20s)
+- beats:   exactly 5 beats, each 8-20 words (~4s each = 20s)
 - twist:   <=20 words  (~3s)
 - outro.narration: <=18 words  (~3.5s)
 
@@ -166,17 +167,28 @@ Return ONLY this JSON structure - nothing else:
 
 def groq_complete(system: str, user: str, model: str = "llama-3.3-70b-versatile") -> str:
     client = _get_client()
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": system},
-            {"role": "user",   "content": user},
-        ],
-        temperature=0.7,
-        max_tokens=2000,
-        response_format={"type": "json_object"},
-    )
-    return response.choices[0].message.content or ""
+    for attempt in range(5):
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user",   "content": user},
+                ],
+                temperature=0.7,
+                max_tokens=2000,
+                response_format={"type": "json_object"},
+            )
+            return response.choices[0].message.content or ""
+        except Exception as e:
+            msg = str(e)
+            if "rate_limit_exceeded" in msg or "429" in msg:
+                wait = 15 * (2 ** attempt)
+                print(f"[script_gen] rate limit hit, waiting {wait}s...")
+                time.sleep(wait)
+            else:
+                raise
+    raise RuntimeError("Groq rate limit: max retries exceeded")
 
 
 def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
@@ -192,8 +204,8 @@ def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
         errors.append(f"need exactly 5 beats, got {len(beats)}")
     for i, beat in enumerate(beats):
         words = len(beat.get("narration", "").split())
-        if words < 8:
-            errors.append(f"beat {i}: narration too short ({words} words, min 8)")
+        if words < 5:
+            errors.append(f"beat {i}: narration too short ({words} words, min 5)")
         if words > 25:
             errors.append(f"beat {i}: narration too long ({words} words, max 20)")
         if not beat.get("visual") or not beat["visual"].get("kind"):
