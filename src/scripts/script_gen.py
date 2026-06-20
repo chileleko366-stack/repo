@@ -412,7 +412,7 @@ def validate_continuity(script: dict, llm_fn=None) -> list[str]:
         for m in re.finditer(r"(\d[\d,\.]*\s*(?:billion|million|thousand|%|km|kg|°|ly)?)", sentence, re.IGNORECASE):
             context_start = max(0, m.start() - 20)
             ctx_key = re.sub(r"[^a-z\s]", "", sentence[context_start:m.start()].lower().strip())[-15:]
-            if ctx_key:
+            if len(ctx_key) >= 5:
                 number_contexts.setdefault(ctx_key, []).append(m.group(0).strip())
 
     for ctx, vals in number_contexts.items():
