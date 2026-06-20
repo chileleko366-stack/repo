@@ -7,7 +7,6 @@
  *   other non-asset→ plain Special Elite text + GlitchWord emphasis
  *   twist          → ClassifiedStamp overlay
  *   person/place   → AssetLayer full-screen
- *   stock_video    → AssetLayer full-screen
  * Global: scanline texture, red top rule, Soundtrack, SfxLayer, CaptionTrack.
  */
 

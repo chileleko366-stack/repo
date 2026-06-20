@@ -5,7 +5,6 @@
  * Beat layout:
  *   stat / none  → CandlestickChart bg + Counter or text
  *   brand/person → AssetLayer full-screen
- *   stock_video  → AssetLayer full-screen
  *   hook/context → BrowserFrame chrome at top
  * Global: TickerTape strip on every beat, Soundtrack, SfxLayer, CaptionTrack.
  */

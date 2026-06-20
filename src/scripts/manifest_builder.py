@@ -39,7 +39,7 @@ ASSET_BEAT_KINDS = {"person", "brand", "product", "place", "distance",
 
 
 def captions_visible(beat_kind: str) -> bool:
-    return beat_kind not in ASSET_BEAT_KINDS and beat_kind != "stock_video"
+    return beat_kind not in ASSET_BEAT_KINDS
 
 
 # ── Channel config loader ─────────────────────────────────────────────────────

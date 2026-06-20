@@ -14,7 +14,6 @@ export type BeatKind =
   | 'chart'
   | 'morph'
   | 'typography'
-  | 'stock_video'   // kept in type for backwards compat; rejected at script validation time
   | 'none';
 
 export interface VisualTag {
@@ -32,7 +31,6 @@ export interface VisualTag {
   prefix?: string;
   suffix?: string;
   stat_value?: number;
-  // stock_video
   query?: string;
 }
 
@@ -75,14 +73,6 @@ export interface BeatAudio {
   wordBoundariesPath: string;
   wordBoundaries: WordBoundary[];
   durationMs: number;
-}
-
-export interface StockAsset {
-  id: string;
-  path: string;
-  kind: 'video' | 'photo';
-  query: string;
-  source: 'pexels' | 'pixabay';
 }
 
 export interface PersonAsset {
@@ -153,8 +143,7 @@ export interface VideoManifest {
   script: Script;
   beats: ManifestBeat[];
   soundDesign: SoundEvent[];
-  usedStockIds: string[];
-  resolvedAssets: Record<string, PersonAsset | BrandAsset | PlaceAsset | DistanceAsset | StockAsset>;
+  resolvedAssets: Record<string, PersonAsset | BrandAsset | PlaceAsset | DistanceAsset>;
   ctaText: string;
 }
 
@@ -175,7 +164,7 @@ export interface ManifestBeat {
   // Populated after TTS stage:
   audio?: BeatAudio;
   // Populated after asset resolver stage:
-  resolvedAsset?: PersonAsset | BrandAsset | PlaceAsset | DistanceAsset | StockAsset | null;
+  resolvedAsset?: PersonAsset | BrandAsset | PlaceAsset | DistanceAsset | null;
 }
 
 export interface ChannelConfig {

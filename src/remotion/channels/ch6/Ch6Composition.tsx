@@ -4,7 +4,7 @@
  * Layout per beat:
  *   ─ Background (deep space #050010)
  *   ─ Starfield           (always — drifting parallax stars)
- *   ─ AssetLayer          (full-screen for person/brand/place/stock_video)
+ *   ─ AssetLayer          (full-screen for person/brand/place)
  *   ─ CelestialBody       (celestial beats — 3-D rotating sphere)
  *   ─ Gradient scrim
  *   ─ Counter             (stat beats)

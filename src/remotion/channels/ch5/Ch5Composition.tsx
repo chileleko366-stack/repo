@@ -3,7 +3,7 @@
  *
  * Layout per beat:
  *   ─ Background fill (deep sepia #100d08)
- *   ─ AssetLayer      (full-screen for person/brand/place/stock_video)
+ *   ─ AssetLayer      (full-screen for person/brand/place)
  *   ─ Warm vignette   (always — corners darker)
  *   ─ DocumentaryQuote (non-asset beats: centred quote card)
  *   ─ Narration text   (asset beats: bottom anchor, EB Garamond)

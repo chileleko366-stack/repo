@@ -4,7 +4,7 @@
  * Renders all 9 sections from the manifest inside frame-accurate <Sequence>s.
  * Layout per beat:
  *   ─ Background fill (beat.bg_color || channel bgPrimary)
- *   ─ AssetLayer       (person/brand/place/map/stock_video — full-screen)
+ *   ─ AssetLayer       (person/brand/place/map — full-screen)
  *   ─ Gradient scrim   (bottom 600px, asset beats only — legibility)
  *   ─ KineticTitle     (narration text, overlaid bottom-of-asset or centered)
  *   ─ PsychCard        (stat/none beats — centered card)
@@ -47,7 +47,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
   const bg       = bg_color || CFG.colors.bgPrimary;
   const hasAsset = !!resolvedAsset;
 
-  // person/brand/place/map/distance/stock_video take the full frame
+  // person/brand/place/map/distance take the full frame
   const isFullscreen =
     hasAsset && kind !== 'none' && kind !== 'stat' && kind !== 'anatomy' && kind !== 'celestial';
 

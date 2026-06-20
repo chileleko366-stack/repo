@@ -10,7 +10,7 @@
  *
  * Rules (hardcoded, no exceptions):
  * - Captions HIDDEN on beats where captionsVisible === false
- *   (person / brand / place / map / anatomy / celestial / stock_video)
+ *   (person / brand / place / map / anatomy / celestial)
  * - Captions RESUME only after the beat's own durationFrames ends
  * - One page per ~1200ms of narration (combineTokensWithinMilliseconds)
  * - Active word: spring scale 1.0→1.12, accent colour, accent font

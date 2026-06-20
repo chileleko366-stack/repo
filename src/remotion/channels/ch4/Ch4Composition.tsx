@@ -3,7 +3,7 @@
  *
  * Layout per beat:
  *   ─ Background fill
- *   ─ AssetLayer      (full-screen for person/brand/place/map/stock_video)
+ *   ─ AssetLayer      (full-screen for person/brand/place/map)
  *   ─ NeuronPulse     (anatomy beats — SVG neuron overlay)
  *   ─ ThreeBrain      (anatomy beats — 3-D wireframe brain)
  *   ─ Gradient scrim
@@ -111,7 +111,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
     <AbsoluteFill>
       <AbsoluteFill style={{ background: bg }} />
 
-      {/* Full-screen asset (person/brand/place/map/stock_video) */}
+      {/* Full-screen asset (person/brand/place/map) */}
       {isFullscreen && (
         <AssetLayer beat={beat} durationFrames={beat.durationFrames} />
       )}

@@ -239,7 +239,7 @@ SCRIPT_SCHEMA = '''
       "narration": "<8-20 words, one complete spoken thought — do NOT split a sentence across beats>",
       "pause_after": "<breath|beat|cut> — breath: next thought follows immediately; beat: clear pause like a comma; cut: hard scene change like a paragraph break",
       "visual": {
-        "kind": "<person|brand|place|distance|map|anatomy|celestial|stat|chart|morph|typography|none> — stock_video is NOT allowed",
+        "kind": "<person|brand|place|distance|map|anatomy|celestial|stat|chart|morph|typography|none>",
         "value": "<exact name: Daniel Kahneman / Tesla / Chernobyl / Mars>",
         "from": "<if distance: origin place>",
         "to": "<if distance: destination place>",
@@ -334,8 +334,6 @@ VALID_VISUAL_KINDS = {
     'person', 'brand', 'place', 'distance', 'map', 'anatomy',
     'celestial', 'stat', 'chart', 'morph', 'typography', 'none',
 }
-# stock_video is NOT in this set — it was removed in v3
-
 VALID_PAUSE_AFTER = {'breath', 'beat', 'cut'}
 
 
@@ -359,8 +357,6 @@ def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
         kind = beat.get("visual", {}).get("kind", "")
         if not kind:
             errors.append(f"beat {i}: missing visual.kind")
-        elif kind == "stock_video":
-            errors.append(f"beat {i}: stock_video visual kind is not allowed in v3 — use chart, typography, or a named entity")
         elif kind not in VALID_VISUAL_KINDS:
             errors.append(f"beat {i}: invalid visual.kind '{kind}'")
         pause = beat.get("pause_after", "")
