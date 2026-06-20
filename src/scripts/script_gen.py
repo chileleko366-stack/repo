@@ -396,14 +396,23 @@ def validate_continuity(script: dict, llm_fn=None) -> list[str]:
     errors = []
     beats = script.get("beats", [])
 
-    # 1. Entity name consistency — simple normalized dedup check
+    # 1. Entity name consistency — whole-word overlap check
+    # Uses word-boundary regex so "LHC" (3 chars) is NOT flagged as the same entity as "LHCb" (4 chars),
+    # while "Musk" IS flagged as overlapping "Elon Musk".
+    def _name_overlaps(a: str, b: str) -> bool:
+        try:
+            return bool(re.search(r'\b' + re.escape(a) + r'\b', b)) or \
+                   bool(re.search(r'\b' + re.escape(b) + r'\b', a))
+        except re.error:
+            return False
+
     entity_map: dict[str, str] = {}  # normalized → first occurrence
     for beat in beats:
         visual = beat.get("visual", {})
         val = visual.get("value", "")
         if val:
             norm = re.sub(r"\s+", " ", val.strip().lower())
-            existing = [k for k in entity_map if norm in k or k in norm]
+            existing = [k for k in entity_map if _name_overlaps(norm, k)]
             for k in existing:
                 if entity_map[k] != val:
                     errors.append(

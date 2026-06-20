@@ -166,30 +166,44 @@ def compile_all_shot_briefs(manifest: dict) -> dict:
     """
     Adds a `shotBrief` key to every beat in manifest['beats'].
     Calls Groq for each beat sequentially, tracking recent grids for variety enforcement.
+    Failures (rate-limit, network, validation) are non-fatal: the beat gets shotBrief=None
+    and the channel composition falls back to its built-in rendering.
     Returns the updated manifest.
     """
     api_key = os.environ.get("GROQ_API_KEY", "")
     if not api_key:
-        raise EnvironmentError("GROQ_API_KEY not set — cannot compile shot briefs")
+        print("[shot_brief] GROQ_API_KEY not set — skipping shot brief compilation (fallback rendering will be used)")
+        for beat in manifest["beats"]:
+            beat.setdefault("shotBrief", None)
+        return manifest
 
     channel_id = manifest["channelId"]
     channel_cfg = _load_channel_cfg(channel_id)
     beats: list[dict] = manifest["beats"]
 
     recent_grids: list[str] = []
+    ok = 0
 
-    for beat in beats:
+    for i, beat in enumerate(beats):
+        if i > 0:
+            time.sleep(0.6)  # stay under Groq free-tier rate limit
+
         resolved_asset: Any = beat.get("resolvedAsset")
         asset_meta: dict | None = None
         if isinstance(resolved_asset, dict):
             asset_meta = {k: resolved_asset[k] for k in ("width", "height", "focalPointXPct", "focalPointYPct")
                           if k in resolved_asset}
 
-        brief = _compile_one(beat, channel_cfg, recent_grids[-3:], asset_meta, api_key)
-        beat["shotBrief"] = brief
+        try:
+            brief = _compile_one(beat, channel_cfg, recent_grids[-3:], asset_meta, api_key)
+            beat["shotBrief"] = brief
+            ok += 1
+            grid = brief.get("composition", {}).get("grid")
+            if grid:
+                recent_grids.append(grid)
+        except Exception as exc:
+            print(f"[shot_brief] ⚠ beat {beat.get('beatId')} skipped — {exc}")
+            beat["shotBrief"] = None
 
-        grid = brief.get("composition", {}).get("grid")
-        if grid:
-            recent_grids.append(grid)
-
+    print(f"[shot_brief] {ok}/{len(beats)} shot briefs compiled")
     return manifest
