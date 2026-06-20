@@ -36,6 +36,7 @@ from manifest_builder import build_manifest, save_manifest
 from mock_data import get_mock_brief
 from tts import generate_all_beats, manifest_to_captions
 from asset_resolver import resolve_all_beats as resolve_assets
+from shot_brief import compile_all_shot_briefs
 from sound_design import build_sound_design
 
 
@@ -171,6 +172,14 @@ def run_pipeline(channel_id: str, topic: str, dry_run: bool = False, mock: bool 
     if not dry_run:
         save_manifest(manifest, manifest_path)
     print(f"  ✓ {resolved_count} assets resolved\n")
+
+    # Stage 5b: Shot Brief compiler
+    print("▶ Stage 5b: Shot Brief compiler (staging / composition / motion)")
+    manifest = compile_all_shot_briefs(manifest)
+    briefs_compiled = sum(1 for b in manifest["beats"] if b.get("shotBrief"))
+    if not dry_run:
+        save_manifest(manifest, manifest_path)
+    print(f"  ✓ {briefs_compiled}/{len(manifest['beats'])} beats have shotBrief\n")
 
     # Stage 6: Sound design
     print("▶ Stage 6: Sound design (SFX schedule)")

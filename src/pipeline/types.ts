@@ -1,3 +1,5 @@
+import type { ShotBrief } from './shotBrief';
+
 export type ChannelId = 'ch1' | 'ch2' | 'ch3' | 'ch4' | 'ch5' | 'ch6';
 
 export type BeatKind =
@@ -165,6 +167,8 @@ export interface ManifestBeat {
   audio?: BeatAudio;
   // Populated after asset resolver stage:
   resolvedAsset?: PersonAsset | BrandAsset | PlaceAsset | DistanceAsset | null;
+  // Populated after shot brief compiler stage:
+  shotBrief?: ShotBrief | null;
 }
 
 export interface ChannelConfig {
