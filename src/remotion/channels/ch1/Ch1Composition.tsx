@@ -99,7 +99,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
           keyword={emphasis_keyword}
           kind={kind}
           statValue={
-            kind === 'stat' ? parseFloat(visual.value ?? '0') : undefined
+            kind === 'stat' ? (parseFloat(visual.value ?? '0') || 0) : undefined
           }
           statPrefix={visual.prefix}
           statSuffix={visual.suffix}

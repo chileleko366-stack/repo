@@ -146,7 +146,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
           }}
         >
           <Counter
-            to={parseFloat(visual.value ?? '0')}
+            to={parseFloat(visual.value ?? '0') || 0}
             durationFrames={54}
             delayFrames={54}
             prefix={visual.prefix}
