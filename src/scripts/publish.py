@@ -13,13 +13,11 @@ from pathlib import Path
 from typing import Optional
 
 from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
 DRAFTS_REGISTRY = Path("drafts/registry.json")
 DRAFTS_DIR = Path("drafts")
-SCOPES = ["https://www.googleapis.com/auth/youtube"]
 
 
 def _load_registry() -> list:
@@ -55,7 +53,6 @@ def _get_youtube_client(channel_id: str):
         token_uri="https://oauth2.googleapis.com/token",
         client_id=client_id,
         client_secret=client_secret,
-        scopes=SCOPES,
     )
     return build("youtube", "v3", credentials=creds)
 
