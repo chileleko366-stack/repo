@@ -25,9 +25,11 @@ import { CHANNEL_CONFIGS } from '../../../pipeline/channelConfigs';
 import { AssetLayer } from '../../assets/AssetLayer';
 import { CaptionTrack } from '../../captions/CaptionTrack';
 import { useWordBoundaries } from '../../captions/useWordBoundaries';
-import { MorphText } from '../../morph/MorphText';
+import { ShotBriefLayer } from '../../mograph/ShotBriefLayer';
 import { SfxLayer } from '../../sound/SfxLayer';
 import { Soundtrack } from '../../sound/Soundtrack';
+import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
+import type { TimedBeat } from '../../transitions/BeatCompositor';
 import { HardCutFlash } from './HardCutFlash';
 import { KineticTitle } from './KineticTitle';
 import { PsychCard } from './PsychCard';
@@ -41,8 +43,8 @@ function toStatic(p: string) {
 
 // ── Beat section ──────────────────────────────────────────────────────────────
 
-const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
-  const { visual, emphasis_keyword, resolvedAsset, bg_color, audioPath } = beat;
+const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({ beat, durationFrames }) => {
+  const { visual, emphasis_keyword, resolvedAsset, bg_color, audioPath, shotBrief } = beat;
   const kind     = visual.kind;
   const bg       = bg_color || CFG.colors.bgPrimary;
   const hasAsset = !!resolvedAsset;
@@ -51,6 +53,9 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
   const isFullscreen =
     hasAsset && kind !== 'none' && kind !== 'stat' && kind !== 'anatomy' && kind !== 'celestial';
 
+  // When shotBrief is present: use its primaryAnchor for text position; skip hardcoded layout.
+  const hasShotBrief = !!shotBrief;
+
   return (
     <AbsoluteFill>
       {/* Base background */}
@@ -58,7 +63,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
 
       {/* Full-screen asset */}
       {isFullscreen && (
-        <AssetLayer beat={beat} durationFrames={beat.durationFrames} />
+        <AssetLayer beat={beat} durationFrames={durationFrames} />
       )}
 
       {/* Gradient scrim on asset beats so text stays legible */}
@@ -77,8 +82,19 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
         />
       )}
 
-      {/* Stat / none beats — PsychCard is the primary visual */}
-      {(kind === 'none' || kind === 'stat') && (
+      {/* ShotBrief-driven layout: primitive at primaryAnchor position with depth effects */}
+      {hasShotBrief && (
+        <ShotBriefLayer
+          beat={beat}
+          accentColor={CFG.colors.accent1}
+          bgColor={bg}
+          bodyFont={CFG.bodyFont}
+          accentFont={CFG.accentFont}
+        />
+      )}
+
+      {/* Fallback: stat / none beats — PsychCard is the primary visual */}
+      {!hasShotBrief && (kind === 'none' || kind === 'stat') && (
         <PsychCard
           keyword={emphasis_keyword}
           kind={kind}
@@ -90,27 +106,24 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
         />
       )}
 
-      {/* Kinetic narration text */}
-      <div
-        style={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          // On asset beats: anchor near bottom above captions
-          // On card beats: sit above the card
-          bottom: isFullscreen ? 300 : undefined,
-          top:    isFullscreen ? undefined : 160,
-          display: 'flex',
-          justifyContent: 'center',
-        }}
-      >
-        {!isFullscreen && (
+      {/* Fallback: kinetic narration text (hardcoded anchoring) */}
+      {!hasShotBrief && !isFullscreen && (
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: 160,
+            display: 'flex',
+            justifyContent: 'center',
+          }}
+        >
           <KineticTitle
             text={beat.narration}
             emphasisWord={emphasis_keyword}
           />
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Beat voiceover */}
       {audioPath ? (
@@ -128,9 +141,22 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
 export const Ch1Composition: React.FC<{ manifest: VideoManifest }> = ({
   manifest,
 }) => {
-  const { beats, soundDesign } = manifest;
+  const { beats, soundDesign, fps, script } = manifest;
 
   const wordBoundaries = useWordBoundaries(beats);
+
+  // Build timing data for BeatCompositor from TTS audio durations + script pause markers.
+  const audioDurationsMs: Record<string, number> = {};
+  const pauseAfterMap: Record<string, 'breath' | 'beat' | 'cut'> = {};
+  beats.forEach((b) => {
+    if (b.audio?.durationMs) audioDurationsMs[b.beatId] = b.audio.durationMs;
+  });
+  (script?.beats ?? []).forEach((sb, i) => {
+    const beatId = `beat_${i}`;
+    pauseAfterMap[beatId] = (sb as { pause_after?: 'breath' | 'beat' | 'cut' }).pause_after ?? 'cut';
+  });
+
+  const timedBeats: TimedBeat[] = buildTimedBeats(beats, fps ?? 30, audioDurationsMs, pauseAfterMap);
 
   return (
     <AbsoluteFill
@@ -142,17 +168,13 @@ export const Ch1Composition: React.FC<{ manifest: VideoManifest }> = ({
       {/* Music bed */}
       <Soundtrack channelId="ch1" musicVolume={0.15} />
 
-      {/* Beat sequences */}
-      {beats.map((beat) => (
-        <Sequence
-          key={beat.beatId}
-          from={beat.startFrame}
-          durationInFrames={beat.durationFrames}
-          layout="none"
-        >
-          <BeatSection beat={beat} />
-        </Sequence>
-      ))}
+      {/* BeatCompositor: TransitionSeries-based pacing with speech-rhythm transitions */}
+      <BeatCompositor
+        timedBeats={timedBeats}
+        renderBeat={(beat, _i) => (
+          <BeatSection beat={beat} durationFrames={beat.audioFrames} />
+        )}
+      />
 
       {/* Frame-synced SFX */}
       <SfxLayer soundDesign={soundDesign ?? []} />

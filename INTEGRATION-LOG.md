@@ -542,3 +542,21 @@ Beat 2 — `stat` visual (79% statistic):
   "fallbackPrimitive": "TypographicCard"
 }
 ```
+
+
+---
+
+## Part 2 — Channel Composition Wiring (ShotBriefLayer + BeatCompositor)
+
+All 6 channel compositions updated to consume `beat.shotBrief` and delegate layout to `ShotBriefLayer`.
+Fallback rendering (existing KineticTitle / PsychCard / etc.) preserved behind `!hasShotBrief` guards.
+`BeatCompositor` replaces manual `<Sequence>` lists in every root composition for transition-aware pacing.
+
+- **ch1** (Dopamine Carousel): ShotBriefLayer + BeatCompositor wired; KineticTitle + PsychCard fallbacks intact
+- **ch2** (FinanceFiction): ShotBriefLayer + BeatCompositor wired; CandlestickChart + TickerTape fallbacks intact
+- **ch3** (Redacted): ShotBriefLayer + BeatCompositor wired; ScrambleReveal + ClassifiedStamp fallbacks intact
+- **ch4** (Grey Matter): ShotBriefLayer + BeatCompositor wired; NeuronPulse + ThreeBrain fallbacks intact
+- **ch5** (Quiet Record): ShotBriefLayer + BeatCompositor wired; DocumentaryQuote + FilmGrain fallbacks intact
+- **ch6** (Red Space Facts): ShotBriefLayer + BeatCompositor wired; CelestialBody + Starfield fallbacks intact
+
+`src/remotion/mograph/ShotBriefLayer.tsx` created: positions content via `primaryAnchor`, applies `depth.dropShadows`/`glowEffects`, dispatches to GlassCard | Typewriter | WordCarousel | ProgressBar | TypographicCard by `primitive` name.

@@ -28,8 +28,11 @@ import { AssetLayer } from '../../assets/AssetLayer';
 import { CaptionTrack } from '../../captions/CaptionTrack';
 import { useWordBoundaries } from '../../captions/useWordBoundaries';
 import { Counter } from '../../morph/Counter';
+import { ShotBriefLayer } from '../../mograph/ShotBriefLayer';
 import { SfxLayer } from '../../sound/SfxLayer';
 import { Soundtrack } from '../../sound/Soundtrack';
+import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
+import type { TimedBeat } from '../../transitions/BeatCompositor';
 import { BrowserFrame } from './BrowserFrame';
 import { CandlestickChart } from './CandlestickChart';
 import { TickerTape } from './TickerTape';
@@ -44,15 +47,16 @@ function norm(s: string) {
   return s.toLowerCase().replace(/\W/g, '');
 }
 
-const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
+const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({ beat, durationFrames }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const { visual, emphasis_keyword, resolvedAsset, bg_color, audioPath } = beat;
+  const { visual, emphasis_keyword, resolvedAsset, bg_color, audioPath, shotBrief } = beat;
   const kind    = visual.kind;
   const bg      = bg_color || CFG.colors.bgPrimary;
   const hasAsset    = !!resolvedAsset;
   const isFullscreen = hasAsset && kind !== 'none' && kind !== 'stat';
   const showBrowser  = beat.sectionKey === 'hook' || beat.sectionKey === 'context';
+  const hasShotBrief = !!shotBrief;
 
   const enter = spring({
     frame, fps,
@@ -66,11 +70,11 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
       <AbsoluteFill style={{ background: bg }} />
 
       {(kind === 'stat' || kind === 'none') && (
-        <CandlestickChart durationFrames={beat.durationFrames} />
+        <CandlestickChart durationFrames={durationFrames} />
       )}
 
       {isFullscreen && (
-        <AssetLayer beat={beat} durationFrames={beat.durationFrames} />
+        <AssetLayer beat={beat} durationFrames={durationFrames} />
       )}
       {isFullscreen && (
         <div
@@ -83,43 +87,57 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
 
       {showBrowser && <BrowserFrame />}
 
-      {/* Narration */}
-      <div
-        style={{
-          position: 'absolute',
-          left: 60, right: 60,
-          ...(isFullscreen ? { bottom: 300 } : { top: showBrowser ? 120 : 200 }),
-          opacity: enter,
-          transform: `translateY(${translateY}px)`,
-        }}
-      >
+      {/* ShotBrief-driven layout: primitive at primaryAnchor */}
+      {hasShotBrief && (
+        <ShotBriefLayer
+          beat={beat}
+          accentColor={CFG.colors.accent1}
+          bgColor={bg}
+          bodyFont={CFG.bodyFont}
+          accentFont={CFG.accentFont}
+        />
+      )}
+
+      {/* Fallback: narration text with hardcoded anchoring */}
+      {!hasShotBrief && (
         <div
           style={{
-            fontFamily: "'Space Grotesk', sans-serif",
-            fontSize: 62,
-            fontWeight: 700,
-            color: CFG.colors.text,
-            lineHeight: 1.2,
-            textAlign: 'center',
+            position: 'absolute',
+            left: 60, right: 60,
+            ...(isFullscreen ? { bottom: 300 } : { top: showBrowser ? 120 : 200 }),
+            opacity: enter,
+            transform: `translateY(${translateY}px)`,
           }}
         >
-          {beat.narration.split(' ').map((w, i) => (
-            <span
-              key={i}
-              style={{
-                color:
-                  emphasis_keyword && norm(w) === norm(emphasis_keyword)
-                    ? CFG.colors.accent1
-                    : CFG.colors.text,
-              }}
-            >
-              {w}{' '}
-            </span>
-          ))}
+          <div
+            style={{
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontSize: 62,
+              fontWeight: 700,
+              color: CFG.colors.text,
+              lineHeight: 1.2,
+              textAlign: 'center',
+            }}
+          >
+            {beat.narration.split(' ').map((w, i) => (
+              <span
+                key={i}
+                style={{
+                  color:
+                    emphasis_keyword && norm(w) === norm(emphasis_keyword)
+                      ? CFG.colors.accent1
+                      : CFG.colors.text,
+                }}
+              >
+                {w}{' '}
+              </span>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {kind === 'stat' && (
+      {/* Fallback: stat counter */}
+      {!hasShotBrief && kind === 'stat' && (
         <div
           style={{
             position: 'absolute', left: 0, right: 0, top: '44%',
@@ -140,7 +158,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
         </div>
       )}
 
-      <TickerTape durationFrames={beat.durationFrames} accent={CFG.colors.accent1} />
+      <TickerTape durationFrames={durationFrames} accent={CFG.colors.accent1} />
 
       {audioPath ? <Audio src={toStatic(audioPath)} volume={1} /> : null}
 
@@ -160,22 +178,24 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
 export const Ch2Composition: React.FC<{ manifest: VideoManifest }> = ({
   manifest,
 }) => {
-  const { beats, soundDesign } = manifest;
+  const { beats, soundDesign, fps, script } = manifest;
   const wordBoundaries = useWordBoundaries(beats);
+
+  const audioDurationsMs: Record<string, number> = {};
+  const pauseAfterMap: Record<string, 'breath' | 'beat' | 'cut'> = {};
+  beats.forEach((b) => { if (b.audio?.durationMs) audioDurationsMs[b.beatId] = b.audio.durationMs; });
+  (script?.beats ?? []).forEach((sb, i) => {
+    pauseAfterMap[`beat_${i}`] = (sb as { pause_after?: 'breath' | 'beat' | 'cut' }).pause_after ?? 'cut';
+  });
+  const timedBeats: TimedBeat[] = buildTimedBeats(beats, fps ?? 30, audioDurationsMs, pauseAfterMap);
 
   return (
     <AbsoluteFill style={{ background: CFG.colors.bgPrimary, fontFamily: CFG.bodyFont }}>
       <Soundtrack channelId="ch2" musicVolume={0.14} />
-      {beats.map((beat) => (
-        <Sequence
-          key={beat.beatId}
-          from={beat.startFrame}
-          durationInFrames={beat.durationFrames}
-          layout="none"
-        >
-          <BeatSection beat={beat} />
-        </Sequence>
-      ))}
+      <BeatCompositor
+        timedBeats={timedBeats}
+        renderBeat={(beat) => <BeatSection beat={beat} durationFrames={beat.audioFrames} />}
+      />
       <SfxLayer soundDesign={soundDesign ?? []} />
       {wordBoundaries && (
         <CaptionTrack
