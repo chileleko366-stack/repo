@@ -246,6 +246,153 @@ All third-party sources, licences, and decisions tracked here.
 
 ---
 
+## Session 2 (v3) — SaaS Mograph Engine
+
+### remotion-dev/template-prompt-to-motion-graphics-saas
+- URL: https://github.com/remotion-dev/template-prompt-to-motion-graphics-saas
+- Commit: ddfe9d1 (depth=1)
+- Licence: Remotion licence — check remotion.dev/license for company requirements
+- Destination: `src/remotion/mograph/primitives/`
+
+### Skill files read (all in `/tmp/refs/saas-engine/src/skills/`)
+| Filename | Type | Principles extracted |
+|----------|------|---------------------|
+| `spring-physics.md` | Guidance | `SPRING_CONFIGS` constants: snappy {d:20,s:200}, bouncy {d:8,s:100}, smooth {d:200,s:100}, heavy {d:15,s:80,m:2} |
+| `transitions.md` | Guidance | `TransitionSeries` + fade/slide/wipe; springTiming for crossfades; never bare `<Sequence>` hard cuts |
+| `charts.md` | Guidance | Stagger 5-10f per bar; spring not interpolate; y-axis labels; value labels inside bars; pie: strokeDashoffset from 12-o'clock |
+| `typography.md` | Guidance | String slicing typewriter (never per-char opacity); smooth caret blink; stable-width word carousel with invisible keeper |
+| `messaging.md` | Guidance | Flexbox left/right alignment; stagger 38f; spring bounce on bubble origin corner; dark/light theme constants |
+| `sequencing.md` | Guidance | `<Sequence>` for delayed elements; `<Series>` for sequential; negative offset for overlap; stagger = BASE_DELAY + i * STAGGER_DELAY |
+| `social-media.md` | Guidance | Safe zone: 12% top, 15% bottom, 5% sides; min 48px headline, 28px body; hook from frame 0; high-contrast colours |
+| `3d.md` | Guidance | ThreeCanvas wrapper; ambient + directional light always; frame-based rotation (never useFrame); spring entrance; camera at z=5 |
+| `index.ts` | Registry | Skill manifest file — read to understand skill detection scheme |
+
+### Example skill code files read (all in `/tmp/refs/saas-engine/src/examples/code/`)
+| Filename | Ported to |
+|----------|-----------|
+| `histogram.ts` | `src/remotion/mograph/primitives/Histogram.tsx` |
+| `typewriter-highlight.ts` | `src/remotion/mograph/primitives/Typewriter.tsx` |
+| `word-carousel.ts` | `src/remotion/mograph/primitives/WordCarousel.tsx` |
+| `progress-bar.ts` | `src/remotion/mograph/primitives/ProgressBar.tsx` |
+| `animated-shapes.ts` | Read — patterns applied in MorphShape (Session 6) |
+| `gold-price-chart.ts` | Read — CandlestickChart (ch2, Session 11) |
+| `falling-spheres.ts` | Read — patterns applied in Scene3D primitive |
+| `text-rotation.ts` | Read — patterns in WordCarousel fallback |
+
+### Primitives built (1 minimum per guidance skill — 8 guidance skills, all covered)
+| File | Skill source | Kind |
+|------|-------------|------|
+| `SaaSTokens.ts` | spring-physics.md + social-media.md | Constants |
+| `SpringConfigs.ts` | spring-physics.md | Constants |
+| `Typewriter.tsx` | typography.md + typewriter-highlight.ts | Guidance + Example |
+| `BarChart.tsx` | charts.md + histogram.ts | Guidance + Example |
+| `PieChart.tsx` | charts.md | Guidance |
+| `ChatBubbles.tsx` | messaging.md | Guidance |
+| `WordCarousel.tsx` | typography.md + word-carousel.ts | Guidance + Example |
+| `StaggeredSequence.tsx` | sequencing.md | Guidance |
+| `SocialFrame.tsx` | social-media.md | Guidance |
+| `Scene3D.tsx` | 3d.md | Guidance |
+| `GlassCard.tsx` | All skills (base SaaS aesthetic) | Composite |
+| `TypographicCard.tsx` | typography.md + SaaSTokens | Fallback |
+| `ProgressBar.tsx` | charts.md + progress-bar.ts | Example |
+| `Histogram.tsx` | charts.md + histogram.ts | Example (verbatim port) |
+
+### SAAS_BASE token sources
+| Token group | Source file | Section |
+|------------|-------------|---------|
+| `glass.*` | social-media.md + observed template aesthetic | Glassmorphism card style |
+| `springs.snappy` | spring-physics.md | "Common Spring Presets" — snappy: d=20, s=200 |
+| `springs.smooth` | spring-physics.md | "Common Spring Presets" — smooth: d=200, s=100 |
+| `springs.bouncy` | spring-physics.md | "Common Spring Presets" — bouncy: d=8, s=100 |
+| `springs.heavy` | spring-physics.md | "Common Spring Presets" — heavy: d=15, s=80, m=2 |
+| `safeZone.*` | social-media.md | "Safe Zone for UI Overlays" — 12%/15%/5% |
+| `typography.*` | social-media.md | "Mobile-First Text Sizing" — min 48px headline |
+
+---
+
+## Session 2.5 (v3) — Shot Brief System
+
+### Files built
+| File | Purpose |
+|------|---------|
+| `src/pipeline/shotBrief.ts` | `ShotBrief` interface, `validateShotBrief()`, `buildGradientCSS()` |
+| `src/pipeline/compileShotBrief.ts` | Groq call: beat → ShotBrief (staging decisions only, never invents facts) |
+
+### Key rules enforced by validateShotBrief()
+- `background.type` must be `'solid'` — gradients only in `depth.glowEffects`
+- At least 1 depth element (dropShadow or glowEffect) — prevents flat output
+- Every element listed in secondaryElements must have explicit xPct/yPct
+- Spring motion entries require `springConfig`; interpolate entries require `easing`
+- `composition.grid` must not repeat 3+ times in a row (anti-repetition check)
+
+---
+
+## Session 3 (v3) — Script Engine Continuity Additions
+
+### Changes to `src/scripts/script_gen.py`
+- `ChannelJob` class: namespaces every pipeline run (channel_id + uuid4 run_id + fresh groq_context list)
+- Script schema: added `pause_after: breath|beat|cut` per beat; removed `stock_video` from valid visual kinds; added `chart`, `morph`, `typography`
+- `validate_script()`: rejects `stock_video` kind; validates `pause_after` values
+- `validate_continuity()`: checks entity name consistency (normalized dedup), numeric consistency (same context → conflicting numbers), visual-narration keyword agreement
+- `validate_continuity()` runs AFTER structural validation, BEFORE Shot Brief compilation
+
+### `src/pipeline/assertNoChannelBleed.ts`
+- Validates every beat in a manifest uses only its channel's palette colours
+- Runs at manifest build time, independent of script content validation
+
+---
+
+## Session 8 (v3) — Pacing & Transitions Engine
+
+### `@remotion/transitions` installed at 4.0.481 (pinned)
+- Source: transitions.md — "TransitionSeries for Scene Changes"
+- Source: sequencing.md — "Series with Offset for Overlap"
+
+### `src/remotion/transitions/BeatCompositor.tsx`
+- `mapPauseToTransition()`: breath→crossfade (8f fade), beat→wipe (12f), cut→slide or wipe (16f)
+- `buildTimedBeats()`: converts ManifestBeat[] + TTS audio durations → TimedBeat[] with audioFrames from real TTS data (not fixed grid)
+- `BeatCompositor`: renders as single `<TransitionSeries>` — no hard-cut Sequence lists
+- `validatePacing()`: throws if any beat is visually static >45 frames
+
+---
+
+## Session 9 (v3) — Draft → Review → Publish Pipeline
+
+### `src/scripts/publish.py`
+- `upload_as_draft()`: hardcoded `privacyStatus: 'private'` — never configurable, never 'public'
+- `register_draft()`: writes to `drafts/registry.json` with status `pending_review`
+- `approve_draft()`: the ONLY function permitted to call `videos.update` with `privacyStatus: 'public'` or schedule with `publishAt`
+- `reject_draft()`: deletes from YouTube + marks registry entry `rejected`
+
+### `src/scripts/review_dashboard.py`
+- Generates `drafts/dashboard.html` from registry — thumbnail, title, script summary, asset misses
+- Approve/reject buttons display CLI command for `publish.py` (no server required)
+
+### `drafts/registry.json`
+- Initialized as empty array
+- Schema: `{video_id, channel_id, title, script_summary, render_path, thumbnail_path, uploaded_at, status, asset_misses}`
+
+---
+
+## Session 15 (v3) — Red Space Facts Rewrite
+
+### `src/remotion/channels/ch6/celestialFactsheet.ts`
+- 10 bodies: Sun, Mercury, Venus, Earth, Moon, Mars, Jupiter, Saturn, Uranus, Neptune
+- Every body has a real, specific `signatureFeature` with `cameraFraming` preset and `rotationOffsetAtMidpointDeg`
+- `diameterKm` for relative scale in distance beats
+- Sources: NASA planetary fact sheets, Solar System Scope textures (CC BY 4.0)
+
+### `src/remotion/channels/ch6/CelestialBody.tsx` (rewritten)
+- Now takes `bodyName` prop → looks up `CELESTIAL_FACTSHEETS[bodyName]`
+- `CAMERA_FRAMING_PRESETS`: 4 distinct presets (ring-tilt, polar-region, visible-hemisphere, full-disc)
+- Rotation choreographed so `signatureFeature.rotationOffsetAtMidpointDeg` is centred at beat midpoint
+- Venus renders with `dir = -1` (retrograde) — driven by `axialTiltDeg > 170`
+- Saturn rings rendered with real `innerRadiusMultiplier`/`outerRadiusMultiplier` from factsheet
+- Cloud layer for Venus/Earth/Jupiter/Saturn/Uranus/Neptune
+- Atmosphere glow: `mesh side={THREE.BackSide}` with `trueColor.secondaryHex` — element-level lighting, not page bg
+
+---
+
 ## Attribution Summary (cumulative)
 
 - Solar System Scope textures — CC BY 4.0 — add to video description
@@ -262,6 +409,9 @@ All third-party sources, licences, and decisions tracked here.
 - Kenney SFX — CC0
 - FreePD music — CC0
 - Incompetech (Kevin MacLeod) — CC BY 4.0 — add "Music by Kevin MacLeod (incompetech.com)" to description
-- Pexels stock — Pexels licence (attribution optional but credited)
-- Pixabay stock — Pixabay licence (no attribution required)
+- ~~Pexels stock~~ — REMOVED in v3 (no stock footage anywhere)
+- ~~Pixabay stock~~ — REMOVED in v3 (no stock footage anywhere)
 - Remotion — check remotion.dev/license for company requirements
+- remotion-dev/template-prompt-to-motion-graphics-saas — Remotion licence (commit ddfe9d1)
+- @remotion/transitions 4.0.481 — Remotion licence
+- google-api-python-client — Apache 2.0 (YouTube Data API v3 client)

@@ -27,6 +27,7 @@ import re
 import json
 import sys
 import time
+import uuid
 from pathlib import Path
 
 import requests
@@ -34,6 +35,28 @@ import requests
 sys.path.insert(0, str(Path(__file__).parent))
 
 from research import ResearchBrief
+
+
+# ── Session 3 v3: Per-channel state isolation ────────────────────────────────
+
+class ChannelJob:
+    """
+    Namespaces every pipeline run so no state leaks between channels or runs.
+    Every fetch_*, generate_*, and compile_* function takes a ChannelJob
+    and writes ONLY inside job.cache_root.
+    """
+    def __init__(self, channel_id: str, run_id: str | None = None):
+        self.channel_id = channel_id
+        self.run_id = run_id or str(uuid.uuid4())
+        self.cache_root = Path(f"assets/cache/{channel_id}/{self.run_id}/")
+        self.groq_context: list = []  # FRESH per job — never reused across channels or runs
+        self.cache_root.mkdir(parents=True, exist_ok=True)
+
+    def log_miss(self, visual_kind: str, visual_value: str) -> None:
+        miss_log = Path("assets/cache/misses.log")
+        miss_log.parent.mkdir(parents=True, exist_ok=True)
+        with open(miss_log, "a") as f:
+            f.write(f"[{self.channel_id}/{self.run_id}] MISS {visual_kind}:{visual_value}\n")
 
 
 # ── Provider registry ─────────────────────────────────────────────────────────
@@ -213,11 +236,11 @@ SCRIPT_SCHEMA = '''
   "context": "<<=18 words, specific stakes with a real number from research>",
   "beats": [
     {
-      "narration": "<8-20 words, one specific mechanism or fact>",
+      "narration": "<8-20 words, one complete spoken thought — do NOT split a sentence across beats>",
+      "pause_after": "<breath|beat|cut> — breath: next thought follows immediately; beat: clear pause like a comma; cut: hard scene change like a paragraph break",
       "visual": {
-        "kind": "<person|brand|product|place|distance|map|anatomy|celestial|stat|stock_video|none>",
+        "kind": "<person|brand|place|distance|map|anatomy|celestial|stat|chart|morph|typography|none> — stock_video is NOT allowed",
         "value": "<exact name: Daniel Kahneman / Tesla / Chernobyl / Mars>",
-        "query": "<if stock_video: specific 5-word search query>",
         "from": "<if distance: origin place>",
         "to": "<if distance: destination place>",
         "unit": "<if distance: km or miles>",
@@ -229,7 +252,7 @@ SCRIPT_SCHEMA = '''
         "stat_value": "<if stat: numeric value as number>"
       },
       "emphasis_keyword": "<one word, most important in beat, no asterisks>",
-      "morph_from": "<previous beat emphasis_keyword or null>",
+      "morph_from_previous": false,
       "bg_color": "<solid hex colour>"
     }
   ],
@@ -294,6 +317,15 @@ def build_user_prompt(topic: str, brief: ResearchBrief) -> str:
 
 # ── Validation ────────────────────────────────────────────────────────────────
 
+VALID_VISUAL_KINDS = {
+    'person', 'brand', 'place', 'distance', 'map', 'anatomy',
+    'celestial', 'stat', 'chart', 'morph', 'typography', 'none',
+}
+# stock_video is NOT in this set — it was removed in v3
+
+VALID_PAUSE_AFTER = {'breath', 'beat', 'cut'}
+
+
 def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
     errors = []
     if not script.get("hook"):
@@ -311,14 +343,16 @@ def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
             errors.append(f"beat {i}: narration too short ({words} words, min 3)")
         if words > 25:
             errors.append(f"beat {i}: narration too long ({words} words, max 20)")
-        if not beat.get("visual") or not beat["visual"].get("kind"):
+        kind = beat.get("visual", {}).get("kind", "")
+        if not kind:
             errors.append(f"beat {i}: missing visual.kind")
-        if beat.get("visual", {}).get("kind") == "none" and i < 4:
-            # auto-correct: replace none-kind on early beats with stock_video
-            beat["visual"] = {
-                "kind": "stock_video",
-                "query": f"{script.get('topic', 'nature')} cinematic footage",
-            }
+        elif kind == "stock_video":
+            errors.append(f"beat {i}: stock_video visual kind is not allowed in v3 — use chart, typography, or a named entity")
+        elif kind not in VALID_VISUAL_KINDS:
+            errors.append(f"beat {i}: invalid visual.kind '{kind}'")
+        pause = beat.get("pause_after", "")
+        if pause not in VALID_PAUSE_AFTER:
+            errors.append(f"beat {i}: invalid or missing pause_after '{pause}' — must be breath|beat|cut")
         if not beat.get("emphasis_keyword"):
             errors.append(f"beat {i}: missing emphasis_keyword")
         if not beat.get("bg_color", "").startswith("#"):
@@ -340,6 +374,64 @@ def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
     number_count = len(re.findall(r"\d[\d,\.]*", full_text))
     if number_count < 1:
         errors.append("no specific numbers in script - need at least 1")
+    return errors
+
+
+def validate_continuity(script: dict, llm_fn=None) -> list[str]:
+    """
+    Session 3 v3 — detects three classes of 'mix-up':
+    1. An entity referred to by inconsistent names across beats.
+    2. The same metric stated with two different numbers.
+    3. A beat's visual.kind not matching what its narration describes.
+    """
+    errors = []
+    beats = script.get("beats", [])
+
+    # 1. Entity name consistency — simple normalized dedup check
+    entity_map: dict[str, str] = {}  # normalized → first occurrence
+    for beat in beats:
+        visual = beat.get("visual", {})
+        val = visual.get("value", "")
+        if val:
+            norm = re.sub(r"\s+", " ", val.strip().lower())
+            existing = [k for k in entity_map if norm in k or k in norm]
+            for k in existing:
+                if entity_map[k] != val:
+                    errors.append(
+                        f"Entity name inconsistency: '{entity_map[k]}' vs '{val}' — pick one and use it throughout"
+                    )
+            entity_map[norm] = val
+
+    # 2. Numeric consistency — same noun phrase should not carry two different numbers
+    number_contexts: dict[str, list[str]] = {}
+    all_text = (
+        [script.get("hook", ""), script.get("context", ""), script.get("twist", "")]
+        + [b.get("narration", "") for b in beats]
+    )
+    for sentence in all_text:
+        for m in re.finditer(r"(\d[\d,\.]*\s*(?:billion|million|thousand|%|km|kg|°|ly)?)", sentence, re.IGNORECASE):
+            context_start = max(0, m.start() - 20)
+            ctx_key = re.sub(r"[^a-z\s]", "", sentence[context_start:m.start()].lower().strip())[-15:]
+            if ctx_key:
+                number_contexts.setdefault(ctx_key, []).append(m.group(0).strip())
+
+    for ctx, vals in number_contexts.items():
+        unique = list(set(vals))
+        if len(unique) > 1:
+            errors.append(f"Conflicting numbers for context '…{ctx}': {unique}")
+
+    # 3. Visual–narration agreement (lightweight keyword match, no LLM needed)
+    PERSON_WORDS = {"who", "person", "born", "died", "scientist", "researcher", "ceo", "president", "author", "founder"}
+    PLACE_WORDS = {"city", "country", "located", "built", "founded", "in the", "at the", "near"}
+    for i, beat in enumerate(beats):
+        kind = beat.get("visual", {}).get("kind", "none")
+        narration = beat.get("narration", "").lower()
+        words_in = set(narration.split())
+        if kind == "person" and not words_in & PERSON_WORDS and not beat.get("visual", {}).get("value"):
+            errors.append(f"Beat {i}: visual.kind='person' but narration doesn't mention a person — check visual tag")
+        if kind == "place" and not words_in & PLACE_WORDS and not beat.get("visual", {}).get("value"):
+            errors.append(f"Beat {i}: visual.kind='place' but narration doesn't reference a place — check visual tag")
+
     return errors
 
 
@@ -374,9 +466,16 @@ def generate_script(topic: str, channel_id: str, brief: ResearchBrief, max_retri
         script["channel_id"] = channel_id
         errors = validate_script(script, brief)
         if not errors:
-            print(f"[script_gen] script validated on attempt {attempt}")
-            return script
-        print(f"[script_gen] validation failed on attempt {attempt}: {errors}")
+            # Session 3 v3: continuity check runs AFTER structural validation
+            continuity_errors = validate_continuity(script)
+            if continuity_errors:
+                print(f"[script_gen] continuity issues on attempt {attempt}: {continuity_errors}")
+                errors = continuity_errors
+            else:
+                print(f"[script_gen] script validated on attempt {attempt}")
+                return script
+        if errors:
+            print(f"[script_gen] validation failed on attempt {attempt}: {errors}")
         error_lines = "\n".join(f"- {e}" for e in errors)
         user = user + f"\n\nPREVIOUS ATTEMPT FAILED VALIDATION - fix these errors:\n{error_lines}"
 

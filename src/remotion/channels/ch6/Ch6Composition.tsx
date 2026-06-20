@@ -115,8 +115,8 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
 
       {isCelestial && (
         <CelestialBody
-          bodyColor="#c87941"
-          glowColor={CFG.colors.accent1}
+          bodyName={beat.visual.value ?? 'Jupiter'}
+          durationInFrames={beat.durationFrames}
         />
       )}
 

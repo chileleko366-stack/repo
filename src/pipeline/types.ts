@@ -4,13 +4,17 @@ export type BeatKind =
   | 'person'
   | 'brand'
   | 'product'
+  | 'app'
   | 'place'
   | 'distance'
   | 'map'
   | 'anatomy'
   | 'celestial'
   | 'stat'
-  | 'stock_video'
+  | 'chart'
+  | 'morph'
+  | 'typography'
+  | 'stock_video'   // kept in type for backwards compat; rejected at script validation time
   | 'none';
 
 export interface VisualTag {
