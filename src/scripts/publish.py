@@ -37,16 +37,17 @@ def _save_registry(drafts: list) -> None:
 
 def _get_youtube_client(channel_id: str):
     """Build an authenticated YouTube client using per-channel OAuth refresh token."""
-    refresh_token_env = f"CH{channel_id[-1].upper()}_REFRESH_TOKEN"
-    refresh_token = os.environ.get(refresh_token_env)
+    ch_num = channel_id[-1].upper()
+    prefix = f"YT_CH{ch_num}"
+    refresh_token = os.environ.get(f"{prefix}_REFRESH_TOKEN")
     if not refresh_token:
         raise ValueError(
-            f"Missing {refresh_token_env} — set it in .env before uploading channel {channel_id}"
+            f"Missing {prefix}_REFRESH_TOKEN — set it in .env before uploading channel {channel_id}"
         )
-    client_id = os.environ.get("YOUTUBE_CLIENT_ID")
-    client_secret = os.environ.get("YOUTUBE_CLIENT_SECRET")
+    client_id = os.environ.get(f"{prefix}_CLIENT_ID")
+    client_secret = os.environ.get(f"{prefix}_CLIENT_SECRET")
     if not client_id or not client_secret:
-        raise ValueError("YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET must be set in .env")
+        raise ValueError(f"{prefix}_CLIENT_ID and {prefix}_CLIENT_SECRET must be set in .env")
 
     creds = Credentials(
         token=None,

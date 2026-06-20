@@ -60,9 +60,11 @@ def upload_channel(channel_id: str) -> None:
         "outro_cta":   manifest.get("ctaText", ""),
     }
 
-    print(f"[upload] {channel_id}: uploading as private draft via publish.upload_as_draft()...")
+    print(f"[upload] {channel_id}: starting upload → {video_path.name}")
+    sys.stdout.flush()
     video_id = upload_as_draft(str(video_path), channel_id, metadata)
     print(f"[upload] ✓ {channel_id} — draft videoId: {video_id} (private, pending review)")
+    sys.stdout.flush()
 
 
 # ── CLI ────────────────────────────────────────────────────────────────────────
