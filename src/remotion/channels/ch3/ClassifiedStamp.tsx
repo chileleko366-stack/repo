@@ -18,7 +18,7 @@ export const ClassifiedStamp: React.FC<{
     frame: Math.max(0, frame - delayFrames),
     fps,
     config: { damping: 7, stiffness: 500, mass: 0.5 },
-    durationInFrames: 12,
+    durationInFrames: 24,
   });
 
   const scale = interpolate(enter, [0, 1], [1.6, 1.0]);

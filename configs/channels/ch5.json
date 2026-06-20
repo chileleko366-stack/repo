@@ -8,11 +8,11 @@
   "bodyFont": "EB Garamond",
   "accentFont": "EB Garamond",
   "colors": {
-    "bgPrimary": "#14110d",
-    "accent1": "#5c4a2a",
-    "accent2": "#2c2015",
-    "text": "#e8dcc8",
-    "textMuted": "rgba(232,220,200,0.6)"
+    "bgPrimary": "#ffffff",
+    "accent1": "#6b4c1e",
+    "accent2": "#3d2b0d",
+    "text": "#1a1510",
+    "textMuted": "rgba(26,21,16,0.6)"
   },
   "scriptTone": "Reflective, past-tense documentary voice. Specific date, specific location, specific person. The twist is a quiet historical irony that recontextualises the event. The outro lands on a resonant connection to the present.",
   "beatTypes": ["KenBurns", "CrossDissolve", "DocumentaryQuote", "MapBeat", "PersonPhoto", "MorphText"],

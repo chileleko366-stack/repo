@@ -53,8 +53,8 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
 
   const enter = spring({
     frame, fps,
-    config: { damping: 14, stiffness: 160, mass: 1 },
-    durationInFrames: 22,
+    config: { damping: 28, stiffness: 300 },
+    durationInFrames: 44,
   });
 
   return (
@@ -121,7 +121,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
       )}
 
       {/* Classified stamp on twist */}
-      {isTwist && <ClassifiedStamp delayFrames={12} />}
+      {isTwist && <ClassifiedStamp delayFrames={24} />}
 
       {/* Red top rule */}
       <div
@@ -139,7 +139,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
         style={{
           position: 'absolute', inset: 0,
           background: CFG.colors.accent1,
-          opacity: interpolate(frame, [0, 4], [0.22, 0], { extrapolateRight: 'clamp' }),
+          opacity: interpolate(frame, [0, 8], [0.22, 0], { extrapolateRight: 'clamp' }),
           pointerEvents: 'none',
         }}
       />

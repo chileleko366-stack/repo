@@ -8,11 +8,11 @@
   "bodyFont": "Space Grotesk",
   "accentFont": "Space Grotesk",
   "colors": {
-    "bgPrimary": "#12161b",
-    "accent1": "#00bcd4",
-    "accent2": "#7c4dff",
-    "text": "#ffffff",
-    "textMuted": "rgba(255,255,255,0.6)"
+    "bgPrimary": "#ffffff",
+    "accent1": "#0097a7",
+    "accent2": "#5e35b1",
+    "text": "#0d1117",
+    "textMuted": "rgba(13,17,23,0.6)"
   },
   "scriptTone": "Calm, analogy-led. Name the specific brain region, specific neurotransmitter, specific study. Explain the mechanism with one physical analogy. The outro poses the open scientific question the field has not yet answered.",
   "beatTypes": ["BrainExplainer", "PsychCard", "Counter", "StockVideo", "PersonPhoto", "AnatomyLabel"],

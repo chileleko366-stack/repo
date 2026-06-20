@@ -57,8 +57,8 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
 
   const enter = spring({
     frame, fps,
-    config: { damping: 16, stiffness: 180, mass: 0.9 },
-    durationInFrames: 20,
+    config: { damping: 36, stiffness: 400 },
+    durationInFrames: 40,
   });
   const translateY = interpolate(enter, [0, 1], [40, 0]);
 
@@ -130,8 +130,8 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
         >
           <Counter
             to={parseFloat(visual.value ?? '0')}
-            durationFrames={54}
-            delayFrames={54}
+            durationFrames={108}
+            delayFrames={108}
             prefix={visual.prefix}
             suffix={visual.suffix}
             fontSize={160}
@@ -150,7 +150,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
         style={{
           position: 'absolute', inset: 0,
           background: CFG.colors.accent1,
-          opacity: interpolate(frame, [0, 4], [0.28, 0], { extrapolateRight: 'clamp' }),
+          opacity: interpolate(frame, [0, 8], [0.28, 0], { extrapolateRight: 'clamp' }),
           pointerEvents: 'none',
         }}
       />

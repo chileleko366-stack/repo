@@ -45,11 +45,11 @@ const AssetNarration: React.FC<{
   const enterY = spring({
     frame,
     fps,
-    config: { damping: 22, stiffness: 110, mass: 1.4 },
-    durationInFrames: 30,
+    config: { damping: 28, stiffness: 300 },
+    durationInFrames: 60,
   });
-  const translateY = interpolate(enterY, [0, 1], [36, 0]);
-  const opacity    = interpolate(frame, [0, 16], [0, 1], { extrapolateRight: 'clamp' });
+  const translateY = interpolate(enterY, [0, 1], [54, 0]);
+  const opacity    = interpolate(frame, [0, 32], [0, 1], { extrapolateRight: 'clamp' });
 
   return (
     <div
@@ -103,13 +103,13 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
 
       {isFullscreen && <AssetLayer beat={beat} durationFrames={beat.durationFrames} />}
 
-      {/* Warm vignette — always present */}
+      {/* Vignette — always present */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
           background:
-            'radial-gradient(ellipse at center, transparent 40%, rgba(16,13,8,0.72) 100%)',
+            'radial-gradient(ellipse at center, transparent 40%, rgba(255,255,255,0.55) 100%)',
           pointerEvents: 'none',
         }}
       />
@@ -122,7 +122,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
             bottom: 0, left: 0, right: 0,
             height: 640,
             background:
-              'linear-gradient(to top, rgba(16,13,8,0.96) 0%, rgba(16,13,8,0.35) 65%, transparent 100%)',
+              'linear-gradient(to top, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.35) 65%, transparent 100%)',
             pointerEvents: 'none',
           }}
         />

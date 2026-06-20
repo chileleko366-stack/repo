@@ -64,8 +64,8 @@ export const Counter: React.FC<{
   const enterSpring = spring({
     frame: Math.max(0, frame - delayFrames),
     fps,
-    config: { damping: 14, stiffness: 200, mass: 0.9 },
-    durationInFrames: 20,
+    config: { damping: 36, stiffness: 400 },
+    durationInFrames: 40,
   });
   const scale = interpolate(enterSpring, [0, 1], [0.6, 1.0]);
 

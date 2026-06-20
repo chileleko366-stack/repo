@@ -47,10 +47,10 @@ const SpaceText: React.FC<{
   const enterY = spring({
     frame,
     fps,
-    config: { damping: 16, stiffness: 200, mass: 0.9 },
+    config: { damping: 36, stiffness: 400 },
   });
-  const translateY = interpolate(enterY, [0, 1], [40, 0]);
-  const opacity    = interpolate(frame, [0, 10], [0, 1], { extrapolateRight: 'clamp' });
+  const translateY = interpolate(enterY, [0, 1], [60, 0]);
+  const opacity    = interpolate(frame, [0, 20], [0, 1], { extrapolateRight: 'clamp' });
 
   return (
     <div
@@ -148,8 +148,8 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
             to={parseFloat(visual.stat_value?.toString() ?? visual.value ?? '0') || 0}
             prefix={visual.prefix}
             suffix={visual.suffix}
-            delayFrames={54}
-            durationFrames={54}
+            delayFrames={108}
+            durationFrames={108}
             fontSize={148}
             color={CFG.colors.accent1}
             fontFamily="'Orbitron', sans-serif"

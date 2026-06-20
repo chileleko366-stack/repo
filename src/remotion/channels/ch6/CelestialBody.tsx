@@ -83,7 +83,7 @@ const ProceduralPlanet: React.FC<{
   const dir = fs.axialTiltDeg > 170 ? -1 : 1;
   const rotY = THREE.MathUtils.degToRad(rotYDeg * dir);
 
-  const scaleVal = interpolate(frame, [0, 24], [0.4, 1], { extrapolateRight: 'clamp' });
+  const scaleVal = interpolate(frame, [0, 48], [0.4, 1], { extrapolateRight: 'clamp' });
 
   const tiltRad = THREE.MathUtils.degToRad(fs.axialTiltDeg);
 

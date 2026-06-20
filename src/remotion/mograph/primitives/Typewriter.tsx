@@ -6,9 +6,9 @@
 import React from 'react';
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 
-const CHAR_FRAMES = 3;
-const CURSOR_BLINK_FRAMES = 16;
-const ENTRANCE_DURATION = 22;
+const CHAR_FRAMES = 6;
+const CURSOR_BLINK_FRAMES = 32;
+const ENTRANCE_DURATION = 44;
 
 interface TypewriterProps {
   text: string;
@@ -65,8 +65,8 @@ export const Typewriter: React.FC<TypewriterProps> = ({
   const highlightProgress = spring({
     fps,
     frame: frame - highlightStart,
-    config: { damping: 22, stiffness: 180, mass: 0.9 },
-    durationInFrames: 22,
+    config: { damping: 36, stiffness: 400 },
+    durationInFrames: 44,
   });
   const highlightScaleX = interpolate(highlightProgress, [0, 1], [0, 1], {
     extrapolateLeft: 'clamp',

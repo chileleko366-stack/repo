@@ -25,8 +25,8 @@ export const ScrambleReveal: React.FC<{
 }> = ({
   text,
   startFrame = 0,
-  staggerFrames = 3,
-  scrambleFrames = 18,
+  staggerFrames = 6,
+  scrambleFrames = 36,
   color = '#e0e0e0',
   fontSize = 64,
 }) => {

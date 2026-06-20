@@ -9,7 +9,13 @@ import { SPRING_CONFIGS } from './SpringConfigs';
 
 const TITLE_FONT_SIZE = 96;
 const SUBTITLE_FONT_SIZE = 48;
-const ENTRANCE_DURATION = 18;
+const ENTRANCE_DURATION = 36;
+
+function isLightBg(hex: string): boolean {
+  const c = hex.replace('#', '');
+  if (c.length !== 6) return false;
+  return parseInt(c, 16) > 0x888888;
+}
 
 interface TypographicCardProps {
   /** The entity name that failed to resolve */
@@ -26,12 +32,13 @@ export const TypographicCard: React.FC<TypographicCardProps> = ({
   value,
   kindHint,
   accentColor = '#ffffff',
-  backgroundColor = '#16121f',
+  backgroundColor = '#000000',
   fontFamily = "'Space Grotesk', sans-serif",
   accentFont = "'Anton', sans-serif",
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const light = isLightBg(backgroundColor);
 
   const progress = spring({
     frame,
@@ -96,7 +103,7 @@ export const TypographicCard: React.FC<TypographicCardProps> = ({
             style={{
               fontFamily,
               fontSize: SUBTITLE_FONT_SIZE,
-              color: 'rgba(255,255,255,0.45)',
+              color: light ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.45)',
               textTransform: 'uppercase',
               letterSpacing: '0.12em',
             }}

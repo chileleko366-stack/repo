@@ -6,8 +6,8 @@
 import React from 'react';
 import { AbsoluteFill, interpolate, useCurrentFrame } from 'remotion';
 
-const HOLD_DURATION = 32;
-const FLIP_DURATION = 18;
+const HOLD_DURATION = 64;
+const FLIP_DURATION = 36;
 const BLUR_AMOUNT = 6;
 
 interface WordCarouselProps {

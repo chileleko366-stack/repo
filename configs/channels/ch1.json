@@ -8,7 +8,7 @@
   "bodyFont": "JetBrains Mono",
   "accentFont": "Anton",
   "colors": {
-    "bgPrimary": "#16121f",
+    "bgPrimary": "#000000",
     "accent1": "#d400ff",
     "accent2": "#00f0ff",
     "text": "#ffffff",

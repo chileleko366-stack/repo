@@ -39,7 +39,7 @@ export const CandlestickChart: React.FC<{ durationFrames: number }> = ({
     >
       <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
         {CANDLES.map((c, i) => {
-          const progress = interpolate(frame, [i * 8, i * 8 + 20], [0, 1], {
+          const progress = interpolate(frame, [i * 16, i * 16 + 40], [0, 1], {
             extrapolateRight: 'clamp',
           });
           const x = i * (CAND_W + GAP) + GAP;

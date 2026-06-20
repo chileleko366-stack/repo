@@ -38,7 +38,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
     frame,
     fps,
     config: SPRING_CONFIGS.snappy,
-    durationInFrames: 20,
+    durationInFrames: 40,
   });
   const opacity = interpolate(entryProgress, [0, 1], [0, 1], {
     extrapolateLeft: 'clamp',

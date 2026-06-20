@@ -20,6 +20,7 @@ The word boundary JSON is in our own format; CaptionTrack.tsx converts it.
 import asyncio
 import json
 import os
+import re
 import ssl
 import sys
 from pathlib import Path
@@ -35,6 +36,12 @@ _unverified_ssl_ctx = ssl.create_default_context()
 _unverified_ssl_ctx.check_hostname = False
 _unverified_ssl_ctx.verify_mode = ssl.CERT_NONE
 _et_comm._SSL_CTX = _unverified_ssl_ctx
+
+def strip_emphasis_markup(text: str) -> str:
+    """Remove *emphasis* markers before TTS. Captions parse the same markers
+    separately and keep them — this function only affects the spoken audio."""
+    return re.sub(r'\*([^*]+)\*', r'\1', text)
+
 
 # ── Voice profiles ────────────────────────────────────────────────────────────
 
@@ -156,7 +163,7 @@ async def generate_all_beats(manifest: dict) -> dict:
         if not narration:
             continue
         try:
-            r = await _generate_beat_with_retry(narration, channel_id, beat["beatId"])
+            r = await _generate_beat_with_retry(strip_emphasis_markup(narration), channel_id, beat["beatId"])
             result_map[r["beatId"]] = r
         except Exception as exc:
             print(f"[tts] ERROR: {exc}")
@@ -236,7 +243,7 @@ async def _main():
         beat_id    = sys.argv[2]
         channel_id = sys.argv[3]
         narration  = " ".join(sys.argv[4:])
-        result = await generate_beat_audio(narration, channel_id, beat_id)
+        result = await generate_beat_audio(strip_emphasis_markup(narration), channel_id, beat_id)
         print(json.dumps(result, indent=2))
         return
 

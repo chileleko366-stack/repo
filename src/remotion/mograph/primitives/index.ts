@@ -1,5 +1,7 @@
 export { SAAS_BASE } from './SaaSTokens';
-export { SPRING_CONFIGS } from './SpringConfigs';
+export { SPRING_CONFIGS, SPRINGS } from './SpringConfigs';
+export { AnimatedIcon } from './AnimatedIcon';
+export type { IconName } from './AnimatedIcon';
 export { Typewriter } from './Typewriter';
 export { BarChart } from './BarChart';
 export type { BarData } from './BarChart';
