@@ -3,6 +3,10 @@
 // No two bodies share the same framing preset or generic sphere treatment.
 // Uses factsheet.axialTiltDeg for tilt, factsheet.signatureFeature.rotationOffsetAtMidpointDeg
 // to choreograph the rotation so the key feature is visible when the viewer is actually watching.
+//
+// IMPORTANT: Starfield is rendered OUTSIDE ThreeCanvas in Ch6Composition — it is a DOM/SVG
+// component and must never be placed inside ThreeCanvas (R3F would try to create Three.js
+// objects from SVG elements like <circle>, which do not exist in the THREE namespace).
 
 import React from 'react';
 import { ThreeCanvas } from '@remotion/three';
@@ -11,7 +15,6 @@ import { interpolate, useCurrentFrame } from 'remotion';
 import * as THREE from 'three';
 import type { CelestialFactsheet, CameraFraming } from './celestialFactsheet';
 import { CELESTIAL_FACTSHEETS } from './celestialFactsheet';
-import { Starfield } from './Starfield';
 
 // ─── Camera framing presets ───────────────────────────────────────────────────
 // Each preset returns [x, y, z] camera position in world space.
@@ -130,15 +133,6 @@ const TexturedPlanet: React.FC<{
   );
 };
 
-// ─── Camera rig ─────────────────────────────────────────────────────────────
-
-const CameraRig: React.FC<{ position: [number, number, number] }> = ({ position }) => {
-  // Camera position is set via ThreeCanvas camera prop — this component is a
-  // hook-only shim that allows position to be computed outside R3F render.
-  // Actual camera control happens through ThreeCanvas camera prop below.
-  return null;
-};
-
 // ─── Public component ────────────────────────────────────────────────────────
 
 export interface CelestialBodyProps {
@@ -163,7 +157,7 @@ export const CelestialBody: React.FC<CelestialBodyProps> = ({
       style={{ position: 'absolute', inset: 0 }}
       camera={{ position: cameraPos, fov: 50 }}
     >
-      <Starfield />
+      {/* Starfield is a DOM/SVG component — rendered by Ch6Composition OUTSIDE this canvas */}
       <TexturedPlanet fs={fs} durationInFrames={durationInFrames} />
     </ThreeCanvas>
   );
