@@ -94,22 +94,19 @@ def render_channel(channel_id: str) -> None:
 
     print(f"[render] {channel_id}: npx remotion render "
           f"{comp_id} → {output_path}")
+    sys.stdout.flush()
 
+    # Let stderr flow directly to the terminal so Remotion errors appear live
+    # in CI output right after the channel header line, not buried under
+    # subsequent channels' audio-mixing progress.
     result = subprocess.run(
         cmd,
         env=env,
-        stderr=subprocess.PIPE,
-        text=True,
     )
 
     if result.returncode != 0:
-        # Print last 60 lines of Remotion stderr so the actual error is visible
-        # in CI without wading through audio-mixing progress on other channels.
-        stderr_lines = result.stderr.splitlines()
-        tail = '\n'.join(stderr_lines[-60:]) if len(stderr_lines) > 60 else result.stderr
         raise RuntimeError(
-            f"Remotion render failed for {channel_id} "
-            f"(exit {result.returncode}) — last 60 stderr lines:\n{tail}"
+            f"Remotion render failed for {channel_id} (exit {result.returncode})"
         )
 
     print(f"[render] ✓ {channel_id}")
