@@ -16,7 +16,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-import httpx
+import requests
 
 GROQ_MODEL = "llama-3.3-70b-versatile"
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
@@ -125,7 +125,7 @@ def _compile_one(beat: dict, channel_cfg: dict, recent_grids: list, asset_meta: 
 
     for attempt in range(retries):
         try:
-            resp = httpx.post(
+            resp = requests.post(
                 GROQ_URL,
                 headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                 json={
