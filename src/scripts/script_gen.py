@@ -292,6 +292,10 @@ def build_system_prompt(channel_id: str, topic: str, brief: ResearchBrief) -> st
         "4. Every beat must name at least one specific entity (person, place, brand, statistic, distance).\n"
         "5. The outro loops back to the hook's specific promise and opens exactly one new curiosity gap.\n"
         "6. WORD COUNT IS STRICT - each section must stay within its word limit.\n"
+        "7. A SPECIFIC NUMBER MUST APPEAR IN THE SCRIPT — this is mandatory. If research gave you\n"
+        "   no numbers, use a well-known scientific measurement for the topic: timing in ms,\n"
+        "   brain region size in cm, study sample size, percentage change, a year. Any real digit\n"
+        "   works. Scripts with zero digits will be rejected and will fail.\n"
         "\n"
         f"RESEARCH FACTS (use these, never invent):\n{facts_str}\n"
         "\n"
@@ -303,13 +307,22 @@ def build_system_prompt(channel_id: str, topic: str, brief: ResearchBrief) -> st
 
 def build_user_prompt(topic: str, brief: ResearchBrief) -> str:
     facts_lines = "\n".join(f"- {f}" for f in brief.key_facts)
-    numbers = "\n".join(f"- {n}" for n in brief.specific_numbers) if brief.specific_numbers else "- none"
+    if brief.specific_numbers:
+        numbers = "\n".join(f"- {n}" for n in brief.specific_numbers)
+        numbers_note = "At least 1 of these must appear in the script."
+    else:
+        numbers = "- none found in research sources"
+        numbers_note = (
+            "REQUIRED: invent NONE — but you MUST include at least one real scientific measurement "
+            "for this topic (e.g. a timing in milliseconds, a brain region dimension in cm, a study "
+            "sample size, a known percentage, or a year). Scripts with zero digits are rejected."
+        )
     return (
         f"Write a 35-second Shorts script about: {topic}\n"
         "\n"
         f"Use these real facts (mandatory - no invented claims):\n{facts_lines}\n"
         "\n"
-        f"Specific numbers found in research (at least 1 must appear in the script):\n{numbers}\n"
+        f"Specific numbers found in research ({numbers_note}):\n{numbers}\n"
         "\n"
         f"Return ONLY this JSON structure - nothing else:\n{SCRIPT_SCHEMA}"
     )
