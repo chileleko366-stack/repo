@@ -33,7 +33,7 @@ function hexOpacity(hex: string, opacity: number): string {
 }
 
 function buildBoxShadow(brief: ShotBrief): string | undefined {
-  const shadows = brief.depth.dropShadows.map(
+  const shadows = (brief.depth?.dropShadows ?? []).map(
     (s) => `${s.offsetX}px ${s.offsetY}px ${s.blurPx}px ${hexOpacity(s.color, s.opacity)}`,
   );
   return shadows.length ? shadows.join(', ') : undefined;
@@ -42,7 +42,7 @@ function buildBoxShadow(brief: ShotBrief): string | undefined {
 function GlowOverlays({ brief }: { brief: ShotBrief }): React.ReactElement {
   return (
     <>
-      {brief.depth.glowEffects.map((glow, i) => {
+      {(brief.depth?.glowEffects ?? []).map((glow, i) => {
         const { kind, angleDeg, stops } = glow.gradient;
         const stopStr = stops
           .map((s) => `${hexOpacity(s.color, s.opacity)} ${s.offsetPct}%`)

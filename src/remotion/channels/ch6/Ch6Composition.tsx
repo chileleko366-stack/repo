@@ -16,7 +16,7 @@
 
 import '@fontsource/orbitron';
 import React from 'react';
-import { AbsoluteFill, Audio, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, Audio, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import type { ManifestBeat, VideoManifest } from '../../../pipeline/types';
 import { CHANNEL_CONFIGS } from '../../../pipeline/channelConfigs';
 import { AssetLayer } from '../../assets/AssetLayer';
@@ -198,8 +198,16 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
 // ── Root composition ──────────────────────────────────────────────────────────
 
 export const Ch6Composition: React.FC<{ manifest: VideoManifest }> = ({ manifest }) => {
-  const { beats, soundDesign } = manifest;
+  const { beats, soundDesign, fps, script } = manifest;
   const wordBoundaries = useWordBoundaries(beats);
+
+  const audioDurationsMs: Record<string, number> = {};
+  const pauseAfterMap: Record<string, 'breath' | 'beat' | 'cut'> = {};
+  beats.forEach((b) => { if (b.audio?.durationMs) audioDurationsMs[b.beatId] = b.audio.durationMs; });
+  (script?.beats ?? []).forEach((sb, i) => {
+    pauseAfterMap[`beat_${i}`] = (sb as { pause_after?: 'breath' | 'beat' | 'cut' }).pause_after ?? 'cut';
+  });
+  const timedBeats: TimedBeat[] = buildTimedBeats(beats, fps ?? 30, audioDurationsMs, pauseAfterMap);
 
   return (
     <AbsoluteFill
@@ -210,16 +218,10 @@ export const Ch6Composition: React.FC<{ manifest: VideoManifest }> = ({ manifest
     >
       <Soundtrack channelId="ch6" musicVolume={0.20} />
 
-      {beats.map((beat) => (
-        <Sequence
-          key={beat.beatId}
-          from={beat.startFrame}
-          durationInFrames={beat.durationFrames}
-          layout="none"
-        >
-          <BeatSection beat={beat} />
-        </Sequence>
-      ))}
+      <BeatCompositor
+        timedBeats={timedBeats}
+        renderBeat={(beat) => <BeatSection beat={beat} durationFrames={beat.audioFrames} />}
+      />
 
       <SfxLayer soundDesign={soundDesign ?? []} />
 
