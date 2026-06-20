@@ -103,9 +103,13 @@ def render_channel(channel_id: str) -> None:
     )
 
     if result.returncode != 0:
+        # Print last 60 lines of Remotion stderr so the actual error is visible
+        # in CI without wading through audio-mixing progress on other channels.
+        stderr_lines = result.stderr.splitlines()
+        tail = '\n'.join(stderr_lines[-60:]) if len(stderr_lines) > 60 else result.stderr
         raise RuntimeError(
             f"Remotion render failed for {channel_id} "
-            f"(exit {result.returncode}):\n{result.stderr}"
+            f"(exit {result.returncode}) — last 60 stderr lines:\n{tail}"
         )
 
     print(f"[render] ✓ {channel_id}")
