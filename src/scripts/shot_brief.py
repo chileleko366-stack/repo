@@ -18,8 +18,69 @@ from typing import Any
 
 import requests
 
-GROQ_MODEL = "llama-3.3-70b-versatile"
-GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+# ── Provider chain (same order as script_gen.py) ──────────────────────────────
+
+_PROVIDERS = [
+    {"name": "groq",     "url": "https://api.groq.com/openai/v1/chat/completions",                              "key_env": "GROQ_API_KEY",      "model": "llama-3.3-70b-versatile"},
+    {"name": "sambanova","url": "https://api.sambanova.ai/v1/chat/completions",                                  "key_env": "SAMBANOVA_API_KEY",  "model": "Meta-Llama-3.3-70B-Instruct"},
+    {"name": "xai",      "url": "https://api.x.ai/v1/chat/completions",                                         "key_env": "XAI_API_KEY",        "model": "grok-3-mini"},
+    {"name": "gemini",   "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",      "key_env": "GEMINI_API_KEY",     "model": "gemini-2.0-flash"},
+    {"name": "cerebras", "url": "https://api.cerebras.ai/v1/chat/completions",                                   "key_env": "CEREBRAS_API_KEY",   "model": "llama-3.3-70b"},
+    {"name": "nvidia",   "url": "https://integrate.api.nvidia.com/v1/chat/completions",                          "key_env": "NVIDIA_API_KEY",     "model": "meta/llama-3.3-70b-instruct"},
+    {"name": "mistral",  "url": "https://api.mistral.ai/v1/chat/completions",                                    "key_env": "MISTRAL_API_KEY",    "model": "mistral-small-latest"},
+]
+
+
+class _SkipProvider(Exception):
+    def __init__(self, name, status):
+        self.name = name
+        self.status = status
+        super().__init__(f"{name} HTTP {status}")
+
+
+def _call_provider(provider: dict, system: str, user: str) -> str:
+    api_key = os.getenv(provider["key_env"])
+    if not api_key:
+        raise EnvironmentError(f"{provider['key_env']} not set")
+    resp = requests.post(
+        provider["url"],
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        json={
+            "model": provider["model"],
+            "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
+            "temperature": 0.4,
+            "max_tokens": 2000,
+            "response_format": {"type": "json_object"},
+        },
+        timeout=60,
+    )
+    if resp.status_code in (429, 403):
+        raise _SkipProvider(provider["name"], resp.status_code)
+    if not resp.ok:
+        raise RuntimeError(f"[{provider['name']}] HTTP {resp.status_code}: {resp.text[:300]}")
+    return resp.json()["choices"][0]["message"]["content"] or ""
+
+
+def _llm_complete(system: str, user: str) -> str:
+    skipped = []
+    for provider in _PROVIDERS:
+        if not os.getenv(provider["key_env"]):
+            skipped.append(f"{provider['name']} (no key)")
+            continue
+        try:
+            result = _call_provider(provider, system, user)
+            if skipped:
+                print(f"[shot_brief] used {provider['name']} (skipped: {', '.join(skipped)})")
+            return result
+        except _SkipProvider as e:
+            reason = "rate limited" if e.status == 429 else f"unavailable ({e.status})"
+            print(f"[shot_brief] {provider['name']} {reason}, trying next...")
+            skipped.append(f"{provider['name']} ({e.status})")
+        except EnvironmentError:
+            skipped.append(f"{provider['name']} (no key)")
+        except Exception as e:
+            skipped.append(f"{provider['name']} (error: {e})")
+    raise RuntimeError(f"All providers exhausted: {', '.join(skipped)}")
 
 SYSTEM_PROMPT = """You are a motion graphics cinematographer producing Shot Briefs for a Remotion render pipeline.
 Given a script beat, produce a complete ShotBrief JSON following the schema exactly.
@@ -119,30 +180,13 @@ def _validate_shot_brief(brief: dict, last_two_grids: list) -> None:
 
 
 def _compile_one(beat: dict, channel_cfg: dict, recent_grids: list, asset_meta: dict | None,
-                 api_key: str, retries: int = 3) -> dict:
+                 retries: int = 3) -> dict:
     user_prompt = _build_user_prompt(beat, channel_cfg, recent_grids, asset_meta)
     last_err: Exception | None = None
 
     for attempt in range(retries):
         try:
-            resp = requests.post(
-                GROQ_URL,
-                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-                json={
-                    "model": GROQ_MODEL,
-                    "response_format": {"type": "json_object"},
-                    "messages": [
-                        {"role": "system", "content": SYSTEM_PROMPT},
-                        {"role": "user",   "content": user_prompt},
-                    ],
-                    "temperature": 0.4,
-                    "max_tokens": 2000,
-                },
-                timeout=30,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            raw = data["choices"][0]["message"]["content"]
+            raw = _llm_complete(SYSTEM_PROMPT, user_prompt)
             brief = json.loads(raw)
             _validate_shot_brief(brief, recent_grids)
             return brief
@@ -165,14 +209,14 @@ def _load_channel_cfg(channel_id: str) -> dict:
 def compile_all_shot_briefs(manifest: dict) -> dict:
     """
     Adds a `shotBrief` key to every beat in manifest['beats'].
-    Calls Groq for each beat sequentially, tracking recent grids for variety enforcement.
-    Failures (rate-limit, network, validation) are non-fatal: the beat gets shotBrief=None
-    and the channel composition falls back to its built-in rendering.
+    Calls the LLM provider chain (Groq → SambaNova → …) for each beat sequentially,
+    tracking recent grids for variety enforcement.
+    Failures are non-fatal: the beat gets shotBrief=None and the composition falls back.
     Returns the updated manifest.
     """
-    api_key = os.environ.get("GROQ_API_KEY", "")
-    if not api_key:
-        print("[shot_brief] GROQ_API_KEY not set — skipping shot brief compilation (fallback rendering will be used)")
+    has_any_key = any(os.getenv(p["key_env"]) for p in _PROVIDERS)
+    if not has_any_key:
+        print("[shot_brief] no LLM API keys set — skipping shot brief compilation (fallback rendering will be used)")
         for beat in manifest["beats"]:
             beat.setdefault("shotBrief", None)
         return manifest
@@ -186,7 +230,7 @@ def compile_all_shot_briefs(manifest: dict) -> dict:
 
     for i, beat in enumerate(beats):
         if i > 0:
-            time.sleep(0.6)  # stay under Groq free-tier rate limit
+            time.sleep(0.4)
 
         resolved_asset: Any = beat.get("resolvedAsset")
         asset_meta: dict | None = None
@@ -195,7 +239,7 @@ def compile_all_shot_briefs(manifest: dict) -> dict:
                           if k in resolved_asset}
 
         try:
-            brief = _compile_one(beat, channel_cfg, recent_grids[-3:], asset_meta, api_key)
+            brief = _compile_one(beat, channel_cfg, recent_grids[-3:], asset_meta)
             beat["shotBrief"] = brief
             ok += 1
             grid = brief.get("composition", {}).get("grid")

@@ -436,19 +436,22 @@ def validate_continuity(script: dict, llm_fn=None) -> list[str]:
         except re.error:
             return False
 
-    entity_map: dict[str, str] = {}  # normalized → first occurrence
+    # Key on (kind, norm) so that differently-typed entities (e.g. the planet Mars vs
+    # the spacecraft Mars Express) are never compared — only same-kind references are checked.
+    entity_map: dict[tuple, str] = {}  # (kind, normalized) → first occurrence value
     for beat in beats:
         visual = beat.get("visual", {})
-        val = visual.get("value", "")
-        if val:
+        val  = visual.get("value", "")
+        kind = visual.get("kind", "none")
+        if val and kind != "none":
             norm = re.sub(r"\s+", " ", val.strip().lower())
-            existing = [k for k in entity_map if _name_overlaps(norm, k)]
-            for k in existing:
-                if entity_map[k] != val:
+            existing = [(k, n) for (k, n) in entity_map if k == kind and _name_overlaps(norm, n)]
+            for key in existing:
+                if entity_map[key] != val:
                     errors.append(
-                        f"Entity name inconsistency: '{entity_map[k]}' vs '{val}' — pick one and use it throughout"
+                        f"Entity name inconsistency: '{entity_map[key]}' vs '{val}' — pick one and use it throughout"
                     )
-            entity_map[norm] = val
+            entity_map[(kind, norm)] = val
 
     # 2. Numeric consistency — same noun phrase should not carry two different numbers
     number_contexts: dict[str, list[str]] = {}

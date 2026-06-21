@@ -28,6 +28,22 @@ from pathlib import Path
 import edge_tts
 import edge_tts.communicate as _et_comm
 
+try:
+    from mutagen.mp3 import MP3 as _MutagenMP3
+    _MUTAGEN_OK = True
+except ImportError:
+    _MUTAGEN_OK = False
+
+
+def _mp3_duration_ms(path: Path) -> int:
+    """Read actual MP3 duration via mutagen. Falls back to 0 if unavailable."""
+    if not _MUTAGEN_OK or not path.exists() or path.stat().st_size < 100:
+        return 0
+    try:
+        return int(_MutagenMP3(path).info.length * 1000)
+    except Exception:
+        return 0
+
 # edge-tts stores _SSL_CTX = ssl.create_default_context(cafile=certifi.where())
 # at module import time and passes it as ssl=_SSL_CTX to aiohttp ws_connect.
 # In environments with proxy/self-signed certs we replace the stored context
@@ -119,7 +135,10 @@ async def generate_beat_audio(
 
     word_boundaries = await _edge_tts_generate(narration, channel_id, audio_path, words_path)
 
-    duration_ms = word_boundaries[-1]["endMs"] if word_boundaries else 0
+    if word_boundaries:
+        duration_ms = word_boundaries[-1]["endMs"]
+    else:
+        duration_ms = _mp3_duration_ms(audio_path)
     print(
         f"[tts] {beat_id}: {len(word_boundaries)} words, "
         f"{duration_ms}ms → {audio_path.name}"
