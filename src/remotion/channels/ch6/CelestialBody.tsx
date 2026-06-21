@@ -1,20 +1,19 @@
-// Session 15 rewrite — CelestialBody driven by CelestialFactsheet + ShotBrief.
-// Every body renders its real signatureFeature in the camera's view at the beat midpoint.
-// No two bodies share the same framing preset or generic sphere treatment.
-// Uses factsheet.axialTiltDeg for tilt, factsheet.signatureFeature.rotationOffsetAtMidpointDeg
-// to choreograph the rotation so the key feature is visible when the viewer is actually watching.
+// CelestialBody — loads committed textures from public/space/textures/ via staticFile().
+// Falls back to ProceduralPlanet (canvas band textures) if a texture file fails to load,
+// logging a console warning so the missing file can be identified and replaced.
 //
-// Procedural materials only — no network texture loading. Bodies are distinguished by
-// trueColor.primaryHex (surface), trueColor.secondaryHex (atmosphere glow), unique
-// camera framing presets, and ring geometry for Saturn.
+// Texture files live in public/space/textures/ and are committed to the repo.
+// Earth and Moon use real NASA-derived textures; other bodies use solid-colour placeholders
+// that match factsheet.trueColor until real textures are procured.
 //
 // IMPORTANT: Starfield is rendered OUTSIDE ThreeCanvas in Ch6Composition — it is a DOM/SVG
 // component and must never be placed inside ThreeCanvas (R3F would try to create Three.js
 // objects from SVG elements like <circle>, which do not exist in the THREE namespace).
 
 import React from 'react';
+import { useTexture } from '@react-three/drei';
 import { ThreeCanvas } from '@remotion/three';
-import { interpolate, useCurrentFrame } from 'remotion';
+import { interpolate, staticFile, useCurrentFrame } from 'remotion';
 import * as THREE from 'three';
 import type { CelestialFactsheet, CameraFraming } from './celestialFactsheet';
 import { CELESTIAL_FACTSHEETS } from './celestialFactsheet';
@@ -23,18 +22,13 @@ import { CELESTIAL_FACTSHEETS } from './celestialFactsheet';
 type FramingFn = (fs: CelestialFactsheet, frame: number, dur: number) => [number, number, number];
 
 const CAMERA_FRAMING_PRESETS: Record<CameraFraming, FramingFn> = {
-  // Camera ~20° above ring plane — rings read as a clear ellipse, not a line
-  'must-show-ring-tilt': (_fs, _f, _d) => [0.5, 1.5, 4.0],
-  // Elevated camera so the pole is visible at top of frame
-  'must-show-polar-region': (_fs, _f, _d) => [0.3, 1.6, 3.4],
-  // Near-equatorial, slight offset so the signature hemisphere faces the camera
-  'must-show-on-visible-hemisphere': (_fs, _f, _d) => [0, 0.1, 3.4],
-  // Dead-on, whole disc, minimal parallax
-  'must-show-full-disc': (_fs, _f, _d) => [0, 0, 4.2],
+  'must-show-ring-tilt':              (_fs, _f, _d) => [0.5, 1.5, 4.0],
+  'must-show-polar-region':           (_fs, _f, _d) => [0.3, 1.6, 3.4],
+  'must-show-on-visible-hemisphere':  (_fs, _f, _d) => [0, 0.1, 3.4],
+  'must-show-full-disc':              (_fs, _f, _d) => [0, 0, 4.2],
 };
 
-// ─── Band stripe helper (Jupiter / Saturn) ───────────────────────────────────
-// Creates a canvas texture with horizontal bands matching the body's color palette.
+// ─── Band stripe fallback helper ─────────────────────────────────────────────
 function makeBandTexture(primaryHex: string, secondaryHex: string, bandCount: number): THREE.CanvasTexture {
   const size = 512;
   const canvas = document.createElement('canvas');
@@ -47,7 +41,6 @@ function makeBandTexture(primaryHex: string, secondaryHex: string, bandCount: nu
 
   const bandHeight = size / bandCount;
   for (let i = 0; i < bandCount; i++) {
-    // Alternate primary / secondary with slight brightness variation
     const t = (i % 2 === 0) ? 1.0 : 0.0;
     const r = Math.round((primary.r * t + secondary.r * (1 - t)) * 255);
     const g = Math.round((primary.g * t + secondary.g * (1 - t)) * 255);
@@ -61,59 +54,120 @@ function makeBandTexture(primaryHex: string, secondaryHex: string, bandCount: nu
   return tex;
 }
 
-// ─── Procedural planet mesh ──────────────────────────────────────────────────
-
-const ProceduralPlanet: React.FC<{
-  fs: CelestialFactsheet;
-  durationInFrames: number;
-}> = ({ fs, durationInFrames }) => {
+// ─── Shared rotation / scale helpers ─────────────────────────────────────────
+function usePlanetTransform(fs: CelestialFactsheet, durationInFrames: number) {
   const frame = useCurrentFrame();
-
-  // Slow drift across the beat — 25° total
   const totalDriftDeg = 25;
   const driftDeg = interpolate(frame, [0, durationInFrames], [0, totalDriftDeg], {
     extrapolateRight: 'clamp',
   });
-
-  // Choreograph so the signature feature is centred at the beat midpoint
-  const midpointDriftDeg = totalDriftDeg / 2;
-  const rotYDeg = fs.signatureFeature.rotationOffsetAtMidpointDeg + (driftDeg - midpointDriftDeg);
-
-  // Venus rotates retrograde (axialTilt > 170°)
+  const rotYDeg = fs.signatureFeature.rotationOffsetAtMidpointDeg + (driftDeg - totalDriftDeg / 2);
   const dir = fs.axialTiltDeg > 170 ? -1 : 1;
   const rotY = THREE.MathUtils.degToRad(rotYDeg * dir);
 
   const scaleVal = interpolate(frame, [0, 48], [0.4, 1], { extrapolateRight: 'clamp' });
 
   const tiltRad = THREE.MathUtils.degToRad(fs.axialTiltDeg);
+  return { rotY, scaleVal, tiltRad };
+}
+
+// ─── Scene lights ─────────────────────────────────────────────────────────────
+const PlanetLights: React.FC<{ isSun: boolean }> = ({ isSun }) => (
+  <>
+    <ambientLight intensity={isSun ? 1.2 : 0.08} />
+    <pointLight position={[12, 2, 4]}  intensity={isSun ? 0 : 1.6} color="#fff8e8" />
+    <pointLight position={[-4, -3, 3]} intensity={isSun ? 0 : 0.3} color="#a0c4ff" />
+    {isSun && <pointLight position={[0, 0, 0]} intensity={2.0} color="#fff4d6" />}
+  </>
+);
+
+// ─── Textured planet — uses committed files from public/space/textures/ ───────
+const TexturedPlanet: React.FC<{
+  fs: CelestialFactsheet;
+  durationInFrames: number;
+}> = ({ fs, durationInFrames }) => {
+  const { rotY, scaleVal, tiltRad } = usePlanetTransform(fs, durationInFrames);
+
+  const hazeColor  = new THREE.Color(fs.trueColor.secondaryHex);
+  const primaryColor = new THREE.Color(fs.trueColor.primaryHex);
+  const ringColor  = new THREE.Color(fs.trueColor.primaryHex).multiplyScalar(0.85);
+  const isSun      = fs.body === 'Sun';
+
+  // Stable hook: always call useTexture twice (map + optional cloud reuses map)
+  const mapUrl   = staticFile(`space/textures/${fs.textures.map}`);
+  const cloudUrl = staticFile(`space/textures/${fs.textures.cloud ?? fs.textures.map}`);
+  const mapTexture   = useTexture(mapUrl);
+  const cloudTexture = useTexture(cloudUrl);
+  const hasCloud = !!fs.textures.cloud;
+
+  return (
+    <>
+      <PlanetLights isSun={isSun} />
+
+      <group rotation={[0, 0, tiltRad]} scale={[scaleVal, scaleVal, scaleVal]}>
+        {/* Main body */}
+        <mesh rotation={[0, rotY, 0]}>
+          <sphereGeometry args={[3.2, 96, 96]} />
+          {isSun ? (
+            <meshBasicMaterial color={primaryColor} />
+          ) : (
+            <meshStandardMaterial map={mapTexture} metalness={0.05} roughness={0.85} />
+          )}
+        </mesh>
+
+        {/* Cloud layer */}
+        {hasCloud && !isSun && (
+          <mesh rotation={[0, rotY * 1.12, 0]} scale={1.006}>
+            <sphereGeometry args={[3.2, 64, 64]} />
+            <meshLambertMaterial
+              map={cloudTexture}
+              transparent
+              opacity={fs.atmosphere.bandedStructure ? 0.15 : 0.35}
+            />
+          </mesh>
+        )}
+
+        {/* Atmosphere glow (back-face) */}
+        <mesh scale={1.06}>
+          <sphereGeometry args={[3.2, 64, 64]} />
+          <meshBasicMaterial color={hazeColor} transparent opacity={isSun ? 0.45 : 0.22} side={THREE.BackSide} />
+        </mesh>
+
+        {/* Ring system (Saturn) */}
+        {fs.rings && (
+          <mesh rotation={[Math.PI / 2 - THREE.MathUtils.degToRad(fs.rings.tiltFromOrbitalPlaneDeg), 0, 0]}>
+            <ringGeometry args={[3.2 * fs.rings.innerRadiusMultiplier, 3.2 * fs.rings.outerRadiusMultiplier, 128]} />
+            <meshBasicMaterial color={ringColor} transparent opacity={0.72} side={THREE.DoubleSide} />
+          </mesh>
+        )}
+      </group>
+    </>
+  );
+};
+
+// ─── Procedural fallback — canvas band textures, no network ───────────────────
+const ProceduralPlanet: React.FC<{
+  fs: CelestialFactsheet;
+  durationInFrames: number;
+}> = ({ fs, durationInFrames }) => {
+  const { rotY, scaleVal, tiltRad } = usePlanetTransform(fs, durationInFrames);
 
   const primaryColor = new THREE.Color(fs.trueColor.primaryHex);
-  const hazeColor = new THREE.Color(fs.trueColor.secondaryHex);
+  const hazeColor    = new THREE.Color(fs.trueColor.secondaryHex);
+  const ringColor    = new THREE.Color(fs.trueColor.primaryHex).multiplyScalar(0.85);
+  const isSun        = fs.body === 'Sun';
 
-  // Bodies with banded structure get a canvas band texture; others use flat color.
   const bandTexture = React.useMemo(() => {
     if (!fs.atmosphere.bandedStructure) return null;
     const count = fs.body === 'Jupiter' ? 14 : 8;
     return makeBandTexture(fs.trueColor.primaryHex, fs.trueColor.secondaryHex, count);
   }, [fs]);
 
-  // Sun emits light rather than reflecting it
-  const isSun = fs.body === 'Sun';
-
-  // Ring color — slightly darker than primary with some translucency
-  const ringColor = new THREE.Color(fs.trueColor.primaryHex).multiplyScalar(0.85);
-
   return (
     <>
-      <ambientLight intensity={isSun ? 1.2 : 0.08} />
-      {/* Main key light — off-axis to show terminator on sphere */}
-      <pointLight position={[12, 2, 4]} intensity={isSun ? 0 : 1.6} color="#fff8e8" />
-      <pointLight position={[-4, -3, 3]} intensity={isSun ? 0 : 0.3} color="#a0c4ff" />
-      {/* Sun self-illumination */}
-      {isSun && <pointLight position={[0, 0, 0]} intensity={2.0} color="#fff4d6" />}
+      <PlanetLights isSun={isSun} />
 
       <group rotation={[0, 0, tiltRad]} scale={[scaleVal, scaleVal, scaleVal]}>
-        {/* Main body */}
         <mesh rotation={[0, rotY, 0]}>
           <sphereGeometry args={[3.2, 96, 96]} />
           {isSun ? (
@@ -128,7 +182,6 @@ const ProceduralPlanet: React.FC<{
           )}
         </mesh>
 
-        {/* Cloud / atmosphere layer for Venus, Earth, Jupiter, Saturn, Uranus, Neptune */}
         {fs.atmosphere.hasClouds && !isSun && (
           <mesh rotation={[0, rotY * 1.12, 0]} scale={1.006}>
             <sphereGeometry args={[3.2, 64, 64]} />
@@ -140,40 +193,15 @@ const ProceduralPlanet: React.FC<{
           </mesh>
         )}
 
-        {/* Atmosphere glow — back-face transparent sphere.
-            This is element-level lighting only, NOT the page background gradient. */}
         <mesh scale={1.06}>
           <sphereGeometry args={[3.2, 64, 64]} />
-          <meshBasicMaterial
-            color={hazeColor}
-            transparent
-            opacity={isSun ? 0.45 : 0.22}
-            side={THREE.BackSide}
-          />
+          <meshBasicMaterial color={hazeColor} transparent opacity={isSun ? 0.45 : 0.22} side={THREE.BackSide} />
         </mesh>
 
-        {/* Ring system (Saturn) — procedural, no texture */}
         {fs.rings && (
-          <mesh
-            rotation={[
-              Math.PI / 2 - THREE.MathUtils.degToRad(fs.rings.tiltFromOrbitalPlaneDeg),
-              0,
-              0,
-            ]}
-          >
-            <ringGeometry
-              args={[
-                3.2 * fs.rings.innerRadiusMultiplier,
-                3.2 * fs.rings.outerRadiusMultiplier,
-                128,
-              ]}
-            />
-            <meshBasicMaterial
-              color={ringColor}
-              transparent
-              opacity={0.72}
-              side={THREE.DoubleSide}
-            />
+          <mesh rotation={[Math.PI / 2 - THREE.MathUtils.degToRad(fs.rings.tiltFromOrbitalPlaneDeg), 0, 0]}>
+            <ringGeometry args={[3.2 * fs.rings.innerRadiusMultiplier, 3.2 * fs.rings.outerRadiusMultiplier, 128]} />
+            <meshBasicMaterial color={ringColor} transparent opacity={0.72} side={THREE.DoubleSide} />
           </mesh>
         )}
       </group>
@@ -181,12 +209,31 @@ const ProceduralPlanet: React.FC<{
   );
 };
 
-// ─── Public component ────────────────────────────────────────────────────────
+// ─── Error boundary — catches useTexture() failures ───────────────────────────
+interface BoundaryState { failed: boolean }
+interface BoundaryProps { children: React.ReactNode; fallback: React.ReactNode; bodyName: string }
+
+class TextureErrorBoundary extends React.Component<BoundaryProps, BoundaryState> {
+  constructor(props: BoundaryProps) {
+    super(props);
+    this.state = { failed: false };
+  }
+  static getDerivedStateFromError(): BoundaryState { return { failed: true }; }
+  componentDidCatch(err: Error) {
+    console.warn(
+      `[CelestialBody] texture load failed for "${this.props.bodyName}", using procedural fallback:`,
+      err.message,
+    );
+  }
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
+}
+
+// ─── Public component ─────────────────────────────────────────────────────────
 
 export interface CelestialBodyProps {
-  /** Solar system body name — key into CELESTIAL_FACTSHEETS */
   bodyName?: string;
-  /** Override if factsheet key not found */
   fallbackColor?: string;
   durationInFrames?: number;
 }
@@ -197,16 +244,21 @@ export const CelestialBody: React.FC<CelestialBodyProps> = ({
 }) => {
   const fs = CELESTIAL_FACTSHEETS[bodyName] ?? CELESTIAL_FACTSHEETS['Jupiter'];
   const cameraPos = CAMERA_FRAMING_PRESETS[fs.signatureFeature.cameraFraming](fs, 0, durationInFrames);
+  const canvasStyle: React.CSSProperties = { position: 'absolute', inset: 0 };
 
-  return (
-    <ThreeCanvas
-      width={1080}
-      height={1920}
-      style={{ position: 'absolute', inset: 0 }}
-      camera={{ position: cameraPos, fov: 50 }}
-    >
-      {/* Starfield is a DOM/SVG component — rendered by Ch6Composition OUTSIDE this canvas */}
+  const proceduralCanvas = (
+    <ThreeCanvas width={1080} height={1920} style={canvasStyle} camera={{ position: cameraPos, fov: 50 }}>
       <ProceduralPlanet fs={fs} durationInFrames={durationInFrames} />
     </ThreeCanvas>
+  );
+
+  return (
+    <TextureErrorBoundary bodyName={bodyName} fallback={proceduralCanvas}>
+      <React.Suspense fallback={proceduralCanvas}>
+        <ThreeCanvas width={1080} height={1920} style={canvasStyle} camera={{ position: cameraPos, fov: 50 }}>
+          <TexturedPlanet fs={fs} durationInFrames={durationInFrames} />
+        </ThreeCanvas>
+      </React.Suspense>
+    </TextureErrorBoundary>
   );
 };

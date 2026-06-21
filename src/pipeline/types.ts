@@ -1,3 +1,5 @@
+import type { ShotBrief } from './shotBrief';
+
 export type ChannelId = 'ch1' | 'ch2' | 'ch3' | 'ch4' | 'ch5' | 'ch6';
 
 export type BeatKind =
@@ -14,7 +16,6 @@ export type BeatKind =
   | 'chart'
   | 'morph'
   | 'typography'
-  | 'stock_video'   // kept in type for backwards compat; rejected at script validation time
   | 'none';
 
 export type NumberType = 'year' | 'currency' | 'count' | 'distance';
@@ -35,7 +36,6 @@ export interface VisualTag {
   suffix?: string;
   stat_value?: number;
   numberType?: NumberType;
-  // stock_video
   query?: string;
 }
 
@@ -78,14 +78,6 @@ export interface BeatAudio {
   wordBoundariesPath: string;
   wordBoundaries: WordBoundary[];
   durationMs: number;
-}
-
-export interface StockAsset {
-  id: string;
-  path: string;
-  kind: 'video' | 'photo';
-  query: string;
-  source: 'pexels' | 'pixabay';
 }
 
 export interface PersonAsset {
@@ -161,8 +153,7 @@ export interface VideoManifest {
   script: Script;
   beats: ManifestBeat[];
   soundDesign: SoundEvent[];
-  usedStockIds: string[];
-  resolvedAssets: Record<string, PersonAsset | BrandAsset | PlaceAsset | DistanceAsset | StockAsset>;
+  resolvedAssets: Record<string, PersonAsset | BrandAsset | PlaceAsset | DistanceAsset>;
   ctaText: string;
 }
 
@@ -183,9 +174,9 @@ export interface ManifestBeat {
   // Populated after TTS stage:
   audio?: BeatAudio;
   // Populated after asset resolver stage:
-  resolvedAsset?: PersonAsset | BrandAsset | PlaceAsset | DistanceAsset | StockAsset | null;
-  // Populated after shot brief compilation stage:
-  shotBrief?: import('./shotBrief').ShotBrief | null;
+  resolvedAsset?: PersonAsset | BrandAsset | PlaceAsset | DistanceAsset | null;
+  // Populated after shot brief compiler stage:
+  shotBrief?: ShotBrief | null;
 }
 
 export interface ChannelConfig {

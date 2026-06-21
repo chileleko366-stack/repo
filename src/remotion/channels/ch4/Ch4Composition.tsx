@@ -3,7 +3,7 @@
  *
  * Layout per beat:
  *   ─ Background fill
- *   ─ AssetLayer      (full-screen for person/brand/place/map/stock_video)
+ *   ─ AssetLayer      (full-screen for person/brand/place/map)
  *   ─ NeuronPulse     (anatomy beats — SVG neuron overlay)
  *   ─ ThreeBrain      (anatomy beats — 3-D wireframe brain)
  *   ─ Gradient scrim
@@ -24,8 +24,11 @@ import { AssetLayer } from '../../assets/AssetLayer';
 import { CaptionTrack } from '../../captions/CaptionTrack';
 import { useWordBoundaries } from '../../captions/useWordBoundaries';
 import { Counter } from '../../morph/Counter';
+import { ShotBriefLayer } from '../../mograph/ShotBriefLayer';
 import { SfxLayer } from '../../sound/SfxLayer';
 import { Soundtrack } from '../../sound/Soundtrack';
+import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
+import type { TimedBeat } from '../../transitions/BeatCompositor';
 import { HardCutFlash } from './HardCutFlash';
 import { NeuronPulse } from './NeuronPulse';
 import { ThreeBrain } from './ThreeBrain';
@@ -96,13 +99,14 @@ const NarrationText: React.FC<{
 
 // ── Beat section ──────────────────────────────────────────────────────────────
 
-const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
-  const { visual, emphasis_keyword, resolvedAsset, bg_color, audioPath } = beat;
+const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({ beat, durationFrames }) => {
+  const { visual, emphasis_keyword, resolvedAsset, bg_color, audioPath, shotBrief } = beat;
   const kind      = visual.kind;
   const bg        = bg_color || CFG.colors.bgPrimary;
   const hasAsset  = !!resolvedAsset;
   const isAnatomy = kind === 'anatomy';
   const isStat    = kind === 'stat';
+  const hasShotBrief = !!shotBrief;
 
   const isFullscreen =
     hasAsset && !isAnatomy && kind !== 'none' && kind !== 'stat' && kind !== 'celestial';
@@ -111,11 +115,11 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
     <AbsoluteFill>
       <AbsoluteFill style={{ background: bg }} />
 
-      {/* Full-screen asset (person/brand/place/map/stock_video) */}
+      {/* Full-screen asset (person/brand/place/map) */}
       {isFullscreen && (
         <AssetLayer
           beat={beat}
-          durationFrames={beat.durationFrames}
+          durationFrames={durationFrames}
           accentColors={{ primary: CFG.colors.accent1, secondary: CFG.colors.accent2 }}
         />
       )}
@@ -123,7 +127,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
       {/* Anatomy: SVG neuron + 3-D brain */}
       {isAnatomy && (
         <>
-          <NeuronPulse durationFrames={beat.durationFrames} />
+          <NeuronPulse durationFrames={durationFrames} />
           <ThreeBrain />
         </>
       )}
@@ -142,8 +146,19 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
         />
       )}
 
-      {/* Stat counter */}
-      {isStat && (
+      {/* ShotBrief-driven layout */}
+      {hasShotBrief && (
+        <ShotBriefLayer
+          beat={beat}
+          accentColor={CFG.colors.accent1}
+          bgColor={bg}
+          bodyFont={CFG.bodyFont}
+          accentFont={CFG.accentFont}
+        />
+      )}
+
+      {/* Fallback: stat counter */}
+      {!hasShotBrief && isStat && (
         <AbsoluteFill
           style={{
             display: 'flex',
@@ -166,25 +181,25 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
         </AbsoluteFill>
       )}
 
-      {/* Narration text */}
-      <div
-        style={{
-          position: 'absolute',
-          left: 0, right: 0,
-          bottom: isFullscreen || isAnatomy ? 300 : undefined,
-          top: !isFullscreen && !isAnatomy && !isStat ? 180 : undefined,
-          display: 'flex',
-          justifyContent: 'center',
-        }}
-      >
-        {!isStat && (
+      {/* Fallback: narration text */}
+      {!hasShotBrief && !isStat && (
+        <div
+          style={{
+            position: 'absolute',
+            left: 0, right: 0,
+            bottom: isFullscreen || isAnatomy ? 300 : undefined,
+            top: !isFullscreen && !isAnatomy ? 180 : undefined,
+            display: 'flex',
+            justifyContent: 'center',
+          }}
+        >
           <NarrationText
             text={beat.narration}
             emphasisWord={emphasis_keyword}
             isAnatomy={isAnatomy}
           />
-        )}
-      </div>
+        </div>
+      )}
 
       {audioPath ? <Audio src={toStatic(audioPath)} volume={1} /> : null}
 
@@ -196,8 +211,16 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
 // ── Root composition ──────────────────────────────────────────────────────────
 
 export const Ch4Composition: React.FC<{ manifest: VideoManifest }> = ({ manifest }) => {
-  const { beats, soundDesign } = manifest;
+  const { beats, soundDesign, fps, script } = manifest;
   const wordBoundaries = useWordBoundaries(beats);
+
+  const audioDurationsMs: Record<string, number> = {};
+  const pauseAfterMap: Record<string, 'breath' | 'beat' | 'cut'> = {};
+  beats.forEach((b) => { if (b.audio?.durationMs) audioDurationsMs[b.beatId] = b.audio.durationMs; });
+  (script?.beats ?? []).forEach((sb, i) => {
+    pauseAfterMap[`beat_${i}`] = (sb as { pause_after?: 'breath' | 'beat' | 'cut' }).pause_after ?? 'cut';
+  });
+  const timedBeats: TimedBeat[] = buildTimedBeats(beats, fps ?? 30, audioDurationsMs, pauseAfterMap);
 
   return (
     <AbsoluteFill
@@ -208,16 +231,10 @@ export const Ch4Composition: React.FC<{ manifest: VideoManifest }> = ({ manifest
     >
       <Soundtrack channelId="ch4" musicVolume={0.15} />
 
-      {beats.map((beat) => (
-        <Sequence
-          key={beat.beatId}
-          from={beat.startFrame}
-          durationInFrames={beat.durationFrames}
-          layout="none"
-        >
-          <BeatSection beat={beat} />
-        </Sequence>
-      ))}
+      <BeatCompositor
+        timedBeats={timedBeats}
+        renderBeat={(beat) => <BeatSection beat={beat} durationFrames={beat.audioFrames} />}
+      />
 
       <SfxLayer soundDesign={soundDesign ?? []} />
 

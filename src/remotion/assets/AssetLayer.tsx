@@ -14,13 +14,11 @@ import type {
   ManifestBeat,
   PersonAsset,
   PlaceAsset,
-  StockAsset,
 } from '../../pipeline/types';
 import { BrandLogo } from './BrandLogo';
 import { DistanceMap } from './DistanceMap';
 import { PersonCard } from './PersonCard';
 import { PlacePhoto } from './PlacePhoto';
-import { StockClip } from '../stock/StockClip';
 
 export const AssetLayer: React.FC<{
   beat: ManifestBeat;
@@ -65,15 +63,6 @@ export const AssetLayer: React.FC<{
     return (
       <DistanceMap
         asset={resolvedAsset as DistanceAsset}
-        durationFrames={durationFrames}
-      />
-    );
-  }
-
-  if (kind === 'stock_video') {
-    return (
-      <StockClip
-        asset={resolvedAsset as StockAsset}
         durationFrames={durationFrames}
       />
     );

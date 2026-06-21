@@ -239,7 +239,7 @@ SCRIPT_SCHEMA = '''
       "narration": "<8-20 words, one complete spoken thought — do NOT split a sentence across beats>",
       "pause_after": "<breath|beat|cut> — breath: next thought follows immediately; beat: clear pause like a comma; cut: hard scene change like a paragraph break",
       "visual": {
-        "kind": "<person|brand|place|distance|map|anatomy|celestial|stat|chart|morph|typography|none> — stock_video is NOT allowed",
+        "kind": "<person|brand|place|distance|map|anatomy|celestial|stat|chart|morph|typography|none>",
         "value": "<exact name: Daniel Kahneman / Tesla / Chernobyl / Mars>",
         "from": "<if distance: origin place>",
         "to": "<if distance: destination place>",
@@ -340,8 +340,6 @@ VALID_VISUAL_KINDS = {
     'person', 'brand', 'place', 'distance', 'map', 'anatomy',
     'celestial', 'stat', 'chart', 'morph', 'typography', 'none',
 }
-# stock_video is NOT in this set — it was removed in v3
-
 VALID_PAUSE_AFTER = {'breath', 'beat', 'cut'}
 
 
@@ -387,8 +385,6 @@ def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
         kind = beat.get("visual", {}).get("kind", "")
         if not kind:
             errors.append(f"beat {i}: missing visual.kind")
-        elif kind == "stock_video":
-            errors.append(f"beat {i}: stock_video visual kind is not allowed in v3 — use chart, typography, or a named entity")
         elif kind not in VALID_VISUAL_KINDS:
             errors.append(f"beat {i}: invalid visual.kind '{kind}'")
         elif kind in ENTITY_KINDS and not beat.get("visual", {}).get("value", "").strip():
@@ -430,14 +426,23 @@ def validate_continuity(script: dict, llm_fn=None) -> list[str]:
     errors = []
     beats = script.get("beats", [])
 
-    # 1. Entity name consistency — simple normalized dedup check
+    # 1. Entity name consistency — whole-word overlap check
+    # Uses word-boundary regex so "LHC" (3 chars) is NOT flagged as the same entity as "LHCb" (4 chars),
+    # while "Musk" IS flagged as overlapping "Elon Musk".
+    def _name_overlaps(a: str, b: str) -> bool:
+        try:
+            return bool(re.search(r'\b' + re.escape(a) + r'\b', b)) or \
+                   bool(re.search(r'\b' + re.escape(b) + r'\b', a))
+        except re.error:
+            return False
+
     entity_map: dict[str, str] = {}  # normalized → first occurrence
     for beat in beats:
         visual = beat.get("visual", {})
         val = visual.get("value", "")
         if val:
             norm = re.sub(r"\s+", " ", val.strip().lower())
-            existing = [k for k in entity_map if norm in k or k in norm]
+            existing = [k for k in entity_map if _name_overlaps(norm, k)]
             for k in existing:
                 if entity_map[k] != val:
                     errors.append(

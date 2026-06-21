@@ -415,3 +415,148 @@ All third-party sources, licences, and decisions tracked here.
 - remotion-dev/template-prompt-to-motion-graphics-saas — Remotion licence (commit ddfe9d1)
 - @remotion/transitions 4.0.481 — Remotion licence
 - google-api-python-client — Apache 2.0 (YouTube Data API v3 client)
+
+---
+
+## WIRE IT UP Session — Stock Removal + Upload Fix + Planet Textures + Shot Brief
+
+### Part 3.1 — Stock footage removed
+- Deleted `src/scripts/stock_selector.py` and `src/remotion/stock/StockClip.tsx`
+- Removed `stock_video` from `BeatKind` union in `types.ts`; removed `StockAsset` interface
+- Cleaned `channelConfigs.ts` beatTypes, `script_gen.py` validation, `manifest_builder.py` captions_visible()
+- Scrubbed all remaining `stock_video`/`pexels`/`pixabay` comments from compositions and captions
+
+**Verified:** `grep -ri "pexels\|pixabay\|stock_video" src/ scripts/` → CLEAN
+
+### Part 3.2 — upload_all.py draft-first fix
+- Old version: built its own OAuth + resumable upload with `privacyStatus=public`
+- New version: delegates entirely to `publish.upload_as_draft()` (always private)
+
+**Verified:** `grep -rn "privacyStatus.*public" src/scripts/` → only `approve_draft()` in publish.py
+
+### Part 3.3 — Planet textures committed
+- `public/space/textures/` — 14 files committed
+- Earth (daymap, normal, specular) + Moon: real NASA-derived textures from three.js
+- Sun, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune: solid-colour PNG placeholders matching factsheet.trueColor
+- `CelestialBody.tsx` rewritten: `TexturedPlanet` uses `useTexture(staticFile(...))` for committed files;
+  `TextureErrorBoundary` catches failures and renders `ProceduralPlanet` fallback with `console.warn`
+- `solarsystemscope.com` blocked by network policy; placeholder textures function correctly
+
+### Part 1 — Python Shot Brief compiler
+
+**File:** `src/scripts/shot_brief.py`
+- Ports `compileShotBrief.ts` exactly: same SYSTEM_PROMPT, same user prompt schema, same Groq model (`llama-3.3-70b-versatile`), temperature 0.4, max_tokens 2000, `json_object` format
+- `compile_all_shot_briefs(manifest)` iterates beats, tracks `recent_grids` for anti-repetition enforcement
+- Per-beat retry loop (3 attempts, exponential backoff) matching TS `validateShotBrief()` rules
+- **Pipeline wired:** Stage 5b in `pipeline.py` between asset resolution (Stage 5) and sound design (Stage 6)
+
+**Example ShotBrief objects (ch1 — Dopamine Loop, Dunning-Kruger beat):**
+
+Beat 1 — `person` visual (Daniel Kahneman):
+```json
+{
+  "beatId": "beat_0",
+  "channelId": "ch1",
+  "composition": {
+    "grid": "thirds-upper",
+    "primaryAnchor": { "xPct": 15, "yPct": 8, "widthPct": 70, "heightPct": 55 },
+    "secondaryElements": [
+      { "role": "label", "anchor": { "xPct": 10, "yPct": 66, "widthPct": 80, "heightPct": 8 }, "zIndex": 10 }
+    ],
+    "safeZones": { "topReservedPx": 120, "bottomReservedPx": 240 }
+  },
+  "background": { "type": "solid", "color": "#16121f", "changesAtThisBeat": false },
+  "depth": {
+    "dropShadows": [
+      { "onElementRole": "primaryAnchor", "offsetX": 0, "offsetY": 24, "blurPx": 48, "color": "#d400ff", "opacity": 0.45 }
+    ],
+    "glowEffects": [
+      {
+        "onElementRole": "background-shape",
+        "gradient": {
+          "kind": "radial",
+          "stops": [
+            { "offsetPct": 0, "color": "#d400ff", "opacity": 0.18 },
+            { "offsetPct": 60, "color": "#d400ff", "opacity": 0.04 },
+            { "offsetPct": 100, "color": "#d400ff", "opacity": 0 }
+          ]
+        }
+      }
+    ]
+  },
+  "typography": [
+    { "role": "label", "text": "Daniel Kahneman", "font": "accent", "sizePx": 52, "weight": 700, "letterSpacingEm": 0.04, "lineHeight": 1.1, "color": "#ffffff" }
+  ],
+  "motion": [
+    { "elementRole": "primaryAnchor", "kind": "spring", "property": "scale", "from": 0.82, "to": 1, "startFrame": 0, "durationFrames": 30, "springConfig": { "damping": 18, "stiffness": 200 } },
+    { "elementRole": "primaryAnchor", "kind": "interpolate", "property": "opacity", "from": 0, "to": 1, "startFrame": 0, "durationFrames": 12, "easing": "easeOutCubic" },
+    { "elementRole": "label", "kind": "spring", "property": "translateY", "from": 20, "to": 0, "startFrame": 18, "durationFrames": 22, "springConfig": { "damping": 20, "stiffness": 220 } }
+  ],
+  "primitive": "GlassCard",
+  "fallbackPrimitive": "TypographicCard"
+}
+```
+
+Beat 2 — `stat` visual (79% statistic):
+```json
+{
+  "beatId": "beat_1",
+  "channelId": "ch1",
+  "composition": {
+    "grid": "center",
+    "primaryAnchor": { "xPct": 10, "yPct": 28, "widthPct": 80, "heightPct": 44 },
+    "secondaryElements": [
+      { "role": "supportingText", "anchor": { "xPct": 10, "yPct": 74, "widthPct": 80, "heightPct": 10 }, "zIndex": 8 }
+    ],
+    "safeZones": { "topReservedPx": 120, "bottomReservedPx": 240 }
+  },
+  "background": { "type": "solid", "color": "#16121f", "changesAtThisBeat": false },
+  "depth": {
+    "dropShadows": [
+      { "onElementRole": "primaryAnchor", "offsetX": 0, "offsetY": 8, "blurPx": 32, "color": "#00f0ff", "opacity": 0.30 }
+    ],
+    "glowEffects": [
+      {
+        "onElementRole": "primaryAnchor",
+        "gradient": {
+          "kind": "linear",
+          "angleDeg": 135,
+          "stops": [
+            { "offsetPct": 0, "color": "#d400ff", "opacity": 0.12 },
+            { "offsetPct": 100, "color": "#00f0ff", "opacity": 0.08 }
+          ]
+        }
+      }
+    ]
+  },
+  "typography": [
+    { "role": "primaryAnchor", "text": "79%", "font": "accent", "sizePx": 140, "weight": 900, "letterSpacingEm": -0.02, "lineHeight": 1.0, "color": "#d400ff" },
+    { "role": "supportingText", "text": "believe they are above average", "font": "body", "sizePx": 38, "weight": 400, "letterSpacingEm": 0.01, "lineHeight": 1.3, "color": "rgba(255,255,255,0.75)" }
+  ],
+  "motion": [
+    { "elementRole": "primaryAnchor", "kind": "spring", "property": "scale", "from": 0.6, "to": 1, "startFrame": 0, "durationFrames": 24, "springConfig": { "damping": 14, "stiffness": 280 } },
+    { "elementRole": "primaryAnchor", "kind": "interpolate", "property": "opacity", "from": 0, "to": 1, "startFrame": 0, "durationFrames": 10, "easing": "easeOutCubic" },
+    { "elementRole": "supportingText", "kind": "interpolate", "property": "translateY", "from": 16, "to": 0, "startFrame": 22, "durationFrames": 20, "easing": "easeOutExpo" }
+  ],
+  "primitive": "TypographicCard",
+  "fallbackPrimitive": "TypographicCard"
+}
+```
+
+
+---
+
+## Part 2 — Channel Composition Wiring (ShotBriefLayer + BeatCompositor)
+
+All 6 channel compositions updated to consume `beat.shotBrief` and delegate layout to `ShotBriefLayer`.
+Fallback rendering (existing KineticTitle / PsychCard / etc.) preserved behind `!hasShotBrief` guards.
+`BeatCompositor` replaces manual `<Sequence>` lists in every root composition for transition-aware pacing.
+
+- **ch1** (Dopamine Carousel): ShotBriefLayer + BeatCompositor wired; KineticTitle + PsychCard fallbacks intact
+- **ch2** (FinanceFiction): ShotBriefLayer + BeatCompositor wired; CandlestickChart + TickerTape fallbacks intact
+- **ch3** (Redacted): ShotBriefLayer + BeatCompositor wired; ScrambleReveal + ClassifiedStamp fallbacks intact
+- **ch4** (Grey Matter): ShotBriefLayer + BeatCompositor wired; NeuronPulse + ThreeBrain fallbacks intact
+- **ch5** (Quiet Record): ShotBriefLayer + BeatCompositor wired; DocumentaryQuote + FilmGrain fallbacks intact
+- **ch6** (Red Space Facts): ShotBriefLayer + BeatCompositor wired; CelestialBody + Starfield fallbacks intact
+
+`src/remotion/mograph/ShotBriefLayer.tsx` created: positions content via `primaryAnchor`, applies `depth.dropShadows`/`glowEffects`, dispatches to GlassCard | Typewriter | WordCarousel | ProgressBar | TypographicCard by `primitive` name.
