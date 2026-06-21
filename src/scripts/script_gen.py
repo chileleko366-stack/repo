@@ -90,7 +90,7 @@ PROVIDERS = [
         "name": "cerebras",
         "url": "https://api.cerebras.ai/v1/chat/completions",
         "key_env": "CEREBRAS_API_KEY",
-        "model": "llama-3.3-70b",
+        "model": "llama3.3-70b",
     },
     {
         "name": "nvidia",
@@ -501,7 +501,14 @@ def generate_script(topic: str, channel_id: str, brief: ResearchBrief, max_retri
 
     for attempt in range(1, max_retries + 1):
         print(f"[script_gen] attempt {attempt}/{max_retries} for topic: {topic!r}")
-        raw = llm_complete(system, user)
+        try:
+            raw = llm_complete(system, user)
+        except RuntimeError as exc:
+            print(f"[script_gen] all providers exhausted on attempt {attempt}: {exc}")
+            if attempt < max_retries:
+                time.sleep(10)
+                continue
+            raise
         clean = raw.strip()
         if clean.startswith("```"):
             clean = re.sub(r"^```[a-z]*\n?", "", clean)
