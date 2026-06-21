@@ -560,3 +560,36 @@ Fallback rendering (existing KineticTitle / PsychCard / etc.) preserved behind `
 - **ch6** (Red Space Facts): ShotBriefLayer + BeatCompositor wired; CelestialBody + Starfield fallbacks intact
 
 `src/remotion/mograph/ShotBriefLayer.tsx` created: positions content via `primaryAnchor`, applies `depth.dropShadows`/`glowEffects`, dispatches to GlassCard | Typewriter | WordCarousel | ProgressBar | TypographicCard by `primitive` name.
+
+---
+
+## Session 3 (v3 cont.) — Real Planet Textures
+
+### Part 3.3 update — solid-colour placeholders replaced with real textures
+
+All 10 celestial bodies in `celestialFactsheet.ts` now use real photographic textures committed to `public/space/textures/`.
+
+**Source:** Solar System Scope texture pack, CC BY 4.0 — the original publisher.
+Files were obtained via GitHub mirrors (N3rson/Solar-System-3D and jeromeetienne/threex.planets) which redistribute the same byte-identical set without re-attributing the original source. Attribution must name Solar System Scope, not the individual GitHub authors.
+
+| File | Body / layer | Source mirror |
+|------|-------------|--------------|
+| `2k_sun.jpg` | Sun surface | N3rson/Solar-System-3D |
+| `2k_mercury.jpg` | Mercury surface | N3rson/Solar-System-3D |
+| `2k_venus_surface.jpg` | Venus surface | N3rson/Solar-System-3D |
+| `2k_venus_atmosphere.jpg` | Venus cloud deck (cloud layer) | N3rson/Solar-System-3D |
+| `2k_earth_daymap.jpg` | Earth surface | pre-existing (three.js) |
+| `2k_earth_normal_map.jpg` | Earth normals | pre-existing (three.js) |
+| `2k_earth_specular_map.jpg` | Earth specularity | pre-existing (three.js) |
+| `2k_earth_clouds.jpg` | Earth cloud layer | jeromeetienne/threex.planets (`earthcloudmap.jpg`, same Solar System Scope set) |
+| `2k_moon.jpg` | Moon surface | pre-existing (three.js) |
+| `2k_mars.jpg` | Mars surface | N3rson/Solar-System-3D |
+| `2k_jupiter.jpg` | Jupiter surface | N3rson/Solar-System-3D |
+| `2k_saturn.jpg` | Saturn surface | N3rson/Solar-System-3D |
+| `2k_saturn_ring_alpha.png` | Saturn ring alpha | N3rson/Solar-System-3D |
+| `2k_uranus.jpg` | Uranus surface | N3rson/Solar-System-3D |
+| `2k_neptune.jpg` | Neptune surface | N3rson/Solar-System-3D |
+
+**Loading:** `CelestialBody.tsx` `TexturedPlanet` uses `useTexture(staticFile('space/textures/' + filename))`. If a file fails, `TextureErrorBoundary` catches and falls back to `ProceduralPlanet` with `console.warn`.
+
+**Attribution required in video description:** "Planet textures: Solar System Scope (solarsystemscope.com), CC BY 4.0"
