@@ -101,7 +101,13 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
     <AbsoluteFill>
       <AbsoluteFill style={{ background: bg }} />
 
-      {isFullscreen && <AssetLayer beat={beat} durationFrames={beat.durationFrames} />}
+      {isFullscreen && (
+        <AssetLayer
+          beat={beat}
+          durationFrames={beat.durationFrames}
+          accentColors={{ primary: CFG.colors.accent1, secondary: CFG.colors.accent2 }}
+        />
+      )}
 
       {/* Vignette — always present */}
       <div

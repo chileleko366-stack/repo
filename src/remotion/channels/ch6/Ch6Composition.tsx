@@ -111,7 +111,13 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
       {/* Stars are always visible (behind everything) */}
       <Starfield />
 
-      {isFullscreen && <AssetLayer beat={beat} durationFrames={beat.durationFrames} />}
+      {isFullscreen && (
+        <AssetLayer
+          beat={beat}
+          durationFrames={beat.durationFrames}
+          accentColors={{ primary: CFG.colors.accent1, secondary: CFG.colors.accent2 }}
+        />
+      )}
 
       {isCelestial && (
         <CelestialBody

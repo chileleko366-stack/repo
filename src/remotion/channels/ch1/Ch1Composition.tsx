@@ -58,7 +58,11 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
 
       {/* Full-screen asset */}
       {isFullscreen && (
-        <AssetLayer beat={beat} durationFrames={beat.durationFrames} />
+        <AssetLayer
+          beat={beat}
+          durationFrames={beat.durationFrames}
+          accentColors={{ primary: CFG.colors.accent1, secondary: CFG.colors.accent2 }}
+        />
       )}
 
       {/* Gradient scrim on asset beats so text stays legible */}

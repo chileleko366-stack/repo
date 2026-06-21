@@ -113,7 +113,11 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
 
       {/* Full-screen asset (person/brand/place/map/stock_video) */}
       {isFullscreen && (
-        <AssetLayer beat={beat} durationFrames={beat.durationFrames} />
+        <AssetLayer
+          beat={beat}
+          durationFrames={beat.durationFrames}
+          accentColors={{ primary: CFG.colors.accent1, secondary: CFG.colors.accent2 }}
+        />
       )}
 
       {/* Anatomy: SVG neuron + 3-D brain */}

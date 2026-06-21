@@ -25,7 +25,8 @@ import { StockClip } from '../stock/StockClip';
 export const AssetLayer: React.FC<{
   beat: ManifestBeat;
   durationFrames: number;
-}> = ({ beat, durationFrames }) => {
+  accentColors?: { primary: string; secondary: string };
+}> = ({ beat, durationFrames, accentColors }) => {
   const { visual, resolvedAsset } = beat;
   if (!resolvedAsset) return null;
 
@@ -36,6 +37,7 @@ export const AssetLayer: React.FC<{
       <PersonCard
         asset={resolvedAsset as PersonAsset}
         durationFrames={durationFrames}
+        accentColors={accentColors}
       />
     );
   }
@@ -54,6 +56,7 @@ export const AssetLayer: React.FC<{
       <PlacePhoto
         asset={resolvedAsset as PlaceAsset}
         durationFrames={durationFrames}
+        accentColors={accentColors}
       />
     );
   }

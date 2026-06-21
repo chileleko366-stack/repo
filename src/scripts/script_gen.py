@@ -296,6 +296,12 @@ def build_system_prompt(channel_id: str, topic: str, brief: ResearchBrief) -> st
         "   no numbers, use a well-known scientific measurement for the topic: timing in ms,\n"
         "   brain region size in cm, study sample size, percentage change, a year. Any real digit\n"
         "   works. Scripts with zero digits will be rejected and will fail.\n"
+        "8. After each beat where pause_after is 'cut', the NEXT beat must open with a re-hook\n"
+        "   sentence that stands alone — fresh tension, as if a new viewer just arrived at that\n"
+        "   moment. Use 'cut' sparingly: max 2 cut transitions across all 5 beats.\n"
+        "9. Beat index 2 (the middle beat, ~40% through the video) must be your STRONGEST secondary\n"
+        "   curiosity gap — a partial reveal that withholds one key implication. This is the\n"
+        "   scroll-stopper for viewers who almost swiped away.\n"
         "\n"
         f"RESEARCH FACTS (use these, never invent):\n{facts_str}\n"
         "\n"
@@ -339,12 +345,34 @@ VALID_VISUAL_KINDS = {
 VALID_PAUSE_AFTER = {'breath', 'beat', 'cut'}
 
 
+ENTITY_KINDS = {'person', 'brand', 'place', 'distance', 'map', 'anatomy', 'celestial'}
+CONTRAST_MARKERS = {"but", "yet", "never", "actually", "wrong", "surprising", "wait", "secret", "plot"}
+
+
 def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
     errors = []
-    if not script.get("hook"):
+    hook = script.get("hook", "")
+    if not hook:
         errors.append("missing hook")
-    elif len(script["hook"].split()) > 14:
-        errors.append(f"hook too long ({len(script['hook'].split())} words, max 12)")
+    elif len(hook.split()) > 14:
+        errors.append(f"hook too long ({len(hook.split())} words, max 12)")
+    else:
+        # Click-confirmation: at least one significant topic keyword must appear in the hook
+        topic = script.get("topic", "")
+        if topic:
+            topic_kws = [w.lower() for w in re.split(r'\W+', topic) if len(w) > 3]
+            if topic_kws and not any(kw in hook.lower() for kw in topic_kws):
+                errors.append(
+                    f"hook does not confirm the topic '{topic}' — at least one keyword "
+                    f"({', '.join(topic_kws[:3])}) must appear in the hook"
+                )
+        # PAS-or-contrast opener: hook must use a question or a contrast/tension marker
+        hook_words = set(re.split(r'\W+', hook.lower()))
+        if not ("?" in hook or hook_words & CONTRAST_MARKERS):
+            errors.append(
+                "hook lacks a question or contrast opener — use '?' or a contrast word "
+                "(but / yet / never / actually / wait / secret)"
+            )
     if not script.get("context"):
         errors.append("missing context")
     beats = script.get("beats", [])
@@ -363,6 +391,8 @@ def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
             errors.append(f"beat {i}: stock_video visual kind is not allowed in v3 — use chart, typography, or a named entity")
         elif kind not in VALID_VISUAL_KINDS:
             errors.append(f"beat {i}: invalid visual.kind '{kind}'")
+        elif kind in ENTITY_KINDS and not beat.get("visual", {}).get("value", "").strip():
+            errors.append(f"beat {i}: visual.kind='{kind}' requires a non-empty visual.value (exact name)")
         pause = beat.get("pause_after", "")
         if pause not in VALID_PAUSE_AFTER:
             errors.append(f"beat {i}: invalid or missing pause_after '{pause}' — must be breath|beat|cut")

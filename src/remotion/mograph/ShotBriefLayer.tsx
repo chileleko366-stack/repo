@@ -46,10 +46,23 @@ export const ShotBriefLayer: React.FC<ShotBriefLayerProps> = ({ brief, beat }) =
   const primaryTypo = typography.find((t) => t.role === 'primary');
   const primaryText = primaryTypo?.text ?? beat.emphasis_keyword ?? '';
 
+  const accent1Color = typography.find((t) => t.role === 'accent')?.color
+    ?? primaryTypo?.color
+    ?? '#d400ff';
+  const accent2Color = typography.find((t) => t.role === 'label')?.color
+    ?? typography.find((t) => t.role === 'body')?.color
+    ?? '#7700cc';
+
   // If the beat has a resolved photo/brand/map asset, render it regardless of
   // what primitive the shot brief specified — real imagery always wins.
   if (beat.resolvedAsset && primitive !== 'AnimatedIcon') {
-    return <AssetLayer beat={beat} durationFrames={beat.durationFrames} />;
+    return (
+      <AssetLayer
+        beat={beat}
+        durationFrames={beat.durationFrames}
+        accentColors={{ primary: accent1Color, secondary: accent2Color }}
+      />
+    );
   }
 
   switch (primitive) {

@@ -71,7 +71,11 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
       )}
 
       {isFullscreen && (
-        <AssetLayer beat={beat} durationFrames={beat.durationFrames} />
+        <AssetLayer
+          beat={beat}
+          durationFrames={beat.durationFrames}
+          accentColors={{ primary: CFG.colors.accent1, secondary: CFG.colors.accent2 }}
+        />
       )}
       {isFullscreen && (
         <div
