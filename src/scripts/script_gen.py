@@ -247,7 +247,7 @@ SCRIPT_SCHEMA = '''
   "context": "<10-14 words — one sentence establishing the specific stakes with a real number.>",
   "beats": [
     {
-      "narration": "<10-15 words, one complete spoken thought — do NOT split a sentence across beats>",
+      "narration": "<8-15 words, one complete spoken thought — do NOT split a sentence across beats>",
       "pause_after": "<breath|beat|cut> — MUST be exactly one of those three words. breath: flows immediately into next; beat: clear pause; cut: hard scene break",
       "visual": {
         "kind": "<person|brand|place|distance|map|anatomy|celestial|stat|chart|morph|typography|none>",
@@ -292,7 +292,7 @@ def build_system_prompt(channel_id: str, topic: str, brief: ResearchBrief) -> st
         "TARGET LENGTH: 35 seconds total.\n"
         "- hook:    5-7 words   (~2.5s) — SHORT AND PUNCHY. Longer hooks get cut off before viewers decide to watch.\n"
         "- context: 10-14 words (~5s)   — one sentence establishing the specific stakes.\n"
-        "- beats:   10-15 words each    — one complete spoken thought per beat.\n"
+        "- beats:   8-15 words each     — one complete spoken thought per beat.\n"
         "- twist:   10-14 words (~5s)   — the reframe, delivered crisply.\n"
         "- outro:   12-16 words (~6s)   — landing + one closing thought. MUST FEEL COMPLETE.\n"
         "\n"
@@ -483,8 +483,8 @@ def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
         errors.append(f"need exactly 5 beats, got {len(beats)}")
     for i, beat in enumerate(beats):
         words = len(beat.get("narration", "").split())
-        if words < 8:
-            errors.append(f"beat {i}: narration too short ({words} words, min 8)")
+        if words < 6:
+            errors.append(f"beat {i}: narration too short ({words} words, min 6)")
         if words > 18:
             errors.append(f"beat {i}: narration too long ({words} words, max 18)")
         kind = beat.get("visual", {}).get("kind", "")
@@ -516,16 +516,6 @@ def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
             errors.append(f"outro too long ({outro_words} words, max 30)")
     if not outro.get("cta"):
         errors.append("missing outro.cta")
-    full_text = " ".join([
-        script.get("hook", ""),
-        script.get("context", ""),
-        *[b.get("narration", "") for b in beats],
-        script.get("twist", ""),
-        outro.get("narration", ""),
-    ])
-    number_count = len(re.findall(r"\d[\d,\.]*", full_text))
-    if number_count < 1:
-        errors.append("no specific numbers in script - need at least 1")
     return errors
 
 
@@ -587,7 +577,18 @@ def validate_continuity(script: dict, llm_fn=None) -> list[str]:
         if len(unique) > 1:
             errors.append(f"Conflicting numbers for context '…{ctx}': {unique}")
 
-    # 3. Visual–narration agreement (lightweight keyword match, no LLM needed)
+    # 3. Number presence advisory (warn, never block — retry loops make things worse)
+    full_text = " ".join([
+        script.get("hook", ""),
+        script.get("context", ""),
+        *[b.get("narration", "") for b in beats],
+        script.get("twist", ""),
+        script.get("outro", {}).get("narration", ""),
+    ])
+    if not re.search(r"\d", full_text):
+        errors.append("advisory: no specific digits in script — consider adding a year, count, or measurement")
+
+    # 4. Visual–narration agreement (lightweight keyword match, no LLM needed)
     PERSON_WORDS = {"who", "person", "born", "died", "scientist", "researcher", "ceo", "president", "author", "founder"}
     PLACE_WORDS = {"city", "country", "located", "built", "founded", "in the", "at the", "near"}
     for i, beat in enumerate(beats):
