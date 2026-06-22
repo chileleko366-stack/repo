@@ -17,3 +17,14 @@ export const SPRING_CONFIGS = {
   /** Tight snap (badges, pills) */
   snap: { damping: 14, stiffness: 280, mass: 0.8 },
 } as const;
+
+/**
+ * Research-derived spring tokens (Material Design / Carbon).
+ * Apply fast→small elements/short distances, base→standard entrances,
+ * gentle→large/dramatic moves and hero components.
+ */
+export const SPRINGS = {
+  fast:   { stiffness: 520, damping: 32 },
+  base:   { stiffness: 400, damping: 36 },
+  gentle: { stiffness: 300, damping: 28 },
+} as const;

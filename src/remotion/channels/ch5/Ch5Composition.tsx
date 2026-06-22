@@ -3,7 +3,7 @@
  *
  * Layout per beat:
  *   ─ Background fill (deep sepia #100d08)
- *   ─ AssetLayer      (full-screen for person/brand/place/stock_video)
+ *   ─ AssetLayer      (full-screen for person/brand/place)
  *   ─ Warm vignette   (always — corners darker)
  *   ─ DocumentaryQuote (non-asset beats: centred quote card)
  *   ─ Narration text   (asset beats: bottom anchor, EB Garamond)
@@ -21,8 +21,11 @@ import { CHANNEL_CONFIGS } from '../../../pipeline/channelConfigs';
 import { AssetLayer } from '../../assets/AssetLayer';
 import { CaptionTrack } from '../../captions/CaptionTrack';
 import { useWordBoundaries } from '../../captions/useWordBoundaries';
+import { ShotBriefLayer } from '../../mograph/ShotBriefLayer';
 import { SfxLayer } from '../../sound/SfxLayer';
 import { Soundtrack } from '../../sound/Soundtrack';
+import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
+import type { TimedBeat } from '../../transitions/BeatCompositor';
 import { DocumentaryQuote } from './DocumentaryQuote';
 import { FilmGrain } from './FilmGrain';
 import { HardCutFlash } from './HardCutFlash';
@@ -45,11 +48,11 @@ const AssetNarration: React.FC<{
   const enterY = spring({
     frame,
     fps,
-    config: { damping: 22, stiffness: 110, mass: 1.4 },
-    durationInFrames: 30,
+    config: { damping: 28, stiffness: 300 },
+    durationInFrames: 60,
   });
-  const translateY = interpolate(enterY, [0, 1], [36, 0]);
-  const opacity    = interpolate(frame, [0, 16], [0, 1], { extrapolateRight: 'clamp' });
+  const translateY = interpolate(enterY, [0, 1], [54, 0]);
+  const opacity    = interpolate(frame, [0, 32], [0, 1], { extrapolateRight: 'clamp' });
 
   return (
     <div
@@ -87,11 +90,12 @@ const AssetNarration: React.FC<{
 
 // ── Beat section ──────────────────────────────────────────────────────────────
 
-const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
-  const { visual, emphasis_keyword, resolvedAsset, bg_color, audioPath } = beat;
+const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({ beat, durationFrames }) => {
+  const { visual, emphasis_keyword, resolvedAsset, bg_color, audioPath, shotBrief } = beat;
   const kind     = visual.kind;
   const bg       = bg_color || CFG.colors.bgPrimary;
   const hasAsset = !!resolvedAsset;
+  const hasShotBrief = !!shotBrief;
 
   const isFullscreen =
     hasAsset &&
@@ -101,15 +105,21 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
     <AbsoluteFill>
       <AbsoluteFill style={{ background: bg }} />
 
-      {isFullscreen && <AssetLayer beat={beat} durationFrames={beat.durationFrames} />}
+      {isFullscreen && (
+        <AssetLayer
+          beat={beat}
+          durationFrames={durationFrames}
+          accentColors={{ primary: CFG.colors.accent1, secondary: CFG.colors.accent2 }}
+        />
+      )}
 
-      {/* Warm vignette — always present */}
+      {/* Vignette — always present */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
           background:
-            'radial-gradient(ellipse at center, transparent 40%, rgba(16,13,8,0.72) 100%)',
+            'radial-gradient(ellipse at center, transparent 40%, rgba(255,255,255,0.55) 100%)',
           pointerEvents: 'none',
         }}
       />
@@ -122,14 +132,25 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
             bottom: 0, left: 0, right: 0,
             height: 640,
             background:
-              'linear-gradient(to top, rgba(16,13,8,0.96) 0%, rgba(16,13,8,0.35) 65%, transparent 100%)',
+              'linear-gradient(to top, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.35) 65%, transparent 100%)',
             pointerEvents: 'none',
           }}
         />
       )}
 
-      {/* Documentary quote card for non-asset beats */}
-      {!isFullscreen && (
+      {/* ShotBrief-driven layout */}
+      {hasShotBrief && (
+        <ShotBriefLayer
+          beat={beat}
+          accentColor={CFG.colors.accent1}
+          bgColor={bg}
+          bodyFont={CFG.bodyFont}
+          accentFont={CFG.accentFont}
+        />
+      )}
+
+      {/* Fallback: documentary quote card for non-asset beats */}
+      {!hasShotBrief && !isFullscreen && (
         <AbsoluteFill
           style={{
             display: 'flex',
@@ -145,8 +166,8 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
         </AbsoluteFill>
       )}
 
-      {/* Narration text on asset beats */}
-      {isFullscreen && (
+      {/* Fallback: narration text on asset beats */}
+      {!hasShotBrief && isFullscreen && (
         <div
           style={{
             position: 'absolute',
@@ -169,8 +190,16 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
 // ── Root composition ──────────────────────────────────────────────────────────
 
 export const Ch5Composition: React.FC<{ manifest: VideoManifest }> = ({ manifest }) => {
-  const { beats, soundDesign } = manifest;
+  const { beats, soundDesign, fps, script } = manifest;
   const wordBoundaries = useWordBoundaries(beats);
+
+  const audioDurationsMs: Record<string, number> = {};
+  const pauseAfterMap: Record<string, 'breath' | 'beat' | 'cut'> = {};
+  beats.forEach((b) => { if (b.audio?.durationMs) audioDurationsMs[b.beatId] = b.audio.durationMs; });
+  (script?.beats ?? []).forEach((sb, i) => {
+    pauseAfterMap[`beat_${i}`] = (sb as { pause_after?: 'breath' | 'beat' | 'cut' }).pause_after ?? 'cut';
+  });
+  const timedBeats: TimedBeat[] = buildTimedBeats(beats, fps ?? 30, audioDurationsMs, pauseAfterMap);
 
   return (
     <AbsoluteFill
@@ -181,16 +210,10 @@ export const Ch5Composition: React.FC<{ manifest: VideoManifest }> = ({ manifest
     >
       <Soundtrack channelId="ch5" musicVolume={0.14} />
 
-      {beats.map((beat) => (
-        <Sequence
-          key={beat.beatId}
-          from={beat.startFrame}
-          durationInFrames={beat.durationFrames}
-          layout="none"
-        >
-          <BeatSection beat={beat} />
-        </Sequence>
-      ))}
+      <BeatCompositor
+        timedBeats={timedBeats}
+        renderBeat={(beat) => <BeatSection beat={beat} durationFrames={beat.audioFrames} />}
+      />
 
       <SfxLayer soundDesign={soundDesign ?? []} />
 

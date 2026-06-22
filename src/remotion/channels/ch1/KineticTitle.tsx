@@ -9,9 +9,9 @@
 import React from 'react';
 import { spring, useCurrentFrame, useVideoConfig } from 'remotion';
 
-const SPRING_CFG = { damping: 18, stiffness: 200, mass: 0.9 } as const;
-const WORD_STAGGER = 4;
-const SPRING_DUR  = 18;
+const SPRING_CFG = { damping: 36, stiffness: 400 } as const;
+const WORD_STAGGER = 8;
+const SPRING_DUR  = 36;
 
 function normalise(s: string) {
   return s.toLowerCase().replace(/\W/g, '');
@@ -51,7 +51,7 @@ export const KineticTitle: React.FC<{
         });
 
         const isEmphasis = empNorm.length > 0 && normalise(word) === empNorm;
-        const translateY = (1 - enter) * 52;
+        const translateY = (1 - enter) * 80;
 
         return (
           <span

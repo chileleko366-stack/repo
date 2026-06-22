@@ -90,7 +90,7 @@ PROVIDERS = [
         "name": "cerebras",
         "url": "https://api.cerebras.ai/v1/chat/completions",
         "key_env": "CEREBRAS_API_KEY",
-        "model": "llama-3.3-70b",
+        "model": "llama3.3-70b",
     },
     {
         "name": "nvidia",
@@ -239,7 +239,7 @@ SCRIPT_SCHEMA = '''
       "narration": "<8-20 words, one complete spoken thought — do NOT split a sentence across beats>",
       "pause_after": "<breath|beat|cut> — breath: next thought follows immediately; beat: clear pause like a comma; cut: hard scene change like a paragraph break",
       "visual": {
-        "kind": "<person|brand|place|distance|map|anatomy|celestial|stat|chart|morph|typography|none> — stock_video is NOT allowed",
+        "kind": "<person|brand|place|distance|map|anatomy|celestial|stat|chart|morph|typography|none>",
         "value": "<exact name: Daniel Kahneman / Tesla / Chernobyl / Mars>",
         "from": "<if distance: origin place>",
         "to": "<if distance: destination place>",
@@ -296,6 +296,12 @@ def build_system_prompt(channel_id: str, topic: str, brief: ResearchBrief) -> st
         "   no numbers, use a well-known scientific measurement for the topic: timing in ms,\n"
         "   brain region size in cm, study sample size, percentage change, a year. Any real digit\n"
         "   works. Scripts with zero digits will be rejected and will fail.\n"
+        "8. After each beat where pause_after is 'cut', the NEXT beat must open with a re-hook\n"
+        "   sentence that stands alone — fresh tension, as if a new viewer just arrived at that\n"
+        "   moment. Use 'cut' sparingly: max 2 cut transitions across all 5 beats.\n"
+        "9. Beat index 2 (the middle beat, ~40% through the video) must be your STRONGEST secondary\n"
+        "   curiosity gap — a partial reveal that withholds one key implication. This is the\n"
+        "   scroll-stopper for viewers who almost swiped away.\n"
         "\n"
         f"RESEARCH FACTS (use these, never invent):\n{facts_str}\n"
         "\n"
@@ -334,17 +340,37 @@ VALID_VISUAL_KINDS = {
     'person', 'brand', 'place', 'distance', 'map', 'anatomy',
     'celestial', 'stat', 'chart', 'morph', 'typography', 'none',
 }
-# stock_video is NOT in this set — it was removed in v3
-
 VALID_PAUSE_AFTER = {'breath', 'beat', 'cut'}
+
+
+ENTITY_KINDS = {'person', 'brand', 'place', 'distance', 'map', 'anatomy', 'celestial'}
+CONTRAST_MARKERS = {"but", "yet", "never", "actually", "wrong", "surprising", "wait", "secret", "plot"}
 
 
 def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
     errors = []
-    if not script.get("hook"):
+    hook = script.get("hook", "")
+    if not hook:
         errors.append("missing hook")
-    elif len(script["hook"].split()) > 14:
-        errors.append(f"hook too long ({len(script['hook'].split())} words, max 12)")
+    elif len(hook.split()) > 14:
+        errors.append(f"hook too long ({len(hook.split())} words, max 12)")
+    else:
+        # Click-confirmation: at least one significant topic keyword must appear in the hook
+        topic = script.get("topic", "")
+        if topic:
+            topic_kws = [w.lower() for w in re.split(r'\W+', topic) if len(w) > 3]
+            if topic_kws and not any(kw in hook.lower() for kw in topic_kws):
+                errors.append(
+                    f"hook does not confirm the topic '{topic}' — at least one keyword "
+                    f"({', '.join(topic_kws[:3])}) must appear in the hook"
+                )
+        # PAS-or-contrast opener: hook must use a question or a contrast/tension marker
+        hook_words = set(re.split(r'\W+', hook.lower()))
+        if not ("?" in hook or hook_words & CONTRAST_MARKERS):
+            errors.append(
+                "hook lacks a question or contrast opener — use '?' or a contrast word "
+                "(but / yet / never / actually / wait / secret)"
+            )
     if not script.get("context"):
         errors.append("missing context")
     beats = script.get("beats", [])
@@ -359,10 +385,10 @@ def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
         kind = beat.get("visual", {}).get("kind", "")
         if not kind:
             errors.append(f"beat {i}: missing visual.kind")
-        elif kind == "stock_video":
-            errors.append(f"beat {i}: stock_video visual kind is not allowed in v3 — use chart, typography, or a named entity")
         elif kind not in VALID_VISUAL_KINDS:
             errors.append(f"beat {i}: invalid visual.kind '{kind}'")
+        elif kind in ENTITY_KINDS and not beat.get("visual", {}).get("value", "").strip():
+            errors.append(f"beat {i}: visual.kind='{kind}' requires a non-empty visual.value (exact name)")
         pause = beat.get("pause_after", "")
         if pause not in VALID_PAUSE_AFTER:
             errors.append(f"beat {i}: invalid or missing pause_after '{pause}' — must be breath|beat|cut")
@@ -400,20 +426,32 @@ def validate_continuity(script: dict, llm_fn=None) -> list[str]:
     errors = []
     beats = script.get("beats", [])
 
-    # 1. Entity name consistency — simple normalized dedup check
-    entity_map: dict[str, str] = {}  # normalized → first occurrence
+    # 1. Entity name consistency — whole-word overlap check
+    # Uses word-boundary regex so "LHC" (3 chars) is NOT flagged as the same entity as "LHCb" (4 chars),
+    # while "Musk" IS flagged as overlapping "Elon Musk".
+    def _name_overlaps(a: str, b: str) -> bool:
+        try:
+            return bool(re.search(r'\b' + re.escape(a) + r'\b', b)) or \
+                   bool(re.search(r'\b' + re.escape(b) + r'\b', a))
+        except re.error:
+            return False
+
+    # Key on (kind, norm) so that differently-typed entities (e.g. the planet Mars vs
+    # the spacecraft Mars Express) are never compared — only same-kind references are checked.
+    entity_map: dict[tuple, str] = {}  # (kind, normalized) → first occurrence value
     for beat in beats:
         visual = beat.get("visual", {})
-        val = visual.get("value", "")
-        if val:
+        val  = visual.get("value", "")
+        kind = visual.get("kind", "none")
+        if val and kind != "none":
             norm = re.sub(r"\s+", " ", val.strip().lower())
-            existing = [k for k in entity_map if norm in k or k in norm]
-            for k in existing:
-                if entity_map[k] != val:
+            existing = [(k, n) for (k, n) in entity_map if k == kind and _name_overlaps(norm, n)]
+            for key in existing:
+                if entity_map[key] != val:
                     errors.append(
-                        f"Entity name inconsistency: '{entity_map[k]}' vs '{val}' — pick one and use it throughout"
+                        f"Entity name inconsistency: '{entity_map[key]}' vs '{val}' — pick one and use it throughout"
                     )
-            entity_map[norm] = val
+            entity_map[(kind, norm)] = val
 
     # 2. Numeric consistency — same noun phrase should not carry two different numbers
     number_contexts: dict[str, list[str]] = {}
@@ -463,7 +501,14 @@ def generate_script(topic: str, channel_id: str, brief: ResearchBrief, max_retri
 
     for attempt in range(1, max_retries + 1):
         print(f"[script_gen] attempt {attempt}/{max_retries} for topic: {topic!r}")
-        raw = llm_complete(system, user)
+        try:
+            raw = llm_complete(system, user)
+        except RuntimeError as exc:
+            print(f"[script_gen] all providers exhausted on attempt {attempt}: {exc}")
+            if attempt < max_retries:
+                time.sleep(10)
+                continue
+            raise
         clean = raw.strip()
         if clean.startswith("```"):
             clean = re.sub(r"^```[a-z]*\n?", "", clean)

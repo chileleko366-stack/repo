@@ -31,9 +31,14 @@ HARD RULES:
 3. Every element that appears must have a motion entry (even a simple opacity 0→1). Nothing is static at mount.
 4. composition.primaryAnchor must have explicit xPct/yPct/widthPct/heightPct numbers — convert conceptual positions to percentages.
 5. Vary composition.grid based on the previous grids provided — never the same grid 3 times in a row.
-6. At least 1 dropShadow entry is required in depth.dropShadows.
-7. motion entries: if kind==="spring", springConfig is required. If kind==="interpolate", easing is required.
-8. Return ONLY valid JSON — no markdown fences, no explanations.`;
+6. DEFAULT TO "center" for the primary element unless there is a specific compositional reason
+   to do otherwise (e.g. a secondary supporting element needs to sit beside it, or a wide
+   establishing shot calls for full-bleed). "thirds-upper" and "thirds-lower" should be the
+   LEAST frequently chosen options — only when text needs to share the frame with a large asset
+   that must stay centered itself. When in doubt, center wins.
+7. At least 1 dropShadow entry is required in depth.dropShadows.
+8. motion entries: if kind==="spring", springConfig is required. If kind==="interpolate", easing is required.
+9. Return ONLY valid JSON — no markdown fences, no explanations.`;
 
 function buildUserPrompt(opts: CompileOptions): string {
   const { beat, channel, recentGrids, assetMetadata } = opts;

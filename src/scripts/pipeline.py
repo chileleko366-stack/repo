@@ -13,8 +13,8 @@ Pipeline stages:
   3. manifest   — timing layout → out/{channel_id}/manifest.json
   4. tts        — edge-tts word-boundary audio per beat
   5. assets     — resolver: person/brand/place/map
-  6. stock      — contextual stock media selection
-  7. sound      — SFX event schedule
+  5b. shotbrief — Groq Shot Brief per beat (staging/composition/motion)
+  6. sound      — SFX event schedule
 """
 
 import argparse
@@ -36,7 +36,7 @@ from manifest_builder import build_manifest, save_manifest
 from mock_data import get_mock_brief
 from tts import generate_all_beats, manifest_to_captions
 from asset_resolver import resolve_all_beats as resolve_assets
-from stock_selector import select_all_stock
+from shot_brief import compile_all_shot_briefs
 from sound_design import build_sound_design
 
 
@@ -173,24 +173,23 @@ def run_pipeline(channel_id: str, topic: str, dry_run: bool = False, mock: bool 
         save_manifest(manifest, manifest_path)
     print(f"  ✓ {resolved_count} assets resolved\n")
 
-    # Stage 6: Stock media
-    print("▶ Stage 6: Stock media (Pexels + Pixabay)")
-    import asyncio as _asyncio3
-    manifest = _asyncio3.run(select_all_stock(manifest))
-    stock_count = len(manifest.get("usedStockIds", []))
+    # Stage 5b: Shot Brief compiler
+    print("▶ Stage 5b: Shot Brief compiler (staging / composition / motion)")
+    manifest = compile_all_shot_briefs(manifest)
+    briefs_compiled = sum(1 for b in manifest["beats"] if b.get("shotBrief"))
     if not dry_run:
         save_manifest(manifest, manifest_path)
-    print(f"  ✓ {stock_count} stock assets selected\n")
+    print(f"  ✓ {briefs_compiled}/{len(manifest['beats'])} beats have shotBrief\n")
 
-    # Stage 7: Sound design
-    print("▶ Stage 7: Sound design (SFX schedule)")
+    # Stage 6: Sound design
+    print("▶ Stage 6: Sound design (SFX schedule)")
     sound_events = build_sound_design(manifest)
     manifest["soundDesign"] = sound_events
     if not dry_run:
         save_manifest(manifest, manifest_path)
     print(f"  ✓ {len(sound_events)} SFX events scheduled\n")
 
-    print("✅  Pipeline complete (S1–S7)")
+    print("✅  Pipeline complete")
     print(f"    Manifest: {manifest_path}\n")
     return manifest
 

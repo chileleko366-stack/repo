@@ -8,12 +8,13 @@
 
 import React from 'react';
 import { ThreeCanvas } from '@remotion/three';
-import { interpolate, useCurrentFrame } from 'remotion';
+import { interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
 
 const BrainMesh: React.FC = () => {
   const frame    = useCurrentFrame();
-  const rotation = (frame / 30) * 0.4;
-  const scale    = interpolate(frame, [0, 20], [0.4, 1], { extrapolateRight: 'clamp' });
+  const { fps }  = useVideoConfig();
+  const rotation = (frame / fps) * 0.4;
+  const scale    = interpolate(frame, [0, 40], [0.4, 1], { extrapolateRight: 'clamp' });
 
   return (
     <>

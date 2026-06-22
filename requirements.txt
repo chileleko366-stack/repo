@@ -1,11 +1,11 @@
 edge-tts
-piper-tts
 rembg
 Pillow
 requests
 aiohttp
 python-dotenv
 staticmap
+mutagen
 google-auth
 google-auth-oauthlib
 google-api-python-client

@@ -7,7 +7,6 @@
  *   other non-asset→ plain Special Elite text + GlitchWord emphasis
  *   twist          → ClassifiedStamp overlay
  *   person/place   → AssetLayer full-screen
- *   stock_video    → AssetLayer full-screen
  * Global: scanline texture, red top rule, Soundtrack, SfxLayer, CaptionTrack.
  */
 
@@ -28,8 +27,11 @@ import { CHANNEL_CONFIGS } from '../../../pipeline/channelConfigs';
 import { AssetLayer } from '../../assets/AssetLayer';
 import { CaptionTrack } from '../../captions/CaptionTrack';
 import { useWordBoundaries } from '../../captions/useWordBoundaries';
+import { ShotBriefLayer } from '../../mograph/ShotBriefLayer';
 import { SfxLayer } from '../../sound/SfxLayer';
 import { Soundtrack } from '../../sound/Soundtrack';
+import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
+import type { TimedBeat } from '../../transitions/BeatCompositor';
 import { ClassifiedStamp } from './ClassifiedStamp';
 import { GlitchWord } from './GlitchWord';
 import { ScrambleReveal } from './ScrambleReveal';
@@ -40,21 +42,22 @@ function toStatic(p: string) {
   return staticFile(p.replace(/^public\//, ''));
 }
 
-const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
+const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({ beat, durationFrames }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const { visual, emphasis_keyword, resolvedAsset, bg_color, audioPath } = beat;
+  const { visual, emphasis_keyword, resolvedAsset, bg_color, audioPath, shotBrief } = beat;
   const kind     = visual.kind;
   const bg       = bg_color || CFG.colors.bgPrimary;
   const hasAsset     = !!resolvedAsset;
   const isFullscreen = hasAsset && kind !== 'none' && kind !== 'stat';
   const isHookCtx    = beat.sectionKey === 'hook' || beat.sectionKey === 'context';
   const isTwist      = beat.sectionKey === 'twist';
+  const hasShotBrief = !!shotBrief;
 
   const enter = spring({
     frame, fps,
-    config: { damping: 14, stiffness: 160, mass: 1 },
-    durationInFrames: 22,
+    config: { damping: 28, stiffness: 300 },
+    durationInFrames: 44,
   });
 
   return (
@@ -71,7 +74,11 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
       />
 
       {isFullscreen && (
-        <AssetLayer beat={beat} durationFrames={beat.durationFrames} />
+        <AssetLayer
+          beat={beat}
+          durationFrames={durationFrames}
+          accentColors={{ primary: CFG.colors.accent1, secondary: CFG.colors.accent2 }}
+        />
       )}
       {isFullscreen && (
         <div
@@ -82,8 +89,19 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
         />
       )}
 
-      {/* Non-asset text */}
-      {!isFullscreen && (
+      {/* ShotBrief-driven layout */}
+      {hasShotBrief && (
+        <ShotBriefLayer
+          beat={beat}
+          accentColor={CFG.colors.accent1}
+          bgColor={bg}
+          bodyFont={CFG.bodyFont}
+          accentFont={CFG.accentFont}
+        />
+      )}
+
+      {/* Fallback: non-asset text */}
+      {!hasShotBrief && !isFullscreen && (
         <div
           style={{
             position: 'absolute', left: 60, right: 60, top: 200,
@@ -121,7 +139,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
       )}
 
       {/* Classified stamp on twist */}
-      {isTwist && <ClassifiedStamp delayFrames={12} />}
+      {isTwist && <ClassifiedStamp delayFrames={24} />}
 
       {/* Red top rule */}
       <div
@@ -139,7 +157,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
         style={{
           position: 'absolute', inset: 0,
           background: CFG.colors.accent1,
-          opacity: interpolate(frame, [0, 4], [0.22, 0], { extrapolateRight: 'clamp' }),
+          opacity: interpolate(frame, [0, 8], [0.22, 0], { extrapolateRight: 'clamp' }),
           pointerEvents: 'none',
         }}
       />
@@ -150,22 +168,24 @@ const BeatSection: React.FC<{ beat: ManifestBeat }> = ({ beat }) => {
 export const Ch3Composition: React.FC<{ manifest: VideoManifest }> = ({
   manifest,
 }) => {
-  const { beats, soundDesign } = manifest;
+  const { beats, soundDesign, fps, script } = manifest;
   const wordBoundaries = useWordBoundaries(beats);
+
+  const audioDurationsMs: Record<string, number> = {};
+  const pauseAfterMap: Record<string, 'breath' | 'beat' | 'cut'> = {};
+  beats.forEach((b) => { if (b.audio?.durationMs) audioDurationsMs[b.beatId] = b.audio.durationMs; });
+  (script?.beats ?? []).forEach((sb, i) => {
+    pauseAfterMap[`beat_${i}`] = (sb as { pause_after?: 'breath' | 'beat' | 'cut' }).pause_after ?? 'cut';
+  });
+  const timedBeats: TimedBeat[] = buildTimedBeats(beats, fps ?? 30, audioDurationsMs, pauseAfterMap);
 
   return (
     <AbsoluteFill style={{ background: CFG.colors.bgPrimary, fontFamily: CFG.bodyFont }}>
       <Soundtrack channelId="ch3" musicVolume={0.12} />
-      {beats.map((beat) => (
-        <Sequence
-          key={beat.beatId}
-          from={beat.startFrame}
-          durationInFrames={beat.durationFrames}
-          layout="none"
-        >
-          <BeatSection beat={beat} />
-        </Sequence>
-      ))}
+      <BeatCompositor
+        timedBeats={timedBeats}
+        renderBeat={(beat) => <BeatSection beat={beat} durationFrames={beat.audioFrames} />}
+      />
       <SfxLayer soundDesign={soundDesign ?? []} />
       {wordBoundaries && (
         <CaptionTrack

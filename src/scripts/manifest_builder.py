@@ -1,17 +1,17 @@
 """
 Manifest builder - converts a validated script into a VideoManifest.
 
-35-second video timing layout (at 30fps = 1050 frames):
-  hook:     frames   0 -  89  (3s)
-  context:  frames  90 - 179  (3s)
-  beat 0:   frames 180 - 299  (4s)
-  beat 1:   frames 300 - 419  (4s)
-  beat 2:   frames 420 - 539  (4s)
-  beat 3:   frames 540 - 659  (4s)
-  beat 4:   frames 660 - 779  (4s)
-  twist:    frames 780 - 869  (3s)
-  outro:    frames 870 - 1049 (6s)
-  Total:    1050 frames = 35.0s
+35-second video timing layout (at 60fps = 2100 frames):
+  hook:     frames    0 -  179  (3s)
+  context:  frames  180 -  359  (3s)
+  beat 0:   frames  360 -  599  (4s)
+  beat 1:   frames  600 -  839  (4s)
+  beat 2:   frames  840 - 1079  (4s)
+  beat 3:   frames 1080 - 1319  (4s)
+  beat 4:   frames 1320 - 1559  (4s)
+  twist:    frames 1560 - 1739  (3s)
+  outro:    frames 1740 - 2099  (6s)
+  Total:    2100 frames = 35.0s
 """
 
 import json
@@ -19,19 +19,19 @@ import re
 from pathlib import Path
 
 
-FPS = 30
-VIDEO_FRAMES = 1050
+FPS = 60
+VIDEO_FRAMES = 2100
 
 SECTION_FRAMES = {
-    "hook":    (0,    90),
-    "context": (90,   90),
-    "beat_0":  (180, 120),
-    "beat_1":  (300, 120),
-    "beat_2":  (420, 120),
-    "beat_3":  (540, 120),
-    "beat_4":  (660, 120),
-    "twist":   (780,  90),
-    "outro":   (870, 180),
+    "hook":    (0,     180),
+    "context": (180,   180),
+    "beat_0":  (360,   240),
+    "beat_1":  (600,   240),
+    "beat_2":  (840,   240),
+    "beat_3":  (1080,  240),
+    "beat_4":  (1320,  240),
+    "twist":   (1560,  180),
+    "outro":   (1740,  360),
 }
 
 ASSET_BEAT_KINDS = {"person", "brand", "product", "place", "distance",
@@ -39,7 +39,7 @@ ASSET_BEAT_KINDS = {"person", "brand", "product", "place", "distance",
 
 
 def captions_visible(beat_kind: str) -> bool:
-    return beat_kind not in ASSET_BEAT_KINDS and beat_kind != "stock_video"
+    return beat_kind not in ASSET_BEAT_KINDS
 
 
 # ── Channel config loader ─────────────────────────────────────────────────────
@@ -135,14 +135,14 @@ def build_manifest(script: dict, channel_id: str) -> dict:
 
     add_beat("hook", f"{channel_id}_hook",
              narration=script.get("hook", ""),
-             visual={"kind": "none"},
+             visual={"kind": "typography"},
              emphasis_keyword=_first_noun(script.get("hook", "")),
              morph_from=None,
              bg_color=_channel_bg(channel_id))
 
     add_beat("context", f"{channel_id}_context",
              narration=script.get("context", ""),
-             visual={"kind": "none"},
+             visual={"kind": "typography"},
              emphasis_keyword=_first_noun(script.get("context", "")),
              morph_from=_first_noun(script.get("hook", "")),
              bg_color=_channel_bg(channel_id))
@@ -161,7 +161,7 @@ def build_manifest(script: dict, channel_id: str) -> dict:
 
     add_beat("twist", f"{channel_id}_twist",
              narration=script.get("twist", ""),
-             visual={"kind": "none"},
+             visual={"kind": "typography"},
              emphasis_keyword=_first_noun(script.get("twist", "")),
              morph_from=prev_keyword,
              bg_color=_channel_bg(channel_id))

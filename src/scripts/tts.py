@@ -20,12 +20,29 @@ The word boundary JSON is in our own format; CaptionTrack.tsx converts it.
 import asyncio
 import json
 import os
+import re
 import ssl
 import sys
 from pathlib import Path
 
 import edge_tts
 import edge_tts.communicate as _et_comm
+
+try:
+    from mutagen.mp3 import MP3 as _MutagenMP3
+    _MUTAGEN_OK = True
+except ImportError:
+    _MUTAGEN_OK = False
+
+
+def _mp3_duration_ms(path: Path) -> int:
+    """Read actual MP3 duration via mutagen. Falls back to 0 if unavailable."""
+    if not _MUTAGEN_OK or not path.exists() or path.stat().st_size < 100:
+        return 0
+    try:
+        return int(_MutagenMP3(path).info.length * 1000)
+    except Exception:
+        return 0
 
 # edge-tts stores _SSL_CTX = ssl.create_default_context(cafile=certifi.where())
 # at module import time and passes it as ssl=_SSL_CTX to aiohttp ws_connect.
@@ -35,6 +52,12 @@ _unverified_ssl_ctx = ssl.create_default_context()
 _unverified_ssl_ctx.check_hostname = False
 _unverified_ssl_ctx.verify_mode = ssl.CERT_NONE
 _et_comm._SSL_CTX = _unverified_ssl_ctx
+
+def strip_emphasis_markup(text: str) -> str:
+    """Remove *emphasis* markers before TTS. Captions parse the same markers
+    separately and keep them — this function only affects the spoken audio."""
+    return re.sub(r'\*([^*]+)\*', r'\1', text)
+
 
 # ── Voice profiles ────────────────────────────────────────────────────────────
 
@@ -112,7 +135,10 @@ async def generate_beat_audio(
 
     word_boundaries = await _edge_tts_generate(narration, channel_id, audio_path, words_path)
 
-    duration_ms = word_boundaries[-1]["endMs"] if word_boundaries else 0
+    if word_boundaries:
+        duration_ms = word_boundaries[-1]["endMs"]
+    else:
+        duration_ms = _mp3_duration_ms(audio_path)
     print(
         f"[tts] {beat_id}: {len(word_boundaries)} words, "
         f"{duration_ms}ms → {audio_path.name}"
@@ -156,7 +182,7 @@ async def generate_all_beats(manifest: dict) -> dict:
         if not narration:
             continue
         try:
-            r = await _generate_beat_with_retry(narration, channel_id, beat["beatId"])
+            r = await _generate_beat_with_retry(strip_emphasis_markup(narration), channel_id, beat["beatId"])
             result_map[r["beatId"]] = r
         except Exception as exc:
             print(f"[tts] ERROR: {exc}")
@@ -236,7 +262,7 @@ async def _main():
         beat_id    = sys.argv[2]
         channel_id = sys.argv[3]
         narration  = " ".join(sys.argv[4:])
-        result = await generate_beat_audio(narration, channel_id, beat_id)
+        result = await generate_beat_audio(strip_emphasis_markup(narration), channel_id, beat_id)
         print(json.dumps(result, indent=2))
         return
 

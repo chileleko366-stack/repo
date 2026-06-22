@@ -8,7 +8,7 @@
   "bodyFont": "Orbitron",
   "accentFont": "Orbitron",
   "colors": {
-    "bgPrimary": "#05060a",
+    "bgPrimary": "#000000",
     "accent1": "#ff1744",
     "accent2": "#00e5ff",
     "text": "#ffffff",

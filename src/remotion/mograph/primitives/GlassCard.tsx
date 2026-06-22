@@ -13,7 +13,13 @@ const CARD_PADDING = 48;
 const STAT_FONT_SIZE = 110;
 const LABEL_FONT_SIZE = 40;
 const BODY_FONT_SIZE = 44;
-const ENTRANCE_DURATION = 22;
+const ENTRANCE_DURATION = 44;
+
+function isLightBg(hex: string): boolean {
+  const c = hex.replace('#', '');
+  if (c.length !== 6) return false;
+  return parseInt(c, 16) > 0x888888;
+}
 
 export interface GlassCardProps {
   /** Main large text or number */
@@ -37,13 +43,14 @@ export const GlassCard: React.FC<GlassCardProps> = ({
   label,
   body,
   accentColor = '#d400ff',
-  backgroundColor = '#16121f',
+  backgroundColor = '#000000',
   fontFamily = "'Space Grotesk', sans-serif",
   accentFont = "'Anton', sans-serif",
   glowColor,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const light = isLightBg(backgroundColor);
 
   const entryProgress = spring({
     frame,
@@ -113,8 +120,7 @@ export const GlassCard: React.FC<GlassCardProps> = ({
               fontFamily,
               fontSize: LABEL_FONT_SIZE,
               fontWeight: 600,
-              color: '#ffffff',
-              opacity: 0.85,
+              color: light ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.85)',
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
             }}
@@ -128,7 +134,7 @@ export const GlassCard: React.FC<GlassCardProps> = ({
             style={{
               fontFamily,
               fontSize: BODY_FONT_SIZE,
-              color: 'rgba(255,255,255,0.70)',
+              color: light ? 'rgba(0,0,0,0.70)' : 'rgba(255,255,255,0.70)',
               lineHeight: 1.4,
               maxWidth: 800,
             }}

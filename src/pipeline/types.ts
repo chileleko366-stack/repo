@@ -1,3 +1,5 @@
+import type { ShotBrief } from './shotBrief';
+
 export type ChannelId = 'ch1' | 'ch2' | 'ch3' | 'ch4' | 'ch5' | 'ch6';
 
 export type BeatKind =
@@ -14,8 +16,9 @@ export type BeatKind =
   | 'chart'
   | 'morph'
   | 'typography'
-  | 'stock_video'   // kept in type for backwards compat; rejected at script validation time
   | 'none';
+
+export type NumberType = 'year' | 'currency' | 'count' | 'distance';
 
 export interface VisualTag {
   kind: BeatKind;
@@ -32,7 +35,7 @@ export interface VisualTag {
   prefix?: string;
   suffix?: string;
   stat_value?: number;
-  // stock_video
+  numberType?: NumberType;
   query?: string;
 }
 
@@ -75,14 +78,6 @@ export interface BeatAudio {
   wordBoundariesPath: string;
   wordBoundaries: WordBoundary[];
   durationMs: number;
-}
-
-export interface StockAsset {
-  id: string;
-  path: string;
-  kind: 'video' | 'photo';
-  query: string;
-  source: 'pexels' | 'pixabay';
 }
 
 export interface PersonAsset {
@@ -130,19 +125,24 @@ export type SectionKey =
   | 'beat_0' | 'beat_1' | 'beat_2' | 'beat_3' | 'beat_4'
   | 'twist' | 'outro';
 
-export const FPS = 30;
-export const VIDEO_FRAMES = 1050; // 35s
+export const FPS = 60;
+export const VIDEO_FRAMES = 2100; // 35s @ 60fps
 export const SECTION_FRAMES: Record<SectionKey, [number, number]> = {
-  hook:    [0,    90],
-  context: [90,   90],
-  beat_0:  [180, 120],
-  beat_1:  [300, 120],
-  beat_2:  [420, 120],
-  beat_3:  [540, 120],
-  beat_4:  [660, 120],
-  twist:   [780,  90],
-  outro:   [870, 180],
+  hook:    [0,    180],
+  context: [180,  180],
+  beat_0:  [360,  240],
+  beat_1:  [600,  240],
+  beat_2:  [840,  240],
+  beat_3:  [1080, 240],
+  beat_4:  [1320, 240],
+  twist:   [1560, 180],
+  outro:   [1740, 360],
 };
+
+/** Convert milliseconds to frames at a given fps. */
+export function msToFrames(ms: number, fps: number): number {
+  return Math.round((ms / 1000) * fps);
+}
 
 export interface VideoManifest {
   channelId: ChannelId;
@@ -153,8 +153,7 @@ export interface VideoManifest {
   script: Script;
   beats: ManifestBeat[];
   soundDesign: SoundEvent[];
-  usedStockIds: string[];
-  resolvedAssets: Record<string, PersonAsset | BrandAsset | PlaceAsset | DistanceAsset | StockAsset>;
+  resolvedAssets: Record<string, PersonAsset | BrandAsset | PlaceAsset | DistanceAsset>;
   ctaText: string;
 }
 
@@ -175,7 +174,9 @@ export interface ManifestBeat {
   // Populated after TTS stage:
   audio?: BeatAudio;
   // Populated after asset resolver stage:
-  resolvedAsset?: PersonAsset | BrandAsset | PlaceAsset | DistanceAsset | StockAsset | null;
+  resolvedAsset?: PersonAsset | BrandAsset | PlaceAsset | DistanceAsset | null;
+  // Populated after shot brief compiler stage:
+  shotBrief?: ShotBrief | null;
 }
 
 export interface ChannelConfig {

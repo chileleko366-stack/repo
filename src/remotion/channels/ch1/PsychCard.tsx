@@ -12,12 +12,12 @@ import { interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 import { Counter } from '../../morph/Counter';
 
 export const PsychCard: React.FC<{
-  keyword: string;
+  keyword?: string;
   kind: string;
   statValue?: number;
   statPrefix?: string;
   statSuffix?: string;
-}> = ({ keyword, kind, statValue, statPrefix = '', statSuffix = '' }) => {
+}> = ({ keyword = '', kind, statValue, statPrefix = '', statSuffix = '' }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 

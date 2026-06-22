@@ -16,8 +16,8 @@ export const GlitchWord: React.FC<{
   color?: string;
 }> = ({ text, fontSize = 100, color = '#f0f0f0' }) => {
   const frame = useCurrentFrame();
-  const cycle = frame % 20;
-  const isGlitching = cycle < 3 || (cycle > 11 && cycle < 13);
+  const cycle = frame % 40;
+  const isGlitching = cycle < 6 || (cycle > 22 && cycle < 26);
 
   const rOffset = isGlitching
     ? interpolate(cycle, [0, 2], [0, 7], { extrapolateRight: 'clamp' })

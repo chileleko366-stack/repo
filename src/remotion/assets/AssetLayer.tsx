@@ -14,18 +14,17 @@ import type {
   ManifestBeat,
   PersonAsset,
   PlaceAsset,
-  StockAsset,
 } from '../../pipeline/types';
 import { BrandLogo } from './BrandLogo';
 import { DistanceMap } from './DistanceMap';
 import { PersonCard } from './PersonCard';
 import { PlacePhoto } from './PlacePhoto';
-import { StockClip } from '../stock/StockClip';
 
 export const AssetLayer: React.FC<{
   beat: ManifestBeat;
   durationFrames: number;
-}> = ({ beat, durationFrames }) => {
+  accentColors?: { primary: string; secondary: string };
+}> = ({ beat, durationFrames, accentColors }) => {
   const { visual, resolvedAsset } = beat;
   if (!resolvedAsset) return null;
 
@@ -36,6 +35,7 @@ export const AssetLayer: React.FC<{
       <PersonCard
         asset={resolvedAsset as PersonAsset}
         durationFrames={durationFrames}
+        accentColors={accentColors}
       />
     );
   }
@@ -54,6 +54,7 @@ export const AssetLayer: React.FC<{
       <PlacePhoto
         asset={resolvedAsset as PlaceAsset}
         durationFrames={durationFrames}
+        accentColors={accentColors}
       />
     );
   }
@@ -62,15 +63,6 @@ export const AssetLayer: React.FC<{
     return (
       <DistanceMap
         asset={resolvedAsset as DistanceAsset}
-        durationFrames={durationFrames}
-      />
-    );
-  }
-
-  if (kind === 'stock_video') {
-    return (
-      <StockClip
-        asset={resolvedAsset as StockAsset}
         durationFrames={durationFrames}
       />
     );
