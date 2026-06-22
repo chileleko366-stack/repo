@@ -63,7 +63,7 @@ def strip_emphasis_markup(text: str) -> str:
 
 EDGE_VOICE_PROFILES: dict[str, dict] = {
     "ch1": {"voice": "en-US-AvaNeural",    "rate": "+8%",  "pitch": "+0Hz"},
-    "ch2": {"voice": "en-US-DavisNeural",  "rate": "+0%",  "pitch": "+0Hz"},
+    "ch2": {"voice": "en-US-GuyNeural",    "rate": "+0%",  "pitch": "+0Hz"},
     "ch3": {"voice": "en-US-BrianNeural",  "rate": "-5%",  "pitch": "-2Hz"},
     "ch4": {"voice": "en-US-AndrewNeural", "rate": "+0%",  "pitch": "+0Hz"},
     "ch5": {"voice": "en-GB-SoniaNeural",  "rate": "-8%",  "pitch": "-1Hz"},
