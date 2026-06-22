@@ -44,6 +44,36 @@ def _mp3_duration_ms(path: Path) -> int:
     except Exception:
         return 0
 
+
+def _synthesise_word_boundaries(narration: str, duration_ms: int) -> list[dict]:
+    """
+    When edge-tts returns no WordBoundary events (CI network restriction),
+    distribute words evenly across the known audio duration.
+    Timing is approximate but close enough that captions are usable.
+    """
+    words = narration.strip().split()
+    if not words or duration_ms <= 0:
+        return []
+
+    # 80ms lead-in, 100ms tail = 180ms overhead
+    usable_ms = max(0, duration_ms - 180)
+    per_word_ms = usable_ms / len(words)
+    offset = 80
+
+    result = []
+    for word in words:
+        char_factor = max(0.5, min(2.0, len(word) / 5))
+        word_dur = min(int(per_word_ms * char_factor), int(per_word_ms * 1.5))
+        result.append({
+            "word":       word,
+            "startMs":    offset,
+            "durationMs": word_dur,
+            "endMs":      offset + word_dur,
+        })
+        offset += int(per_word_ms)
+
+    return result
+
 # edge-tts stores _SSL_CTX = ssl.create_default_context(cafile=certifi.where())
 # at module import time and passes it as ssl=_SSL_CTX to aiohttp ws_connect.
 # In environments with proxy/self-signed certs we replace the stored context
@@ -179,6 +209,14 @@ async def generate_beat_audio(
         duration_ms = word_boundaries[-1]["endMs"]
     else:
         duration_ms = _mp3_duration_ms(audio_path)
+        if duration_ms > 0:
+            word_boundaries = _synthesise_word_boundaries(narration, duration_ms)
+            with open(words_path, "w") as f:
+                json.dump(word_boundaries, f, indent=2)
+            print(
+                f"[tts] {beat_id}: synthesised {len(word_boundaries)} word boundaries "
+                f"from duration {duration_ms}ms → {audio_path.name}"
+            )
     print(
         f"[tts] {beat_id}: {len(word_boundaries)} words, "
         f"{duration_ms}ms → {audio_path.name}"
