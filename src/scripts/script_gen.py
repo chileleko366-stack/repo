@@ -384,7 +384,7 @@ VALID_VISUAL_KINDS = {
 VALID_PAUSE_AFTER = {'breath', 'beat', 'cut'}
 
 # distance/map use from/to/place fields, not value — excluded from value check
-ENTITY_KINDS = {'person', 'brand', 'place', 'anatomy', 'celestial'}
+ENTITY_KINDS = {'person', 'brand', 'place', 'anatomy'}
 CONTRAST_MARKERS = {"but", "yet", "never", "actually", "wrong", "surprising", "wait", "secret", "plot"}
 
 # ── Pre-validation normalization ──────────────────────────────────────────────
