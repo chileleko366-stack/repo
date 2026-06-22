@@ -103,7 +103,14 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
   const { visual, emphasis_keyword, resolvedAsset, bg_color, audioPath, shotBrief } = beat;
   const kind      = visual.kind;
   const bg        = bg_color || CFG.colors.bgPrimary;
-  const hasAsset  = !!resolvedAsset;
+  const hasAsset = (() => {
+    if (!resolvedAsset) return false;
+    const a = resolvedAsset as unknown as Record<string, unknown>;
+    if ('path' in a) return a.path != null;
+    if ('svgString' in a) return true;
+    if ('map_image' in a) return true;
+    return false;
+  })();
   const isAnatomy = kind === 'anatomy';
   const isStat    = kind === 'stat';
   const hasShotBrief = !!shotBrief;

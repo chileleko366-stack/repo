@@ -90,7 +90,7 @@ PROVIDERS = [
         "name": "cerebras",
         "url": "https://api.cerebras.ai/v1/chat/completions",
         "key_env": "CEREBRAS_API_KEY",
-        "model": "llama3.3-70b",
+        "model": "llama3.1-8b",
     },
     {
         "name": "nvidia",
@@ -108,7 +108,7 @@ PROVIDERS = [
 
 
 def _call_provider(provider: dict, system: str, user: str) -> str:
-    """Call one provider. Raises _SkipProvider on 429/403, RuntimeError on other failures."""
+    """Call one provider. Raises _SkipProvider on 429/403/404, RuntimeError on other failures."""
     api_key = os.getenv(provider["key_env"])
     if not api_key:
         raise EnvironmentError(f"{provider['key_env']} not set")
@@ -134,7 +134,7 @@ def _call_provider(provider: dict, system: str, user: str) -> str:
         timeout=60,
     )
 
-    if resp.status_code in (429, 403):
+    if resp.status_code in (429, 403, 404):
         raise _SkipProvider(provider["name"], resp.status_code)
     if not resp.ok:
         raise RuntimeError(
@@ -302,6 +302,13 @@ def build_system_prompt(channel_id: str, topic: str, brief: ResearchBrief) -> st
         "9. Beat index 2 (the middle beat, ~40% through the video) must be your STRONGEST secondary\n"
         "   curiosity gap — a partial reveal that withholds one key implication. This is the\n"
         "   scroll-stopper for viewers who almost swiped away.\n"
+        "10. NUMBERS MUST BE DIGITS — never write numbers as English words. Write '1,000,000' not\n"
+        "   'one million'. Write '4,600,000,000' not 'four point six billion'. Write '45%' not\n"
+        "   'forty-five percent'. Write '13.8 billion years' as '13,800,000,000 years'. Any digit\n"
+        "   is correct; spelled-out numbers are not acceptable.\n"
+        "11. PERSON NAMES — visual.value for kind='person' must be the full clean proper name:\n"
+        "   NO title prefixes (President, Dr., Senator, General), NO abbreviations, NO truncation.\n"
+        "   Correct: 'John F. Kennedy', 'Albert Einstein'. Wrong: 'President John F', 'Dr. Einstein'.\n"
         "\n"
         f"RESEARCH FACTS (use these, never invent):\n{facts_str}\n"
         "\n"
@@ -349,14 +356,24 @@ CONTRAST_MARKERS = {"but", "yet", "never", "actually", "wrong", "surprising", "w
 
 def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
     errors = []
+    topic = script.get("topic", "")
+    topic_keywords = set(re.split(r'\W+', topic.lower())) - {"the", "a", "an", "of", "in", "on", "at", "to", ""}
     hook = script.get("hook", "")
     if not hook:
         errors.append("missing hook")
     elif len(hook.split()) > 14:
         errors.append(f"hook too long ({len(hook.split())} words, max 12)")
     else:
+        hook_lower = hook.lower()
+        hook_words = set(re.split(r'\W+', hook_lower))
+        # Hook must mention at least one keyword from the topic
+        if topic_keywords and not hook_words & topic_keywords:
+            kw_list = ", ".join(sorted(topic_keywords))
+            errors.append(
+                f"hook does not confirm the topic {topic!r} — at least one keyword "
+                f"({kw_list}) must appear in the hook"
+            )
         # PAS-or-contrast opener: hook must use a question or a contrast/tension marker
-        hook_words = set(re.split(r'\W+', hook.lower()))
         if not ("?" in hook or hook_words & CONTRAST_MARKERS):
             errors.append(
                 "hook lacks a question or contrast opener — use '?' or a contrast word "
@@ -383,6 +400,14 @@ def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
         pause = beat.get("pause_after", "")
         if pause not in VALID_PAUSE_AFTER:
             errors.append(f"beat {i}: invalid or missing pause_after '{pause}' — must be breath|beat|cut")
+        # emphasis_keyword must be a non-empty single word without asterisks
+        kw = str(beat.get("emphasis_keyword", "")).strip().strip("*")
+        if not kw:
+            errors.append(f"beat {i}: missing emphasis_keyword")
+        # bg_color must look like a hex colour (#rrggbb or #rgb)
+        bg = str(beat.get("bg_color", "")).strip()
+        if not re.match(r"^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$", bg):
+            errors.append(f"beat {i}: bg_color must be a hex colour (got {bg!r})")
     if not script.get("twist"):
         errors.append("missing twist")
     outro = script.get("outro", {})
