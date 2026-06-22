@@ -135,14 +135,14 @@ def build_manifest(script: dict, channel_id: str) -> dict:
 
     add_beat("hook", f"{channel_id}_hook",
              narration=script.get("hook", ""),
-             visual={"kind": "none"},
+             visual={"kind": "typography"},
              emphasis_keyword=_first_noun(script.get("hook", "")),
              morph_from=None,
              bg_color=_channel_bg(channel_id))
 
     add_beat("context", f"{channel_id}_context",
              narration=script.get("context", ""),
-             visual={"kind": "none"},
+             visual={"kind": "typography"},
              emphasis_keyword=_first_noun(script.get("context", "")),
              morph_from=_first_noun(script.get("hook", "")),
              bg_color=_channel_bg(channel_id))
@@ -161,7 +161,7 @@ def build_manifest(script: dict, channel_id: str) -> dict:
 
     add_beat("twist", f"{channel_id}_twist",
              narration=script.get("twist", ""),
-             visual={"kind": "none"},
+             visual={"kind": "typography"},
              emphasis_keyword=_first_noun(script.get("twist", "")),
              morph_from=prev_keyword,
              bg_color=_channel_bg(channel_id))

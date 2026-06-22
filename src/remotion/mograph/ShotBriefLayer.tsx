@@ -310,6 +310,7 @@ export const ShotBriefLayer: React.FC<ShotBriefLayerProps> = ({
         top: `${yPct}%`,
         width: `${widthPct}%`,
         height: `${heightPct}%`,
+        transform: 'translate(-50%, -50%)',
         overflow: 'visible',
         zIndex: 5,
       }}
