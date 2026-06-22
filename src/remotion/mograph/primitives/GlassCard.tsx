@@ -10,10 +10,17 @@ import { SPRING_CONFIGS } from './SpringConfigs';
 
 const CARD_MAX_WIDTH = 960;
 const CARD_PADDING = 48;
-const STAT_FONT_SIZE = 110;
 const LABEL_FONT_SIZE = 40;
 const BODY_FONT_SIZE = 44;
 const ENTRANCE_DURATION = 44;
+
+function getPrimaryFontSize(text: string): number {
+  if (text.length <= 4) return 140;
+  if (text.length <= 8) return 110;
+  if (text.length <= 14) return 80;
+  if (text.length <= 22) return 64;
+  return 52;
+}
 
 function isLightBg(hex: string): boolean {
   const c = hex.replace('#', '');
@@ -103,7 +110,7 @@ export const GlassCard: React.FC<GlassCardProps> = ({
         <div
           style={{
             fontFamily: accentFont,
-            fontSize: STAT_FONT_SIZE,
+            fontSize: getPrimaryFontSize(primary),
             fontWeight: 700,
             color: accentColor,
             lineHeight: 1,

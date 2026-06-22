@@ -93,9 +93,44 @@ HARD RULES:
 3. Every element that appears must have a motion entry (even a simple opacity 0→1). Nothing is static at mount.
 4. composition.primaryAnchor must have explicit xPct/yPct/widthPct/heightPct numbers — convert conceptual positions to percentages.
 5. Vary composition.grid based on the previous grids provided — never the same grid 3 times in a row.
-6. At least 1 dropShadow entry is required in depth.dropShadows.
-7. motion entries: if kind==="spring", springConfig is required. If kind==="interpolate", easing is required.
-8. Return ONLY valid JSON — no markdown fences, no explanations."""
+6. DEFAULT TO "center" for the primary element unless there is a specific compositional reason to do otherwise.
+7. At least 1 dropShadow entry is required in depth.dropShadows.
+8. motion entries: if kind==="spring", springConfig is required. If kind==="interpolate", easing is required.
+9. Return ONLY valid JSON — no markdown fences, no explanations.
+
+PRIMITIVE SELECTION — you MUST use one of these exact strings for "primitive":
+  "GlassCard"       — large stat/fact card with glassmorphism and glow. Use for hook, context, key facts.
+  "Typewriter"      — text types on screen character by character, emphasis word highlights at end. Use for twist, outro, reveals.
+  "WordCarousel"    — words crossfade in sequence. Use for lists, multiple entities, options. Requires comma-separated primary text.
+  "ProgressBar"     — animated fill bar with percentage. Use for stat beats with a percentage value.
+  "AnimatedIcon"    — Lottie icon (chart-up|chart-down|brain-idea|lock-security|globe-world|alert-warning|checkmark-success|clock-time). Use for concept beats.
+  "TypographicCard" — fallback text card. Only use if nothing else fits.
+  "CelestialBody"   — ch6 ONLY. Rotating 3D planet. Always use for celestial/space beats on ch6.
+  "ThreeBrain"      — ch4 ONLY. Rotating 3D brain. Always use for anatomy/neuroscience beats on ch4.
+  "CandlestickChart" — ch2 ONLY. Animated financial chart. Always use for chart/stat/finance beats on ch2.
+  "ScrambleReveal"  — ch3 ONLY. Text scrambles and resolves. Use for revelation/declassified beats on ch3.
+  "ClassifiedStamp" — ch3 ONLY. Red CLASSIFIED stamp slams in. Use for opening beats on ch3.
+  "GlitchWord"      — ch3 ONLY. Word glitches and stabilizes. Use for emphasis beats on ch3.
+
+PRIMITIVE SELECTION BY BEAT TYPE (follow these unless channelId overrides):
+- sectionKey="hook": prefer "GlassCard" — big bold entry, spring scale-in from 0.84→1
+- sectionKey="context": prefer "GlassCard" or "Typewriter"
+- sectionKey="beat_X" with visual.kind="stat": use "ProgressBar" if stat_value is a percentage, else "GlassCard" with the number as primary
+- sectionKey="beat_X" with visual.kind="person": resolvedAsset handles rendering — primitive is backup, use "GlassCard"
+- sectionKey="beat_X" with visual.kind="place": resolvedAsset handles rendering — use "GlassCard"
+- sectionKey="beat_X" with visual.kind="celestial": "CelestialBody" (ch6 only), else "GlassCard"
+- sectionKey="beat_X" with visual.kind="anatomy": "ThreeBrain" (ch4 only), else "GlassCard"
+- sectionKey="beat_X" with visual.kind="chart": "CandlestickChart" (ch2 only), "BarChart" for others
+- sectionKey="beat_X" with visual.kind="typography" or "none": "Typewriter" or "WordCarousel"
+- sectionKey="twist": "Typewriter" — the twist is a reveal, build it character by character
+- sectionKey="outro": "WordCarousel" or "GlassCard"
+
+TYPOGRAPHY RULES for the typography[] array:
+- "primary" role: the emphasis_keyword or the main stat value — large, accent-colored, font="accent"
+- "body" role: a shortened version of narration (max 12 words) — smaller, white/muted, font="body"
+- "label" role: channel name or category — smallest, letter-spaced, uppercase, muted opacity
+- sizePx guidance: primary=96-140 (hooks), 72-96 (body beats), body=40-52, label=32-40
+- Never put the full narration as primary — that's what captions are for. Primary is ONE concept."""
 
 
 def _build_user_prompt(beat: dict, channel_cfg: dict, recent_grids: list, asset_meta: dict | None) -> str:
@@ -112,7 +147,9 @@ def _build_user_prompt(beat: dict, channel_cfg: dict, recent_grids: list, asset_
         "accentFont": channel_cfg.get("accentFont", ""),
         "id":         channel_cfg.get("id", ""),
     }
-    return f"""Beat JSON:
+    return f"""Channel ID: {channel_cfg.get('id', 'ch1')} (use this to apply channel-specific primitive rules above)
+
+Beat JSON:
 {json.dumps(beat_payload, indent=2)}
 
 Channel design tokens:

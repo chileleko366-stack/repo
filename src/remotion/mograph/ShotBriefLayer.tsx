@@ -39,8 +39,10 @@ import {
   ProgressBar,
   TypographicCard,
   AnimatedIcon,
+  BarChart,
 } from './primitives';
 import type { IconName } from './primitives/AnimatedIcon';
+import type { BarData } from './primitives/BarChart';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -105,7 +107,11 @@ function FallbackCard({
   return (
     <TypographicCard
       value={primaryTypo?.text ?? beat.emphasis_keyword ?? beat.visual.value ?? '?'}
-      kindHint={beat.visual.kind !== 'none' ? beat.visual.kind : undefined}
+      kindHint={
+        beat.visual.kind !== 'none' && beat.visual.kind !== 'typography'
+          ? beat.visual.kind
+          : undefined
+      }
       accentColor={accentColor}
       backgroundColor={bgColor}
     />
@@ -238,12 +244,33 @@ function PrimitiveDispatch({
         />
       );
 
+    case 'BarChart': {
+      const bars: BarData[] = primaryText
+        .split(',')
+        .map((s, i) => {
+          const [lbl, val] = s.trim().split(':');
+          return { label: lbl?.trim() ?? `Item ${i + 1}`, value: parseFloat(val ?? '50') || 50 };
+        });
+      return (
+        <BarChart
+          data={bars.length > 0 ? bars : [{ label: beat.emphasis_keyword ?? 'Value', value: 75 }]}
+          accentColor={accentColor}
+          backgroundColor={bgColor}
+          fontFamily={bodyFont}
+        />
+      );
+    }
+
     case 'TypographicCard':
     default:
       return (
         <TypographicCard
           value={primaryText || beat.visual.value || beat.emphasis_keyword || '?'}
-          kindHint={beat.visual.kind !== 'none' ? beat.visual.kind : undefined}
+          kindHint={
+            beat.visual.kind !== 'none' && beat.visual.kind !== 'typography'
+              ? beat.visual.kind
+              : undefined
+          }
           accentColor={accentColor}
           backgroundColor={bgColor}
         />
