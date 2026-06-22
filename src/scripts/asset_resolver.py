@@ -102,7 +102,7 @@ async def resolve_person(name: str, out_dir: Path) -> dict | None:
         raw_path.unlink(missing_ok=True)
         print(f"[assets] person cutout: {cutout_path.name}")
         return {"path": str(cutout_path), "credit": credit, "fallback": None}
-    except Exception as e:
+    except BaseException as e:
         print(f"[assets] rembg failed for {name!r}: {e}")
         # Keep raw image without cutout
         dest = cutout_path.with_suffix(".jpg")

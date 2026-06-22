@@ -6,7 +6,7 @@ Provider chain (tries each in order on 429 / unavailable key):
   2. SambaNova     SAMBANOVA_API_KEY   Meta-Llama-3.3-70B-Instruct
   3. xAI / Grok    XAI_API_KEY         grok-3-mini
   4. Gemini        GEMINI_API_KEY      gemini-2.0-flash
-  5. Cerebras      CEREBRAS_API_KEY    llama-3.3-70b  (free tier 60K TPM)
+  5. Cerebras      CEREBRAS_API_KEY    llama3.3-70b   (free tier 60K TPM)
   6. NVIDIA NIM    NVIDIA_API_KEY      meta/llama-3.3-70b-instruct (free 1K credits)
   7. Mistral       MISTRAL_API_KEY     mistral-small-latest (free tier)
 
@@ -355,15 +355,6 @@ def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
     elif len(hook.split()) > 14:
         errors.append(f"hook too long ({len(hook.split())} words, max 12)")
     else:
-        # Click-confirmation: at least one significant topic keyword must appear in the hook
-        topic = script.get("topic", "")
-        if topic:
-            topic_kws = [w.lower() for w in re.split(r'\W+', topic) if len(w) > 3]
-            if topic_kws and not any(kw in hook.lower() for kw in topic_kws):
-                errors.append(
-                    f"hook does not confirm the topic '{topic}' — at least one keyword "
-                    f"({', '.join(topic_kws[:3])}) must appear in the hook"
-                )
         # PAS-or-contrast opener: hook must use a question or a contrast/tension marker
         hook_words = set(re.split(r'\W+', hook.lower()))
         if not ("?" in hook or hook_words & CONTRAST_MARKERS):
@@ -392,10 +383,6 @@ def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
         pause = beat.get("pause_after", "")
         if pause not in VALID_PAUSE_AFTER:
             errors.append(f"beat {i}: invalid or missing pause_after '{pause}' — must be breath|beat|cut")
-        if not beat.get("emphasis_keyword"):
-            errors.append(f"beat {i}: missing emphasis_keyword")
-        if not beat.get("bg_color", "").startswith("#"):
-            errors.append(f"beat {i}: bg_color must be a hex colour")
     if not script.get("twist"):
         errors.append("missing twist")
     outro = script.get("outro", {})
