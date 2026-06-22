@@ -387,7 +387,7 @@ def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
             errors.append(f"beat {i}: missing visual.kind")
         elif kind not in VALID_VISUAL_KINDS:
             errors.append(f"beat {i}: invalid visual.kind '{kind}'")
-        elif kind in ENTITY_KINDS and not beat.get("visual", {}).get("value", "").strip():
+        elif kind in ENTITY_KINDS and not str(beat.get("visual", {}).get("value", "")).strip():
             errors.append(f"beat {i}: visual.kind='{kind}' requires a non-empty visual.value (exact name)")
         pause = beat.get("pause_after", "")
         if pause not in VALID_PAUSE_AFTER:
@@ -441,7 +441,7 @@ def validate_continuity(script: dict, llm_fn=None) -> list[str]:
     entity_map: dict[tuple, str] = {}  # (kind, normalized) → first occurrence value
     for beat in beats:
         visual = beat.get("visual", {})
-        val  = visual.get("value", "")
+        val  = str(visual.get("value", ""))
         kind = visual.get("kind", "none")
         if val and kind != "none":
             norm = re.sub(r"\s+", " ", val.strip().lower())
