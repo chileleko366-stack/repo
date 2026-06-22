@@ -1,5 +1,4 @@
 edge-tts
-piper-tts
 rembg
 Pillow
 requests
