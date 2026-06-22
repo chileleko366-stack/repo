@@ -248,7 +248,7 @@ export const Ch4Composition: React.FC<{ manifest: VideoManifest }> = ({ manifest
       {wordBoundaries && (
         <CaptionTrack
           wordBoundariesByBeat={wordBoundaries}
-          beats={beats}
+          beats={timedBeats}
           channelId="ch4"
           accentColor={CFG.colors.accent1}
           accentFont={CFG.accentFont}

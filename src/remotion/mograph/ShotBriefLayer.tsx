@@ -167,6 +167,23 @@ function parseLabelValue(text: string, defaultVal: number): { label: string; val
   });
 }
 
+// ─── Label sanitizer ─────────────────────────────────────────────────────────
+// Guards against the LLM putting channel names, CTAs, or outro text in the
+// label typography role. Returns undefined so the consumer's fallback fires.
+
+function sanitizeLabel(text: string | undefined): string | undefined {
+  if (!text) return undefined;
+  const t = text.trim();
+  // Reject long labels (label role is max 4 words per spec)
+  if (t.split(/\s+/).length > 5) return undefined;
+  const lower = t.toLowerCase();
+  // Reject channel name patterns
+  if (/^(ch[1-6]|dopamine\s*loop|financefiction|redacted|grey\s*matter|quiet\s*record|red\s*space)/i.test(lower)) return undefined;
+  // Reject CTA / outro language
+  if (/(follow|subscribe|like\s+and|comment|tap|share|still\s+holds|contradicting|are\s+you)/i.test(lower)) return undefined;
+  return t || undefined;
+}
+
 // ─── Primitive dispatcher ─────────────────────────────────────────────────────
 
 function PrimitiveDispatch({
@@ -251,7 +268,7 @@ function PrimitiveDispatch({
       return (
         <GlassCard
           primary={primaryText}
-          label={labelTypo?.text}
+          label={sanitizeLabel(labelTypo?.text)}
           body={bodyTypo?.text}
           accentColor={accentColor}
           backgroundColor={bgColor}
@@ -413,7 +430,7 @@ function PrimitiveDispatch({
         <DataLineChart
           data={pts.length > 1 ? pts : [{ x: 0, y: 20 }, { x: 1, y: 50 }, { x: 2, y: 80 }]}
           accentColor={accentColor}
-          label={labelTypo?.text}
+          label={sanitizeLabel(labelTypo?.text)}
           backgroundColor={bgColor}
         />
       );
@@ -425,7 +442,7 @@ function PrimitiveDispatch({
         <DataGauge
           value={gVal}
           max={100}
-          label={labelTypo?.text ?? primaryText}
+          label={sanitizeLabel(labelTypo?.text) ?? primaryText}
           accentColor={accentColor}
           backgroundColor={bgColor}
         />
@@ -437,7 +454,7 @@ function PrimitiveDispatch({
       return (
         <DataRanking
           items={items.length > 0 ? items : [{ label: primaryText, value: 75 }]}
-          title={labelTypo?.text}
+          title={sanitizeLabel(labelTypo?.text)}
           accentColor={accentColor}
           backgroundColor={bgColor}
         />
@@ -471,7 +488,7 @@ function PrimitiveDispatch({
       });
       return (
         <DataStatsCards
-          stats={stats.length > 0 ? stats : [{ value: primaryText, label: labelTypo?.text ?? '' }]}
+          stats={stats.length > 0 ? stats : [{ value: primaryText, label: sanitizeLabel(labelTypo?.text) ?? '' }]}
           backgroundColor={bgColor}
           accentColor={accentColor}
         />
@@ -484,7 +501,7 @@ function PrimitiveDispatch({
       return (
         <LayoutGiantNumber
           number={primaryText}
-          label={labelTypo?.text}
+          label={sanitizeLabel(labelTypo?.text)}
           accentColor={accentColor}
           backgroundColor={bgColor}
           fontFamily={accentFont}
@@ -543,7 +560,7 @@ function PrimitiveDispatch({
       return (
         <ShapeCircularProgress
           progress={pct}
-          label={labelTypo?.text ?? beat.emphasis_keyword}
+          label={sanitizeLabel(labelTypo?.text) ?? beat.emphasis_keyword}
           accentColor={accentColor}
           backgroundColor={bgColor}
         />
@@ -567,7 +584,7 @@ function PrimitiveDispatch({
       return (
         <CinematicDocumentary
           title={primaryText}
-          subtitle={labelTypo?.text ?? beat.visual.value}
+          subtitle={sanitizeLabel(labelTypo?.text) ?? beat.visual.value}
           accentColor={accentColor}
           backgroundColor={bgColor}
         />

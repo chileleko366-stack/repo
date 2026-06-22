@@ -169,11 +169,18 @@ PRIMITIVE SELECTION BY BEAT TYPE (follow these unless channelId overrides):
 - sectionKey="outro": "WordCarousel", "TextGradient", or "GlassCard"
 
 TYPOGRAPHY RULES for the typography[] array:
-- "primary" role: the emphasis_keyword or the main stat value — large, accent-colored, font="accent"
-- "body" role: a shortened version of narration (max 12 words) — smaller, white/muted, font="body"
-- "label" role: channel name or category — smallest, letter-spaced, uppercase, muted opacity
-- sizePx guidance: primary=96-140 (hooks), 72-96 (body beats), body=40-52, label=32-40
-- Never put the full narration as primary — that's what captions are for. Primary is ONE concept."""
+- "primary" role: the ONE key concept for this beat — the emphasis_keyword, a stat number, or the
+  central entity name. Large, accent-colored, font="accent". This is the visual headline.
+  Max 3 words. For stats: just the number ('4.6 billion' not 'Earth is 4.6 billion years old').
+  For people: just the name ('Einstein' not 'Albert Einstein discovered relativity').
+- "body" role: max 8 words from the narration restated as a visual phrase — smaller, white/muted,
+  font="body". NOT the full narration sentence. A fragment that reinforces the primary.
+- "label" role: a SHORT supporting unit or source — max 4 words, fact-based, beat-specific.
+  Examples: "per second", "NASA, 2023", "Harvard study", "prefrontal cortex", "1963".
+  NEVER: channel name, channel ID, CTA phrases, outro text, generic labels like "space facts".
+  Omit entirely if nothing meaningful applies.
+- sizePx: primary=96-140px (hook beats), 72-96px (body beats). body=40-52px. label=32-40px.
+- Never put the full narration as primary — captions handle that. Primary is ONE concept only."""
 
 
 def _build_user_prompt(beat: dict, channel_cfg: dict, recent_grids: list, asset_meta: dict | None) -> str:

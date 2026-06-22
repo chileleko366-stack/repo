@@ -3,18 +3,18 @@
  * Ported from remotion-dev/template-tiktok/src/CaptionedVideo/Page.tsx
  *
  * Design:
- * - Active word: accent font, accent colour, scale 1.12
- * - Inactive past words: body font, opacity 0.55
- * - Upcoming words: body font, opacity 0.20
- * - Entrance: spring translateY +28 → 0, triggered by enterProgress prop
- * - Solid background pill behind each word cluster (no subtitle bar)
+ * - Active word: accent font, accent colour, scale 1.18, dark pill bg
+ * - Inactive past words: body font, opacity 0.55, dark pill bg
+ * - Upcoming words: body font, opacity 0.20, dark pill bg
+ * - Entrance: spring translateY +20 → 0
+ * - paddingBottom: 370 (lower-center, above CTA area)
+ * - Per-word dark pill backing for legibility over bright asset beats
  */
 
 import React from 'react';
 import {
   AbsoluteFill,
   interpolate,
-  spring,
   useCurrentFrame,
   useVideoConfig,
 } from 'remotion';
@@ -38,10 +38,9 @@ export const CaptionPage: React.FC<CaptionPageProps> = ({
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // Absolute time within the video (page.startMs is absolute)
   const currentMs = (frame / fps) * 1000 + page.startMs;
 
-  const translateY = interpolate(enterProgress, [0, 1], [28, 0], {
+  const translateY = interpolate(enterProgress, [0, 1], [20, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -51,7 +50,7 @@ export const CaptionPage: React.FC<CaptionPageProps> = ({
       style={{
         justifyContent: 'flex-end',
         alignItems: 'center',
-        paddingBottom: 80,
+        paddingBottom: 370,
         pointerEvents: 'none',
       }}
     >
@@ -63,19 +62,16 @@ export const CaptionPage: React.FC<CaptionPageProps> = ({
           paddingLeft: 24,
           paddingRight: 24,
           textAlign: 'center',
-          lineHeight: 1.25,
-          // Solid dark backing so text is always legible
-          background: 'rgba(0,0,0,0.55)',
-          borderRadius: 16,
-          paddingTop: 14,
-          paddingBottom: 14,
-          whiteSpace: 'pre-wrap',
+          lineHeight: 1.3,
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          gap: 4,
         }}
       >
         {page.tokens.map((token, i) => {
           const isActive =
             token.fromMs <= currentMs && token.toMs > currentMs;
-          // Words before the active one are "past"
           const isPast = token.toMs <= currentMs;
 
           let color: string;
@@ -83,29 +79,29 @@ export const CaptionPage: React.FC<CaptionPageProps> = ({
           let fontFamily: string;
           let fontSize: number;
           let fontWeight: number | string;
-          let scaleX = 1;
-          let scaleY = 1;
+          let scale: number;
 
           if (isActive) {
             color = accentColor;
             opacity = 1;
             fontFamily = accentFont;
-            fontSize = 64;
+            fontSize = 72;
             fontWeight = 900;
-            scaleX = 1.12;
-            scaleY = 1.12;
+            scale = 1.18;
           } else if (isPast) {
             color = '#ffffff';
             opacity = 0.55;
             fontFamily = bodyFont;
-            fontSize = 58;
+            fontSize = 64;
             fontWeight = 700;
+            scale = 1;
           } else {
             color = '#ffffff';
             opacity = 0.20;
             fontFamily = bodyFont;
-            fontSize = 58;
+            fontSize = 64;
             fontWeight = 700;
+            scale = 1;
           }
 
           return (
@@ -119,11 +115,18 @@ export const CaptionPage: React.FC<CaptionPageProps> = ({
                 fontFamily,
                 fontSize,
                 fontWeight,
-                transform: `scale(${scaleX}, ${scaleY})`,
+                transform: `scale(${scale})`,
                 transformOrigin: 'center bottom',
+                background: 'rgba(0,0,0,0.60)',
+                borderRadius: 10,
+                paddingLeft: 8,
+                paddingRight: 8,
+                paddingTop: 4,
+                paddingBottom: 4,
+                textShadow: '0 1px 4px rgba(0,0,0,0.8)',
               }}
             >
-              {token.text}
+              {token.text.trim()}
             </span>
           );
         })}
