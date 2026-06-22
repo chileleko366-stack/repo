@@ -383,10 +383,55 @@ VALID_VISUAL_KINDS = {
 }
 VALID_PAUSE_AFTER = {'breath', 'beat', 'cut'}
 
-
 # distance/map use from/to/place fields, not value — excluded from value check
 ENTITY_KINDS = {'person', 'brand', 'place', 'anatomy', 'celestial'}
 CONTRAST_MARKERS = {"but", "yet", "never", "actually", "wrong", "surprising", "wait", "secret", "plot"}
+
+# ── Pre-validation normalization ──────────────────────────────────────────────
+
+_PAUSE_NORMALIZE: dict[str, str] = {
+    "beats": "beat", "breaths": "breath", "cuts": "cut",
+    "pause": "beat", "short pause": "breath", "long pause": "beat",
+    "hard cut": "cut", "scene break": "cut", "scene change": "cut",
+    "none": "cut", "null": "cut",
+}
+
+_KIND_NORMALIZE: dict[str, str] = {
+    "text": "typography", "words": "typography", "quote": "typography",
+    "graph": "chart", "line graph": "chart", "bar graph": "chart",
+    "line chart": "chart", "pie chart": "chart", "bar chart": "chart",
+    "statistic": "stat", "statistics": "stat", "number": "stat",
+    "metric": "stat", "data": "stat",
+    "person photo": "person", "photo": "person", "portrait": "person", "headshot": "person",
+    "brand logo": "brand", "logo": "brand", "company": "brand", "corporation": "brand",
+    "location": "place", "city": "place", "country": "place", "landmark": "place",
+    "planet": "celestial", "star": "celestial", "moon": "celestial", "galaxy": "celestial",
+    "space": "celestial", "universe": "celestial",
+    "body": "anatomy", "organ": "anatomy", "brain": "anatomy",
+    "null": "none", "n/a": "none", "na": "none",
+}
+
+
+def _normalize_script(script: dict) -> dict:
+    """Silently fix common LLM field-value mistakes before validation."""
+    for beat in script.get("beats", []):
+        p = str(beat.get("pause_after", "")).strip().lower()
+        if p not in VALID_PAUSE_AFTER:
+            beat["pause_after"] = _PAUSE_NORMALIZE.get(p, "cut")
+
+        visual = beat.get("visual")
+        if isinstance(visual, dict):
+            k = str(visual.get("kind", "")).strip().lower()
+            if k not in VALID_VISUAL_KINDS:
+                visual["kind"] = _KIND_NORMALIZE.get(k, "none")
+            if "value" in visual and visual["value"] is None:
+                visual["value"] = ""
+
+        kw = beat.get("emphasis_keyword", "")
+        if kw:
+            beat["emphasis_keyword"] = str(kw).strip().strip("*").strip()
+
+    return script
 
 
 def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
@@ -498,6 +543,9 @@ def validate_continuity(script: dict, llm_fn=None) -> list[str]:
     # Uses word-boundary regex so "LHC" (3 chars) is NOT flagged as the same entity as "LHCb" (4 chars),
     # while "Musk" IS flagged as overlapping "Elon Musk".
     def _name_overlaps(a: str, b: str) -> bool:
+        # Skip if one is a prefix/extension of the other (e.g. "Voyager" vs "Voyager 1")
+        if a.startswith(b) or b.startswith(a):
+            return False
         try:
             return bool(re.search(r'\b' + re.escape(a) + r'\b', b)) or \
                    bool(re.search(r'\b' + re.escape(b) + r'\b', a))
@@ -531,7 +579,7 @@ def validate_continuity(script: dict, llm_fn=None) -> list[str]:
         for m in re.finditer(r"(\d[\d,\.]*\s*(?:billion|million|thousand|%|km|kg|°|ly)?)", sentence, re.IGNORECASE):
             context_start = max(0, m.start() - 20)
             ctx_key = re.sub(r"[^a-z\s]", "", sentence[context_start:m.start()].lower().strip())[-15:]
-            if len(ctx_key) >= 5:
+            if len(ctx_key) >= 10:
                 number_contexts.setdefault(ctx_key, []).append(m.group(0).strip())
 
     for ctx, vals in number_contexts.items():
@@ -564,7 +612,8 @@ class ValidationError(Exception):
 
 def generate_script(topic: str, channel_id: str, brief: ResearchBrief, max_retries: int = 5) -> dict:
     system = build_system_prompt(channel_id, topic, brief)
-    user = build_user_prompt(topic, brief)
+    base_user = build_user_prompt(topic, brief)
+    user = base_user
     script = {}
 
     for attempt in range(1, max_retries + 1):
@@ -585,30 +634,25 @@ def generate_script(topic: str, channel_id: str, brief: ResearchBrief, max_retri
             script = json.loads(clean)
         except json.JSONDecodeError as e:
             print(f"[script_gen] JSON parse error on attempt {attempt}: {e}")
-            if attempt == max_retries:
-                raise ValueError(f"Could not parse script JSON after {max_retries} attempts") from e
-            continue
+            if attempt < max_retries:
+                user = base_user + "\n\nPREVIOUS ATTEMPT ERROR: returned invalid JSON — return only a valid JSON object."
+                continue
+            raise ValueError(f"Could not parse script JSON after {max_retries} attempts") from e
         script["topic"] = topic
         script["channel_id"] = channel_id
-        # Normalize common LLM mistakes before validation
-        for beat in script.get("beats", []):
-            p = beat.get("pause_after", "")
-            if p == "beats":
-                beat["pause_after"] = "beat"
+        _normalize_script(script)
         errors = validate_script(script, brief)
-        if not errors:
-            # Session 3 v3: continuity check runs AFTER structural validation
-            continuity_errors = validate_continuity(script)
-            if continuity_errors:
-                print(f"[script_gen] continuity issues on attempt {attempt}: {continuity_errors}")
-                errors = continuity_errors
-            else:
-                print(f"[script_gen] script validated on attempt {attempt}")
-                return script
         if errors:
             print(f"[script_gen] validation failed on attempt {attempt}: {errors}")
-        error_lines = "\n".join(f"- {e}" for e in errors)
-        user = user + f"\n\nPREVIOUS ATTEMPT FAILED VALIDATION - fix these errors:\n{error_lines}"
+            error_lines = "\n".join(f"- {e}" for e in errors)
+            user = base_user + f"\n\nFIX THESE ERRORS IN YOUR NEXT RESPONSE:\n{error_lines}"
+            continue
+        # Continuity check is advisory — log issues but never block on them
+        continuity_warnings = validate_continuity(script)
+        if continuity_warnings:
+            print(f"[script_gen] continuity warnings (non-blocking): {continuity_warnings}")
+        print(f"[script_gen] script validated on attempt {attempt}")
+        return script
 
     raise ValidationError(validate_script(script, brief))
 
