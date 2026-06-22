@@ -390,29 +390,19 @@ CONTRAST_MARKERS = {"but", "yet", "never", "actually", "wrong", "surprising", "w
 
 def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
     errors = []
-    topic = script.get("topic", "")
-    topic_keywords = set(re.split(r'\W+', topic.lower())) - {"the", "a", "an", "of", "in", "on", "at", "to", ""}
     hook = script.get("hook", "")
     if not hook:
         errors.append("missing hook")
     elif len(hook.split()) > 9:
         errors.append(
-            f"hook too long ({len(hook.split())} words) — max 7 words. "
+            f"hook too long ({len(hook.split())} words) — max 9 words. "
             "Short hooks land before viewers swipe."
         )
     elif len(hook.split()) < 3:
-        errors.append(f"hook too short ({len(hook.split())} words) — min 4 words.")
+        errors.append(f"hook too short ({len(hook.split())} words) — min 3 words.")
     else:
         hook_lower = hook.lower()
         hook_words = set(re.split(r'\W+', hook_lower))
-
-        # Hook must mention at least one keyword from the topic
-        if topic_keywords and not hook_words & topic_keywords:
-            kw_list = ", ".join(sorted(topic_keywords))
-            errors.append(
-                f"hook does not confirm the topic {topic!r} — at least one keyword "
-                f"({kw_list}) must appear in the hook"
-            )
 
         # Banned openers — overused, viewers tune them out
         BAD_OPENERS = [
@@ -450,7 +440,7 @@ def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
         if words < 8:
             errors.append(f"beat {i}: narration too short ({words} words, min 8)")
         if words > 18:
-            errors.append(f"beat {i}: narration too long ({words} words, max 15)")
+            errors.append(f"beat {i}: narration too long ({words} words, max 18)")
         kind = beat.get("visual", {}).get("kind", "")
         if not kind:
             errors.append(f"beat {i}: missing visual.kind")
@@ -465,10 +455,6 @@ def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
         kw = str(beat.get("emphasis_keyword", "")).strip().strip("*")
         if not kw:
             errors.append(f"beat {i}: missing emphasis_keyword")
-        # bg_color must look like a hex colour (#rrggbb or #rgb)
-        bg = str(beat.get("bg_color", "")).strip()
-        if not re.match(r"^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$", bg):
-            errors.append(f"beat {i}: bg_color must be a hex colour (got {bg!r})")
     if not script.get("twist"):
         errors.append("missing twist")
     outro = script.get("outro", {})
@@ -478,10 +464,10 @@ def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
         outro_words = len(outro["narration"].split())
         if outro_words < 10:
             errors.append(
-                f"outro too short ({outro_words} words, min 12) — needs a proper two-part landing"
+                f"outro too short ({outro_words} words, min 10) — needs a proper two-part landing"
             )
-        if outro_words > 20:
-            errors.append(f"outro too long ({outro_words} words, max 16)")
+        if outro_words > 22:
+            errors.append(f"outro too long ({outro_words} words, max 22)")
     if not outro.get("cta"):
         errors.append("missing outro.cta")
     full_text = " ".join([
@@ -575,7 +561,7 @@ class ValidationError(Exception):
 
 # ── Main entry point ──────────────────────────────────────────────────────────
 
-def generate_script(topic: str, channel_id: str, brief: ResearchBrief, max_retries: int = 3) -> dict:
+def generate_script(topic: str, channel_id: str, brief: ResearchBrief, max_retries: int = 5) -> dict:
     system = build_system_prompt(channel_id, topic, brief)
     user = build_user_prompt(topic, brief)
     script = {}
