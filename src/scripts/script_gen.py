@@ -248,7 +248,7 @@ SCRIPT_SCHEMA = '''
   "beats": [
     {
       "narration": "<10-15 words, one complete spoken thought — do NOT split a sentence across beats>",
-      "pause_after": "<breath|beat|cut> — breath: next thought follows immediately; beat: clear pause like a comma; cut: hard scene change like a paragraph break",
+      "pause_after": "<breath|beat|cut> — MUST be exactly one of those three words. breath: flows immediately into next; beat: clear pause; cut: hard scene break",
       "visual": {
         "kind": "<person|brand|place|distance|map|anatomy|celestial|stat|chart|morph|typography|none>",
         "value": "<exact name: Daniel Kahneman / Tesla / Chernobyl / Mars>",
@@ -384,7 +384,8 @@ VALID_VISUAL_KINDS = {
 VALID_PAUSE_AFTER = {'breath', 'beat', 'cut'}
 
 
-ENTITY_KINDS = {'person', 'brand', 'place', 'distance', 'map', 'anatomy', 'celestial'}
+# distance/map use from/to/place fields, not value — excluded from value check
+ENTITY_KINDS = {'person', 'brand', 'place', 'anatomy', 'celestial'}
 CONTRAST_MARKERS = {"but", "yet", "never", "actually", "wrong", "surprising", "wait", "secret", "plot"}
 
 
@@ -466,8 +467,8 @@ def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
             errors.append(
                 f"outro too short ({outro_words} words, min 10) — needs a proper two-part landing"
             )
-        if outro_words > 22:
-            errors.append(f"outro too long ({outro_words} words, max 22)")
+        if outro_words > 30:
+            errors.append(f"outro too long ({outro_words} words, max 30)")
     if not outro.get("cta"):
         errors.append("missing outro.cta")
     full_text = " ".join([
@@ -589,6 +590,11 @@ def generate_script(topic: str, channel_id: str, brief: ResearchBrief, max_retri
             continue
         script["topic"] = topic
         script["channel_id"] = channel_id
+        # Normalize common LLM mistakes before validation
+        for beat in script.get("beats", []):
+            p = beat.get("pause_after", "")
+            if p == "beats":
+                beat["pause_after"] = "beat"
         errors = validate_script(script, brief)
         if not errors:
             # Session 3 v3: continuity check runs AFTER structural validation
