@@ -54,9 +54,49 @@ _unverified_ssl_ctx.verify_mode = ssl.CERT_NONE
 _et_comm._SSL_CTX = _unverified_ssl_ctx
 
 def strip_emphasis_markup(text: str) -> str:
-    """Remove *emphasis* markers before TTS. Captions parse the same markers
-    separately and keep them — this function only affects the spoken audio."""
+    """Remove *emphasis* markers before TTS."""
     return re.sub(r'\*([^*]+)\*', r'\1', text)
+
+
+def prepare_for_tts(text: str) -> str:
+    """
+    Full preprocessing for edge-tts pronunciation.
+
+    1. Strip *emphasis* markers.
+    2. Remove commas from digit groups so TTS reads them as numbers not lists.
+       '1,000,000' → '1000000' → TTS says "one million" ✓
+    3. Expand currency shorthand: '$1.4B' → '1.4 billion dollars'.
+    4. Remove bare $ prefix so TTS doesn't skip it.
+    """
+    # 1. strip emphasis
+    text = strip_emphasis_markup(text)
+
+    # 2. Remove commas inside digit groups: '93,000' → '93000'
+    text = re.sub(r'\b(\d{1,3})(?:,(\d{3}))+\b', lambda m: m.group(0).replace(',', ''), text)
+
+    # 3a. '$X.XB' / '$XB' → 'X.X billion dollars'
+    text = re.sub(
+        r'\$(\d+(?:\.\d+)?)\s*[Bb](?:illion)?\b',
+        lambda m: f"{m.group(1)} billion dollars",
+        text,
+    )
+    # 3b. '$X.XM' / '$XM' → 'X.X million dollars'
+    text = re.sub(
+        r'\$(\d+(?:\.\d+)?)\s*[Mm](?:illion)?\b',
+        lambda m: f"{m.group(1)} million dollars",
+        text,
+    )
+    # 3c. '$X.XT' / '$XT' → 'X.X trillion dollars'
+    text = re.sub(
+        r'\$(\d+(?:\.\d+)?)\s*[Tt](?:rillion)?\b',
+        lambda m: f"{m.group(1)} trillion dollars",
+        text,
+    )
+
+    # 4. Remaining bare '$' → strip so TTS doesn't stumble
+    text = re.sub(r'\$(\d)', r'\1 dollars ', text)
+
+    return text.strip()
 
 
 # ── Voice profiles ────────────────────────────────────────────────────────────
@@ -182,7 +222,7 @@ async def generate_all_beats(manifest: dict) -> dict:
         if not narration:
             continue
         try:
-            r = await _generate_beat_with_retry(strip_emphasis_markup(narration), channel_id, beat["beatId"])
+            r = await _generate_beat_with_retry(prepare_for_tts(narration), channel_id, beat["beatId"])
             result_map[r["beatId"]] = r
         except Exception as exc:
             print(f"[tts] ERROR: {exc}")
@@ -262,7 +302,7 @@ async def _main():
         beat_id    = sys.argv[2]
         channel_id = sys.argv[3]
         narration  = " ".join(sys.argv[4:])
-        result = await generate_beat_audio(strip_emphasis_markup(narration), channel_id, beat_id)
+        result = await generate_beat_audio(prepare_for_tts(narration), channel_id, beat_id)
         print(json.dumps(result, indent=2))
         return
 

@@ -117,7 +117,6 @@ def build_manifest(script: dict, channel_id: str) -> dict:
 
     def add_beat(section_key, beat_id, narration, visual, emphasis_keyword, morph_from, bg_color):
         start, dur = SECTION_FRAMES[section_key]
-        narration = _expand_word_numbers(narration)
         beats_out.append({
             "beatIndex": len(beats_out),
             "beatId": beat_id,
@@ -231,59 +230,6 @@ def _channel_bg(channel_id: str) -> str:
     return _CHANNEL_BG.get(channel_id, "#0d0d0d")
 
 
-# ── Word-number normaliser ─────────────────────────────────────────────────────
-
-_MAGNITUDES = {
-    "thousand": 1_000,
-    "million": 1_000_000,
-    "billion": 1_000_000_000,
-    "trillion": 1_000_000_000_000,
-}
-
-_WORD_NUMS: dict[str, int] = {
-    "zero": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
-    "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
-    "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14, "fifteen": 15,
-    "sixteen": 16, "seventeen": 17, "eighteen": 18, "nineteen": 19, "twenty": 20,
-    "thirty": 30, "forty": 40, "fifty": 50, "sixty": 60, "seventy": 70,
-    "eighty": 80, "ninety": 90,
-}
-
-
-def _expand_word_numbers(text: str) -> str:
-    """Convert word-number + magnitude patterns to digit form.
-    '4.6 billion' → '4,600,000,000'  |  'one million' → '1,000,000'
-    Conservative: only replaces when a magnitude word follows a number or word-number.
-    """
-    # Pattern: digit (possibly decimal) + space + magnitude
-    def _digit_mag(m: re.Match) -> str:
-        val = int(float(m.group(1)) * _MAGNITUDES[m.group(2).lower()])
-        return f"{val:,}"
-
-    text = re.sub(
-        r"(\d+(?:\.\d+)?)\s+(thousand|million|billion|trillion)\b",
-        _digit_mag,
-        text,
-        flags=re.IGNORECASE,
-    )
-
-    # Pattern: word-number + space + magnitude (e.g. "one billion")
-    mag_pat = "|".join(_MAGNITUDES.keys())
-    word_pat = "|".join(_WORD_NUMS.keys())
-
-    def _word_mag(m: re.Match) -> str:
-        num = _WORD_NUMS.get(m.group(1).lower(), 0)
-        val = int(num * _MAGNITUDES[m.group(2).lower()])
-        return f"{val:,}"
-
-    text = re.sub(
-        rf"\b({word_pat})\s+({mag_pat})\b",
-        _word_mag,
-        text,
-        flags=re.IGNORECASE,
-    )
-
-    return text
 
 
 def _first_noun(text: str) -> str:

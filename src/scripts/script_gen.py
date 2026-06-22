@@ -190,33 +190,44 @@ def llm_complete(system: str, user: str) -> str:
 CHANNEL_TONES = {
     "ch1": (
         "Second-person ('you'), fast punchy sentences. The hook makes the viewer question "
-        "their own behaviour right now. Every mechanism beat names a specific neurotransmitter, "
-        "study author, or brain region. The twist is a 'you already do this without knowing it' reveal."
+        "their own behaviour RIGHT NOW — not someday, not in general, right now in this moment. "
+        "Every mechanism beat names a specific neurotransmitter, study author, or brain region. "
+        "The twist is a 'you already do this without knowing it' reveal. "
+        "The outro lands the insight: restate what the viewer now understands that they didn't before, "
+        "then close with one open question that makes them want to go deeper."
     ),
     "ch2": (
         "Tell the story of ONE specific number. Name the company, CEO, or event. Build cinematic "
         "tension around a real financial consequence. The mechanism explains the exact cause-and-effect "
-        "chain. The twist is a counter-intuitive implication that reframes the number."
+        "chain. The twist is a counter-intuitive implication that reframes the number. "
+        "The outro delivers the takeaway: what this specific number means for the viewer's understanding "
+        "of how money actually works, then one question they should now be asking."
     ),
     "ch3": (
         "Clipped, declassified-file cadence. Name real people, real dates, real operations. "
         "Withhold the key fact until the twist. Every sentence earns the next. "
-        "The outro implies there is more still classified."
+        "The outro does NOT say 'stay tuned' or 'follow for more'. Instead it lands on the "
+        "one classified detail that still hasn't been released — implying the full story is bigger "
+        "than what was just revealed."
     ),
     "ch4": (
         "Calm, analogy-led. Name the specific brain region, specific neurotransmitter, specific study. "
-        "Explain the mechanism with one physical analogy. The outro poses the open scientific question "
-        "the field has not yet answered."
+        "Explain the mechanism with one physical analogy. "
+        "The outro poses the one open scientific question the field has NOT yet answered — "
+        "something real researchers are actively debating, not a vague 'we still have more to learn'."
     ),
     "ch5": (
         "Reflective, past-tense documentary voice. Specific date, specific location, specific person. "
         "The twist is a quiet historical irony that recontextualises the event. "
-        "The outro lands on a resonant connection to the present."
+        "The outro lands on a resonant connection to the present day — one sentence that makes "
+        "this historical moment feel immediate and relevant, not distant."
     ),
     "ch6": (
         "Awe first, precision second. Name the specific body, mission, or phenomenon. Every beat "
-        "includes one mind-expanding specific number with real context (not 'millions' - say '4.6 billion'). "
-        "Facts checked against research sources."
+        "includes one mind-expanding specific number with real context. "
+        "The outro delivers the scale: put the key number in human terms "
+        "(e.g. 'travelling at highway speed, you'd arrive in 4.6 billion years'), "
+        "then close with the one unanswered question about this specific body or phenomenon."
     ),
 }
 
@@ -232,11 +243,11 @@ CHANNEL_NAMES = {
 
 SCRIPT_SCHEMA = '''
 {
-  "hook": "<<=12 words, opens a curiosity loop about the specific topic>",
-  "context": "<<=18 words, specific stakes with a real number from research>",
+  "hook": "<5-7 words — SHORT, specific claim or question about the topic. No generic openers.>",
+  "context": "<10-14 words — one sentence establishing the specific stakes with a real number.>",
   "beats": [
     {
-      "narration": "<8-20 words, one complete spoken thought — do NOT split a sentence across beats>",
+      "narration": "<10-15 words, one complete spoken thought — do NOT split a sentence across beats>",
       "pause_after": "<breath|beat|cut> — breath: next thought follows immediately; beat: clear pause like a comma; cut: hard scene change like a paragraph break",
       "visual": {
         "kind": "<person|brand|place|distance|map|anatomy|celestial|stat|chart|morph|typography|none>",
@@ -258,7 +269,7 @@ SCRIPT_SCHEMA = '''
   ],
   "twist": "<<=20 words, reframes everything>",
   "outro": {
-    "narration": "<<=18 words, loops to hook, opens one curiosity gap>",
+    "narration": "<12-16 words. TWO-PART STRUCTURE: (1) one sentence landing the core insight — what the viewer now knows. (2) one closing thought or question that creates forward momentum. Must feel COMPLETE, not cut off.>",
     "visual": { "kind": "stat", "stat_value": 0, "prefix": "", "suffix": "" },
     "cta": "<channel-specific CTA, NOT like and subscribe>"
   }
@@ -279,18 +290,38 @@ def build_system_prompt(channel_id: str, topic: str, brief: ResearchBrief) -> st
         f"Tone: {tone}\n"
         "\n"
         "TARGET LENGTH: 35 seconds total.\n"
-        "- hook:    <=12 words  (~3s)\n"
-        "- context: <=18 words  (~3s)\n"
-        "- beats:   exactly 5 beats, each 8-20 words (~4s each = 20s)\n"
-        "- twist:   <=20 words  (~3s)\n"
-        "- outro.narration: <=18 words  (~3.5s)\n"
+        "- hook:    5-7 words   (~2.5s) — SHORT AND PUNCHY. Longer hooks get cut off before viewers decide to watch.\n"
+        "- context: 10-14 words (~5s)   — one sentence establishing the specific stakes.\n"
+        "- beats:   10-15 words each    — one complete spoken thought per beat.\n"
+        "- twist:   10-14 words (~5s)   — the reframe, delivered crisply.\n"
+        "- outro:   12-16 words (~6s)   — landing + one closing thought. MUST FEEL COMPLETE.\n"
+        "\n"
+        "HOOK FRAMEWORK — the hook must do ALL of these:\n"
+        "  a) Name or strongly imply the SPECIFIC topic (not a generic teaser)\n"
+        "  b) Create a tension: either a surprising fact, a broken expectation, or a question\n"
+        "     that the viewer cannot answer without watching\n"
+        "  c) Be 5-7 words. Short hooks outperform long ones on Shorts because viewers\n"
+        "     decide to swipe within 2 seconds — the hook must land before they decide.\n"
+        "  d) Use present tense and second person where possible ('your brain', 'you do this')\n"
+        "  e) NEVER start with: 'Did you know', 'What if I told you', 'This will', 'Here's why'\n"
+        "     These are overused and viewers tune them out.\n"
+        "  f) NEVER end with '...' — a strong hook is a complete thought, not a trailing off\n"
+        "\n"
+        "HOOK EXAMPLES by channel:\n"
+        "  ch1 (psychology): 'You misremember 47% of your memories.' | 'Dopamine doesn't reward you. It lies.'\n"
+        "  ch2 (finance):    'Enron hid $30 billion in one sentence.' | 'One cell cost $6 billion.'\n"
+        "  ch3 (declassified): 'The CIA ran this for 20 years.' | 'This file was classified until 2017.'\n"
+        "  ch4 (neuroscience): 'Your prefrontal cortex isn't done yet.' | 'One synapse fires 500 times per second.'\n"
+        "  ch5 (documentary):  'On June 12, 1944, nobody noticed him.' | 'She predicted it. Nobody listened.'\n"
+        "  ch6 (space):       'Jupiter could swallow 1,300 Earths.' | 'This star's light left before humans existed.'\n"
         "\n"
         "RULES:\n"
         "1. This script is about the SPECIFIC topic above - NOT a generic overview of the channel niche.\n"
         "2. Every factual claim must use one of the research facts provided below.\n"
         "3. Every mechanism beat must explain HOW something works (mechanism + implication), not just WHAT.\n"
         "4. Every beat must name at least one specific entity (person, place, brand, statistic, distance).\n"
-        "5. The outro loops back to the hook's specific promise and opens exactly one new curiosity gap.\n"
+        "5. The outro is a LANDING, not a cliffhanger. Two sentences: (1) restate the core insight the\n"
+        "   viewer now has, (2) one closing thought or question that feels COMPLETE. Never trail off.\n"
         "6. WORD COUNT IS STRICT - each section must stay within its word limit.\n"
         "7. A SPECIFIC NUMBER MUST APPEAR IN THE SCRIPT — this is mandatory. If research gave you\n"
         "   no numbers, use a well-known scientific measurement for the topic: timing in ms,\n"
@@ -302,10 +333,13 @@ def build_system_prompt(channel_id: str, topic: str, brief: ResearchBrief) -> st
         "9. Beat index 2 (the middle beat, ~40% through the video) must be your STRONGEST secondary\n"
         "   curiosity gap — a partial reveal that withholds one key implication. This is the\n"
         "   scroll-stopper for viewers who almost swiped away.\n"
-        "10. NUMBERS MUST BE DIGITS — never write numbers as English words. Write '1,000,000' not\n"
-        "   'one million'. Write '4,600,000,000' not 'four point six billion'. Write '45%' not\n"
-        "   'forty-five percent'. Write '13.8 billion years' as '13,800,000,000 years'. Any digit\n"
-        "   is correct; spelled-out numbers are not acceptable.\n"
+        "10. NUMBERS IN NARRATION: Write numbers as words/mixed form that TTS reads naturally:\n"
+        "    - Large numbers: '1 million', '4.6 billion', '93 million' (NOT '1,000,000')\n"
+        "    - Percentages: '73%' or 'seventy-three percent' (both work)\n"
+        "    - Years: '1963', '2024' (digits are fine for years)\n"
+        "    - Currency: '$1.4 billion' or '1.4 billion dollars' (NOT '$1,400,000,000')\n"
+        "    - The stat_value field uses the raw number: stat_value: 1000000\n"
+        "    - The narration says: 'one million' or '1 million'\n"
         "11. PERSON NAMES — visual.value for kind='person' must be the full clean proper name:\n"
         "   NO title prefixes (President, Dr., Senator, General), NO abbreviations, NO truncation.\n"
         "   Correct: 'John F. Kennedy', 'Albert Einstein'. Wrong: 'President John F', 'Dr. Einstein'.\n"
@@ -361,11 +395,17 @@ def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
     hook = script.get("hook", "")
     if not hook:
         errors.append("missing hook")
-    elif len(hook.split()) > 14:
-        errors.append(f"hook too long ({len(hook.split())} words, max 12)")
+    elif len(hook.split()) > 9:
+        errors.append(
+            f"hook too long ({len(hook.split())} words) — max 7 words. "
+            "Short hooks land before viewers swipe."
+        )
+    elif len(hook.split()) < 3:
+        errors.append(f"hook too short ({len(hook.split())} words) — min 4 words.")
     else:
         hook_lower = hook.lower()
         hook_words = set(re.split(r'\W+', hook_lower))
+
         # Hook must mention at least one keyword from the topic
         if topic_keywords and not hook_words & topic_keywords:
             kw_list = ", ".join(sorted(topic_keywords))
@@ -373,11 +413,32 @@ def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
                 f"hook does not confirm the topic {topic!r} — at least one keyword "
                 f"({kw_list}) must appear in the hook"
             )
-        # PAS-or-contrast opener: hook must use a question or a contrast/tension marker
-        if not ("?" in hook or hook_words & CONTRAST_MARKERS):
+
+        # Banned openers — overused, viewers tune them out
+        BAD_OPENERS = [
+            "did you know", "what if i told you", "this will", "here's why",
+            "you won't believe", "the truth about", "everything you know",
+        ]
+        for bad in BAD_OPENERS:
+            if hook_lower.startswith(bad):
+                errors.append(
+                    f"hook starts with overused phrase '{bad}' — write a specific claim instead"
+                )
+                break
+
+        # No trailing ellipsis — hooks must be complete thoughts
+        if hook.rstrip().endswith("..."):
+            errors.append("hook ends with '...' — hooks must be complete thoughts, not trailing teasers")
+
+        # Must have a number, a question, a contrast word, OR a proper noun
+        has_number   = bool(re.search(r'\d', hook))
+        has_question = "?" in hook
+        has_contrast = bool(hook_words & CONTRAST_MARKERS)
+        has_specific = bool(re.search(r'\b[A-Z][a-z]+\b', hook))
+        if not (has_number or has_question or has_contrast or has_specific):
             errors.append(
-                "hook lacks a question or contrast opener — use '?' or a contrast word "
-                "(but / yet / never / actually / wait / secret)"
+                "hook is too generic — needs a specific number, proper noun, question, or contrast. "
+                "Example: 'Your brain lies to you 47 times a day.' not 'Your brain does something surprising.'"
             )
     if not script.get("context"):
         errors.append("missing context")
@@ -386,10 +447,10 @@ def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
         errors.append(f"need exactly 5 beats, got {len(beats)}")
     for i, beat in enumerate(beats):
         words = len(beat.get("narration", "").split())
-        if words < 3:
-            errors.append(f"beat {i}: narration too short ({words} words, min 3)")
-        if words > 25:
-            errors.append(f"beat {i}: narration too long ({words} words, max 20)")
+        if words < 8:
+            errors.append(f"beat {i}: narration too short ({words} words, min 8)")
+        if words > 18:
+            errors.append(f"beat {i}: narration too long ({words} words, max 15)")
         kind = beat.get("visual", {}).get("kind", "")
         if not kind:
             errors.append(f"beat {i}: missing visual.kind")
@@ -413,6 +474,14 @@ def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
     outro = script.get("outro", {})
     if not outro.get("narration"):
         errors.append("missing outro.narration")
+    else:
+        outro_words = len(outro["narration"].split())
+        if outro_words < 10:
+            errors.append(
+                f"outro too short ({outro_words} words, min 12) — needs a proper two-part landing"
+            )
+        if outro_words > 20:
+            errors.append(f"outro too long ({outro_words} words, max 16)")
     if not outro.get("cta"):
         errors.append("missing outro.cta")
     full_text = " ".join([

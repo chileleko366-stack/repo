@@ -124,7 +124,9 @@ export function buildTimedBeats(
 ): TimedBeat[] {
   return beats.map((beat, i) => {
     const durationMs = audioDurationsMs[beat.beatId] ?? beat.durationFrames * (1000 / fps);
-    const audioFrames = Math.max(30, Math.round((durationMs / 1000) * fps));
+    const isLastBeat = i === beats.length - 1;
+    const holdFrames = isLastBeat ? 60 : 0;
+    const audioFrames = Math.max(30, Math.round((durationMs / 1000) * fps)) + holdFrames;
 
     const pauseAfter = pauseAfterMap[beat.beatId] ?? 'cut';
 
