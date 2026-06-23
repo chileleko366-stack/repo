@@ -52,6 +52,16 @@ export const ThreeBrain: React.FC = () => (
     width={1080}
     height={1920}
     style={{ position: 'absolute', inset: 0 }}
+    gl={{
+      // Allow software (SwiftShader) rendering — don't fail when no GPU is available
+      failIfMajorPerformanceCaveat: false,
+      // Required for Remotion's frame-accurate screenshot capture
+      preserveDrawingBuffer: true,
+      // Prefer low power mode — uses integrated/software GPU rather than discrete
+      powerPreference: 'low-power' as WebGLPowerPreference,
+      // Explicit antialias: true to prevent undefined behaviour on software renderers
+      antialias: true,
+    }}
   >
     <BrainMesh />
   </ThreeCanvas>

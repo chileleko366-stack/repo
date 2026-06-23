@@ -246,8 +246,19 @@ export const CelestialBody: React.FC<CelestialBodyProps> = ({
   const cameraPos = CAMERA_FRAMING_PRESETS[fs.signatureFeature.cameraFraming](fs, 0, durationInFrames);
   const canvasStyle: React.CSSProperties = { position: 'absolute', inset: 0 };
 
+  const glProps = {
+    // Allow software (SwiftShader) rendering — don't fail when no GPU is available
+    failIfMajorPerformanceCaveat: false,
+    // Required for Remotion's frame-accurate screenshot capture
+    preserveDrawingBuffer: true,
+    // Prefer low power mode — uses integrated/software GPU rather than discrete
+    powerPreference: 'low-power' as WebGLPowerPreference,
+    // Explicit antialias: true to prevent undefined behaviour on software renderers
+    antialias: true,
+  };
+
   const proceduralCanvas = (
-    <ThreeCanvas width={1080} height={1920} style={canvasStyle} camera={{ position: cameraPos, fov: 50 }}>
+    <ThreeCanvas width={1080} height={1920} style={canvasStyle} camera={{ position: cameraPos, fov: 50 }} gl={glProps}>
       <ProceduralPlanet fs={fs} durationInFrames={durationInFrames} />
     </ThreeCanvas>
   );
@@ -255,7 +266,7 @@ export const CelestialBody: React.FC<CelestialBodyProps> = ({
   return (
     <TextureErrorBoundary bodyName={bodyName} fallback={proceduralCanvas}>
       <React.Suspense fallback={proceduralCanvas}>
-        <ThreeCanvas width={1080} height={1920} style={canvasStyle} camera={{ position: cameraPos, fov: 50 }}>
+        <ThreeCanvas width={1080} height={1920} style={canvasStyle} camera={{ position: cameraPos, fov: 50 }} gl={glProps}>
           <TexturedPlanet fs={fs} durationInFrames={durationInFrames} />
         </ThreeCanvas>
       </React.Suspense>
