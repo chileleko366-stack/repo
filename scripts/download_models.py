@@ -423,7 +423,14 @@ MODELS = [
 
 
 def download(filename: str, url: str, min_bytes: int, retries: int = 3) -> str:
+    """
+    Download a GLB file if not already present or if too small.
+    Returns: 'downloaded', 'skipped' (already valid), or 'failed'
+    """
+    import time
     out = MODELS_DIR / filename
+
+    # Already exists and valid size — skip
     if out.exists() and out.stat().st_size >= min_bytes:
         return "skipped"
 
@@ -441,8 +448,8 @@ def download(filename: str, url: str, min_bytes: int, retries: int = 3) -> str:
             return "downloaded"
         except urllib.error.URLError as e:
             if attempt < retries:
-                print(f"  ↺ attempt {attempt} failed ({e}), retrying...")
-                import time; time.sleep(2 ** attempt)
+                print(f"  ↺ attempt {attempt} failed ({e}), retrying in {2**attempt}s...")
+                time.sleep(2 ** attempt)
             else:
                 print(f"  ✗ NETWORK ERROR after {retries} attempts: {e}")
                 return "failed"
@@ -473,12 +480,12 @@ def main() -> None:
     total = downloaded + skipped + failed
     if failed == 0:
         print("\nAll models ready ✓")
-    elif failed / total > 0.20:
-        print(f"\nERROR: {failed}/{total} models failed (>{20}% failure rate). Aborting.")
+    elif total > 0 and failed / total > 0.20:
+        print(f"\nERROR: {failed}/{total} models failed (>20% threshold). Aborting.")
         sys.exit(1)
     else:
-        print(f"\nWARNING: {failed}/{total} models failed — continuing (within tolerance).")
-        print("Renders will use fallbacks for missing models.")
+        print(f"\nWARNING: {failed}/{total} models failed — within tolerance, continuing.")
+        print("Renders will fall back to SphereFallback3D for missing models.")
 
 
 if __name__ == "__main__":
