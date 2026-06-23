@@ -31,6 +31,8 @@ import { DocumentaryQuote } from './DocumentaryQuote';
 import { FilmGrain } from './FilmGrain';
 import { HardCutFlash } from './HardCutFlash';
 import { HistoricalArtifact3D } from './HistoricalArtifact3D';
+import { PeriodObject3D } from './PeriodObject3D';
+import type { PeriodVariant } from './PeriodObject3D';
 
 const CFG = CHANNEL_CONFIGS.ch5;
 
@@ -147,12 +149,16 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         />
       )}
 
-      {/* Historical artifact 3D for non-asset, non-shotbrief beats */}
-      {!isFullscreen && !hasShotBrief && (
-        <HistoricalArtifact3D
-          variant={beat.sectionKey === 'hook' ? 'nefertiti' : 'helmet'}
-        />
-      )}
+      {/* 3D artifact for non-asset, non-shotbrief beats */}
+      {!isFullscreen && !hasShotBrief && (() => {
+        const sk = beat.sectionKey ?? '';
+        if (sk === 'hook') return <HistoricalArtifact3D variant="nefertiti" />;
+        if (sk === 'context') return <HistoricalArtifact3D variant="helmet" />;
+        const beatNum = sk.startsWith('beat_') ? parseInt(sk.replace('beat_', ''), 10) : 0;
+        const BEAT_VARIANTS: PeriodVariant[] = ['candle', 'lantern', 'soldier', 'boombox', 'truck'];
+        const variant = BEAT_VARIANTS[beatNum % BEAT_VARIANTS.length];
+        return <PeriodObject3D variant={variant} />;
+      })()}
 
       {/* ShotBrief-driven layout */}
       {hasShotBrief && (

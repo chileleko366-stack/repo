@@ -34,6 +34,8 @@ import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatComposito
 import type { TimedBeat } from '../../transitions/BeatCompositor';
 import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { AntiqueCamera3D } from './AntiqueCamera3D';
+import { ClassifiedObject3D } from './ClassifiedObject3D';
+import type { ClassifiedVariant } from './ClassifiedObject3D';
 import { ClassifiedStamp } from './ClassifiedStamp';
 import { GlitchWord } from './GlitchWord';
 import { ScrambleReveal } from './ScrambleReveal';
@@ -100,6 +102,15 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
 
       {/* Antique camera for hook/context beats without an asset */}
       {isHookCtx && !isFullscreen && <AntiqueCamera3D />}
+
+      {/* Classified objects for other non-asset, non-twist, non-shotbrief beats */}
+      {!isHookCtx && !isFullscreen && !isTwist && !hasShotBrief && (() => {
+        const sk = beat.sectionKey ?? '';
+        const beatNum = sk.startsWith('beat_') ? parseInt(sk.replace('beat_', ''), 10) : 0;
+        const BEAT_VARIANTS: ClassifiedVariant[] = ['soldier', 'lantern', 'skull', 'soldier', 'broken_window'];
+        const variant = BEAT_VARIANTS[beatNum % BEAT_VARIANTS.length];
+        return <ClassifiedObject3D variant={variant} />;
+      })()}
 
       {/* ShotBrief-driven layout */}
       {hasShotBrief && !isTwist && (
