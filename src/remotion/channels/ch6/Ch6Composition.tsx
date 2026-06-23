@@ -28,7 +28,10 @@ import { SfxLayer } from '../../sound/SfxLayer';
 import { Soundtrack } from '../../sound/Soundtrack';
 import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
 import type { TimedBeat } from '../../transitions/BeatCompositor';
+import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { CelestialBody } from './CelestialBody';
+import { CosmicObject3D } from './CosmicObject3D';
+import type { CosmicVariant } from './CosmicObject3D';
 import { HardCutFlash } from './HardCutFlash';
 import { Starfield } from './Starfield';
 
@@ -97,7 +100,14 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
   const { visual, emphasis_keyword, resolvedAsset, bg_color, audioPath, shotBrief } = beat;
   const kind        = visual.kind;
   const bg          = bg_color || CFG.colors.bgPrimary;
-  const hasAsset    = !!resolvedAsset;
+  const hasAsset = (() => {
+    if (!resolvedAsset) return false;
+    const a = resolvedAsset as unknown as Record<string, unknown>;
+    if ('path' in a) return a.path != null;
+    if ('svgString' in a) return true;
+    if ('map_image' in a) return true;
+    return false;
+  })();
   const isCelestial = kind === 'celestial';
   const isStat      = kind === 'stat';
   const hasShotBrief = !!shotBrief;
@@ -130,6 +140,18 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         />
       )}
 
+      {/* Cosmic object on non-celestial, non-asset, non-stat beats */}
+      {!isCelestial && !isFullscreen && !isStat && (() => {
+        const sk = beat.sectionKey ?? '';
+        const beatNum = sk.startsWith('beat_') ? parseInt(sk.replace('beat_', ''), 10) : 0;
+        const BEAT_VARIANTS: CosmicVariant[] = ['ion_drive', 'crystal', 'dispersion', 'shatter', 'shader_ball'];
+        const variant: CosmicVariant =
+          sk === 'hook' ? 'ship_hallway' :
+          sk === 'context' ? 'spheres' :
+          BEAT_VARIANTS[beatNum % BEAT_VARIANTS.length];
+        return <CosmicObject3D variant={variant} />;
+      })()}
+
       {needsScrim && (
         <div
           style={{
@@ -143,8 +165,8 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         />
       )}
 
-      {/* ShotBrief-driven layout */}
-      {hasShotBrief && (
+      {/* ShotBrief-driven layout — skip on celestial (planet owns the frame) */}
+      {hasShotBrief && !isCelestial && (
         <ShotBriefLayer
           beat={beat}
           accentColor={CFG.colors.accent1}
@@ -194,6 +216,15 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         </div>
       )}
 
+      {/* Mograph kinetic text: emphasis keyword + supporting words */}
+      <KineticTextLayer
+        beat={beat}
+        accentColor={CFG.colors.accent1}
+        accentFont={CFG.accentFont}
+        bodyFont={CFG.bodyFont}
+        durationFrames={durationFrames}
+      />
+
       {audioPath ? <Audio src={toStatic(audioPath)} volume={1} /> : null}
 
       <HardCutFlash color={CFG.colors.accent1} peakOpacity={0.4} />
@@ -234,7 +265,7 @@ export const Ch6Composition: React.FC<{ manifest: VideoManifest }> = ({ manifest
       {wordBoundaries && (
         <CaptionTrack
           wordBoundariesByBeat={wordBoundaries}
-          beats={beats}
+          beats={timedBeats}
           channelId="ch6"
           accentColor={CFG.colors.accent1}
           accentFont={CFG.accentFont}

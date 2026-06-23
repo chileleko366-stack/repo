@@ -15,7 +15,6 @@ import React from 'react';
 import {
   AbsoluteFill,
   Audio,
-  Sequence,
   interpolate,
   spring,
   staticFile,
@@ -33,8 +32,11 @@ import { SfxLayer } from '../../sound/SfxLayer';
 import { Soundtrack } from '../../sound/Soundtrack';
 import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
 import type { TimedBeat } from '../../transitions/BeatCompositor';
-import { BrowserFrame } from './BrowserFrame';
+import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { CandlestickChart } from './CandlestickChart';
+import { Ferrari3D } from './Ferrari3D';
+import { LuxuryObject3D } from './LuxuryObject3D';
+import type { LuxuryVariant } from './LuxuryObject3D';
 import { TickerTape } from './TickerTape';
 
 const CFG = CHANNEL_CONFIGS.ch2;
@@ -53,9 +55,15 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
   const { visual, emphasis_keyword, resolvedAsset, bg_color, audioPath, shotBrief } = beat;
   const kind    = visual.kind;
   const bg      = bg_color || CFG.colors.bgPrimary;
-  const hasAsset    = !!resolvedAsset;
+  const hasAsset = (() => {
+    if (!resolvedAsset) return false;
+    const a = resolvedAsset as unknown as Record<string, unknown>;
+    if ('path' in a) return a.path != null;
+    if ('svgString' in a) return true;
+    if ('map_image' in a) return true;
+    return false;
+  })();
   const isFullscreen = hasAsset && kind !== 'none' && kind !== 'stat';
-  const showBrowser  = beat.sectionKey === 'hook' || beat.sectionKey === 'context';
   const hasShotBrief = !!shotBrief;
 
   const enter = spring({
@@ -89,7 +97,17 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         />
       )}
 
-      {showBrowser && <BrowserFrame />}
+      {/* 3D object on non-asset beats — Ferrari on hook, luxury objects elsewhere */}
+      {!isFullscreen && (() => {
+        const sk = beat.sectionKey ?? '';
+        if (sk === 'hook') return <Ferrari3D durationFrames={durationFrames} />;
+        const variant: LuxuryVariant =
+          kind === 'stat' ? 'watch' :
+          kind === 'chart' ? 'gears' :
+          sk === 'context' ? 'city' :
+          'rolex';
+        return <LuxuryObject3D variant={variant} />;
+      })()}
 
       {/* ShotBrief-driven layout: primitive at primaryAnchor */}
       {hasShotBrief && (
@@ -108,7 +126,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
           style={{
             position: 'absolute',
             left: 60, right: 60,
-            ...(isFullscreen ? { bottom: 300 } : { top: showBrowser ? 120 : 200 }),
+            ...(isFullscreen ? { bottom: 300 } : { top: 200 }),
             opacity: enter,
             transform: `translateY(${translateY}px)`,
           }}
@@ -162,7 +180,18 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         </div>
       )}
 
-      <TickerTape durationFrames={durationFrames} accent={CFG.colors.accent1} />
+      {(beat.sectionKey === 'context' || (beat.sectionKey ?? '').startsWith('beat_')) && (
+        <TickerTape durationFrames={durationFrames} accent={CFG.colors.accent1} />
+      )}
+
+      {/* Mograph kinetic text: emphasis keyword + supporting words */}
+      <KineticTextLayer
+        beat={beat}
+        accentColor={CFG.colors.accent1}
+        accentFont={CFG.accentFont}
+        bodyFont={CFG.bodyFont}
+        durationFrames={durationFrames}
+      />
 
       {audioPath ? <Audio src={toStatic(audioPath)} volume={1} /> : null}
 
@@ -204,7 +233,7 @@ export const Ch2Composition: React.FC<{ manifest: VideoManifest }> = ({
       {wordBoundaries && (
         <CaptionTrack
           wordBoundariesByBeat={wordBoundaries}
-          beats={beats}
+          beats={timedBeats}
           channelId="ch2"
           accentColor={CFG.colors.accent1}
           accentFont={CFG.accentFont}

@@ -90,7 +90,7 @@ AUTO_TOPICS = {
         "Tunguska event 1908",
         "Mary Anning fossil discovery",
         "Night Witches Soviet bombers",
-        "Decipherment of Linear B",
+        "Alan Turing Enigma codebreaking 1940",
         "Voyager Golden Record selection",
     ],
     "ch6": [

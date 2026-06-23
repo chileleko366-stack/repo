@@ -88,8 +88,18 @@ def render_channel(channel_id: str) -> None:
         comp_id,              # positional: composition ID
         str(output_path),     # positional: output file
         f"--props={props_path}",
-        "--chromium-flags=--no-sandbox",
+        # --no-sandbox: required for headless CI (no user namespace isolation)
+        # --enable-unsafe-swiftshader: required for WebGL software rendering on GPU-less CI runners.
+        #   Chrome deprecated automatic SwiftShader fallback — must opt in explicitly.
+        #   This is safe for our use case (trusted content rendered in CI).
+        # --disable-dev-shm-usage: prevents /dev/shm OOM crashes on CI runners with small tmpfs
+        # --disable-gpu-sandbox: required alongside swiftshader on some Linux runner configurations
+        "--chromium-flags=--no-sandbox --enable-unsafe-swiftshader --disable-dev-shm-usage --disable-gpu-sandbox",
         "--log=verbose",
+        # Increase timeout from Remotion's default 30s to 90s per frame.
+        # SwiftShader software rendering initialises slower than hardware — first ThreeCanvas
+        # frame can take 15-25s on a cold CI runner. 90s gives safe headroom.
+        "--timeout=90000",
     ]
 
     print(f"[render] {channel_id}: npx remotion render "

@@ -25,7 +25,7 @@ _PROVIDERS = [
     {"name": "sambanova","url": "https://api.sambanova.ai/v1/chat/completions",                                  "key_env": "SAMBANOVA_API_KEY",  "model": "Meta-Llama-3.3-70B-Instruct"},
     {"name": "xai",      "url": "https://api.x.ai/v1/chat/completions",                                         "key_env": "XAI_API_KEY",        "model": "grok-3-mini"},
     {"name": "gemini",   "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",      "key_env": "GEMINI_API_KEY",     "model": "gemini-2.0-flash"},
-    {"name": "cerebras", "url": "https://api.cerebras.ai/v1/chat/completions",                                   "key_env": "CEREBRAS_API_KEY",   "model": "llama3.3-70b"},
+    {"name": "cerebras", "url": "https://api.cerebras.ai/v1/chat/completions",                                   "key_env": "CEREBRAS_API_KEY",   "model": "llama3.1-8b"},
     {"name": "nvidia",   "url": "https://integrate.api.nvidia.com/v1/chat/completions",                          "key_env": "NVIDIA_API_KEY",     "model": "meta/llama-3.3-70b-instruct"},
     {"name": "mistral",  "url": "https://api.mistral.ai/v1/chat/completions",                                    "key_env": "MISTRAL_API_KEY",    "model": "mistral-small-latest"},
 ]
@@ -54,7 +54,7 @@ def _call_provider(provider: dict, system: str, user: str) -> str:
         },
         timeout=60,
     )
-    if resp.status_code in (429, 403):
+    if resp.status_code in (429, 403, 404):
         raise _SkipProvider(provider["name"], resp.status_code)
     if not resp.ok:
         raise RuntimeError(f"[{provider['name']}] HTTP {resp.status_code}: {resp.text[:300]}")
@@ -99,38 +99,88 @@ HARD RULES:
 9. Return ONLY valid JSON — no markdown fences, no explanations.
 
 PRIMITIVE SELECTION — you MUST use one of these exact strings for "primitive":
-  "GlassCard"       — large stat/fact card with glassmorphism and glow. Use for hook, context, key facts.
-  "Typewriter"      — text types on screen character by character, emphasis word highlights at end. Use for twist, outro, reveals.
-  "WordCarousel"    — words crossfade in sequence. Use for lists, multiple entities, options. Requires comma-separated primary text.
-  "ProgressBar"     — animated fill bar with percentage. Use for stat beats with a percentage value.
-  "AnimatedIcon"    — Lottie icon (chart-up|chart-down|brain-idea|lock-security|globe-world|alert-warning|checkmark-success|clock-time). Use for concept beats.
-  "TypographicCard" — fallback text card. Only use if nothing else fits.
-  "CelestialBody"   — ch6 ONLY. Rotating 3D planet. Always use for celestial/space beats on ch6.
-  "ThreeBrain"      — ch4 ONLY. Rotating 3D brain. Always use for anatomy/neuroscience beats on ch4.
-  "CandlestickChart" — ch2 ONLY. Animated financial chart. Always use for chart/stat/finance beats on ch2.
-  "ScrambleReveal"  — ch3 ONLY. Text scrambles and resolves. Use for revelation/declassified beats on ch3.
-  "ClassifiedStamp" — ch3 ONLY. Red CLASSIFIED stamp slams in. Use for opening beats on ch3.
-  "GlitchWord"      — ch3 ONLY. Word glitches and stabilizes. Use for emphasis beats on ch3.
+
+TEXT PRIMITIVES (for narration/fact display):
+  "GlassCard"          — large glassmorphism card with glow. Best for hook, context, key facts, stats.
+  "Typewriter"         — text types character-by-character; emphasis word highlights at end. For reveals, twist, outro.
+  "WordCarousel"       — words crossfade in sequence. For lists, entities, options. Primary must be comma-separated words.
+  "TypographicCard"    — minimal text card. Fallback only when nothing else fits.
+  "TextKinetic"        — words spring-pop in staggered sequence, uppercase impact. Great for beat openers.
+  "TextScramble"       — Matrix-style characters scramble then resolve to final text. For mystery, tech, data reveals.
+  "TextWave"           — characters float on a sine wave. For playful, rhythmic beats.
+  "TextMaskReveal"     — text revealed left-to-right via clip-path wipe. For dramatic unveils.
+  "TextGlitch"         — RGB color split + position offset glitch effect. For shock, controversy, disruption beats.
+  "TextNeon"           — pulsing neon glow on text. For nighttime, cyberpunk, energy beats.
+  "TextCounter"        — counts up from 0 to a number with Intl formatting. Primary must be a digit string like "1000000".
+  "TextGradient"       — text with animated rotating gradient fill. For vibrant, colorful stat reveals.
+  "Text3DFlip"         — text flips in on 3D X-axis. For clean dramatic entries.
+
+DATA / CHART PRIMITIVES (for statistics and comparisons):
+  "ProgressBar"        — horizontal fill bar with percentage label. Use when stat_value is a percentage.
+  "BarChart"           — vertical bar chart. Primary must be "Label1:80,Label2:60,Label3:40" format.
+  "DataLineChart"      — self-drawing SVG line chart. Primary: "0:10,1:25,2:40,3:80" (x:y pairs).
+  "DataGauge"          — semicircle SVG gauge dial. Primary must be a numeric string (the value). Great for percentages with visual context.
+  "DataRanking"        — staggered animated horizontal bars with rank numbers. Primary: "Item1:90,Item2:70,Item3:50".
+  "DataTimeline"       — sequential events with dot-connector. Primary: "1969:Moon landing,1989:Berlin Wall,2001:9/11".
+  "DataStatsCards"     — 2-4 stat cards in a grid, staggered entrance. Primary: "8B:World pop,78:Life expectancy".
+  "LayoutGiantNumber"  — fills 80% of frame with a single huge formatted number. Primary is the number string.
+
+LAYOUT PRIMITIVES (for structural visual arrangements):
+  "LayoutSplitContrast"   — diagonal split with two contrasting panels. Primary: "Concept A vs Concept B" or "Left/Right".
+  "LayoutFullscreenType"  — full-frame word-by-word spring reveal. Primary is the text; accentWord is highlighted.
+  "LayoutMultiColumn"     — 2-3 columns with staggered entrance. Primary: "Title1:Body1,Title2:Body2,Title3:Body3".
+
+SHAPE / PARTICLE PRIMITIVES (for visual energy):
+  "ShapeCircularProgress" — SVG arc fills to a percentage. Primary must be a numeric string (0-100).
+  "ShapeSpinningRings"    — concentric spinning ellipses. Use for space, physics, energy concept beats.
+  "ParticleShootingStars" — deterministic shooting star streaks. Use as background layer for space beats.
+  "ParticleSparks"        — energy sparks burst from center. Use for high-energy reveals, breakthroughs.
+  "AnimatedIcon"          — Lottie icon. visual.value must be one of: chart-up|chart-down|brain-idea|lock-security|globe-world|alert-warning|checkmark-success|clock-time.
+
+CINEMATIC PRIMITIVES (for documentary/narrative style):
+  "CinematicDocumentary"  — letterbox bars + Ken Burns + lower-third text overlay. Primary is the title text.
+  "CinematicNoir"         — high contrast scanlines + vignette overlay. For dark, serious, historical beats.
+  "CinematicSciFi"        — HUD grid + scan line + corner brackets. For technology, future, space beats.
+
+BACKGROUND / ATMOSPHERIC (use when beat needs an ambient visual layer):
+  "BackgroundAurora"      — animated aurora color waves with blur. For space, science, wonder beats.
+  "BackgroundGeometric"   — floating geometric shapes (circles, squares, triangles). For abstract concept beats.
+
+CHANNEL-SPECIFIC (channel-gated — only use on the specified channelId):
+  "CelestialBody"      — ch6 ONLY. Rotating 3D sphere (planet/moon). Always use for celestial beats on ch6.
+  "ThreeBrain"         — ch4 ONLY. Rotating 3D wireframe brain. Always use for anatomy/neuroscience on ch4.
+  "CandlestickChart"   — ch2 ONLY. Animated financial candlestick chart. Always use for finance/stat beats on ch2.
+  "ScrambleReveal"     — ch3 ONLY. Text scrambles then resolves. Use for revelation beats on ch3.
+  "ClassifiedStamp"    — ch3 ONLY. Red CLASSIFIED stamp slams in. Use for opening/hook beats on ch3.
+  "GlitchWord"         — ch3 ONLY. Single word glitches and stabilizes. Use for emphasis beats on ch3.
 
 PRIMITIVE SELECTION BY BEAT TYPE (follow these unless channelId overrides):
-- sectionKey="hook": prefer "GlassCard" — big bold entry, spring scale-in from 0.84→1
-- sectionKey="context": prefer "GlassCard" or "Typewriter"
-- sectionKey="beat_X" with visual.kind="stat": use "ProgressBar" if stat_value is a percentage, else "GlassCard" with the number as primary
+- sectionKey="hook": prefer "GlassCard" or "TextKinetic" — big bold spring entry. Or "ClassifiedStamp" for ch3, "CinematicDocumentary" for ch5.
+- sectionKey="context": "GlassCard", "Typewriter", or "LayoutFullscreenType"
+- sectionKey="beat_X" with visual.kind="stat" and percentage: "ProgressBar" or "ShapeCircularProgress" or "DataGauge"
+- sectionKey="beat_X" with visual.kind="stat" and large number: "LayoutGiantNumber" or "TextCounter" or "GlassCard"
 - sectionKey="beat_X" with visual.kind="person": resolvedAsset handles rendering — primitive is backup, use "GlassCard"
-- sectionKey="beat_X" with visual.kind="place": resolvedAsset handles rendering — use "GlassCard"
-- sectionKey="beat_X" with visual.kind="celestial": "CelestialBody" (ch6 only), else "GlassCard"
-- sectionKey="beat_X" with visual.kind="anatomy": "ThreeBrain" (ch4 only), else "GlassCard"
-- sectionKey="beat_X" with visual.kind="chart": "CandlestickChart" (ch2 only), "BarChart" for others
-- sectionKey="beat_X" with visual.kind="typography" or "none": "Typewriter" or "WordCarousel"
-- sectionKey="twist": "Typewriter" — the twist is a reveal, build it character by character
-- sectionKey="outro": "WordCarousel" or "GlassCard"
+- sectionKey="beat_X" with visual.kind="place": resolvedAsset handles rendering — use "CinematicDocumentary" or "GlassCard"
+- sectionKey="beat_X" with visual.kind="celestial": "CelestialBody" (ch6), "ShapeSpinningRings" or "BackgroundAurora" (others)
+- sectionKey="beat_X" with visual.kind="anatomy": "ThreeBrain" (ch4), else "AnimatedIcon" with brain-idea
+- sectionKey="beat_X" with visual.kind="chart": "CandlestickChart" (ch2), "BarChart" or "DataLineChart" (others)
+- sectionKey="beat_X" with visual.kind="typography" or "none": "TextKinetic", "Typewriter", or "WordCarousel"
+- sectionKey="twist": "Typewriter" or "TextMaskReveal" — the twist is a reveal, wipe or type it in
+- sectionKey="outro": "WordCarousel", "TextGradient", or "GlassCard"
 
 TYPOGRAPHY RULES for the typography[] array:
-- "primary" role: the emphasis_keyword or the main stat value — large, accent-colored, font="accent"
-- "body" role: a shortened version of narration (max 12 words) — smaller, white/muted, font="body"
-- "label" role: channel name or category — smallest, letter-spaced, uppercase, muted opacity
-- sizePx guidance: primary=96-140 (hooks), 72-96 (body beats), body=40-52, label=32-40
-- Never put the full narration as primary — that's what captions are for. Primary is ONE concept."""
+- "primary" role: the ONE key concept for this beat — the emphasis_keyword, a stat number, or the
+  central entity name. Large, accent-colored, font="accent". This is the visual headline.
+  Max 3 words. For stats: just the number ('4.6 billion' not 'Earth is 4.6 billion years old').
+  For people: just the name ('Einstein' not 'Albert Einstein discovered relativity').
+- "body" role: max 8 words from the narration restated as a visual phrase — smaller, white/muted,
+  font="body". NOT the full narration sentence. A fragment that reinforces the primary.
+- "label" role: a SHORT supporting unit or source — max 4 words, fact-based, beat-specific.
+  Examples: "per second", "NASA, 2023", "Harvard study", "prefrontal cortex", "1963".
+  NEVER: channel name, channel ID, CTA phrases, outro text, generic labels like "space facts".
+  Omit entirely if nothing meaningful applies.
+- sizePx: primary=96-140px (hook beats), 72-96px (body beats). body=40-52px. label=32-40px.
+- Never put the full narration as primary — captions handle that. Primary is ONE concept only."""
 
 
 def _build_user_prompt(beat: dict, channel_cfg: dict, recent_grids: list, asset_meta: dict | None) -> str:

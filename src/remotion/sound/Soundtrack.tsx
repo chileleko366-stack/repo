@@ -1,7 +1,7 @@
 /**
  * Soundtrack — per-channel music bed.
  *
- * Plays a looping music track for the full 35s video (1050 frames).
+ * Plays a looping music track for the full 35s video (VIDEO_FRAMES = 2100 at 60fps).
  * Volume fades in over the first 30 frames and out over the last 30 frames
  * so it does not clash with the voiceover.
  *
@@ -20,10 +20,11 @@
 import React from 'react';
 import { Audio, interpolate, staticFile, useCurrentFrame } from 'remotion';
 import type { ChannelId } from '../../pipeline/types';
+import { VIDEO_FRAMES } from '../../pipeline/types';
 
 const FADE_IN_FRAMES  = 30;
 const FADE_OUT_FRAMES = 30;
-const TOTAL_FRAMES    = 1050;
+const TOTAL_FRAMES    = VIDEO_FRAMES;
 
 export const Soundtrack: React.FC<{
   channelId: ChannelId;

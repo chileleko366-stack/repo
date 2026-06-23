@@ -26,9 +26,13 @@ import { SfxLayer } from '../../sound/SfxLayer';
 import { Soundtrack } from '../../sound/Soundtrack';
 import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
 import type { TimedBeat } from '../../transitions/BeatCompositor';
+import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { DocumentaryQuote } from './DocumentaryQuote';
 import { FilmGrain } from './FilmGrain';
 import { HardCutFlash } from './HardCutFlash';
+import { HistoricalArtifact3D } from './HistoricalArtifact3D';
+import { PeriodObject3D } from './PeriodObject3D';
+import type { PeriodVariant } from './PeriodObject3D';
 
 const CFG = CHANNEL_CONFIGS.ch5;
 
@@ -94,7 +98,14 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
   const { visual, emphasis_keyword, resolvedAsset, bg_color, audioPath, shotBrief } = beat;
   const kind     = visual.kind;
   const bg       = bg_color || CFG.colors.bgPrimary;
-  const hasAsset = !!resolvedAsset;
+  const hasAsset = (() => {
+    if (!resolvedAsset) return false;
+    const a = resolvedAsset as unknown as Record<string, unknown>;
+    if ('path' in a) return a.path != null;
+    if ('svgString' in a) return true;
+    if ('map_image' in a) return true;
+    return false;
+  })();
   const hasShotBrief = !!shotBrief;
 
   const isFullscreen =
@@ -119,7 +130,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
           position: 'absolute',
           inset: 0,
           background:
-            'radial-gradient(ellipse at center, transparent 40%, rgba(255,255,255,0.55) 100%)',
+            'radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%)',
           pointerEvents: 'none',
         }}
       />
@@ -132,11 +143,22 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
             bottom: 0, left: 0, right: 0,
             height: 640,
             background:
-              'linear-gradient(to top, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.35) 65%, transparent 100%)',
+              'linear-gradient(to top, rgba(16,13,8,0.92) 0%, rgba(16,13,8,0.25) 65%, transparent 100%)',
             pointerEvents: 'none',
           }}
         />
       )}
+
+      {/* 3D artifact for non-asset, non-shotbrief beats */}
+      {!isFullscreen && !hasShotBrief && (() => {
+        const sk = beat.sectionKey ?? '';
+        if (sk === 'hook') return <HistoricalArtifact3D variant="nefertiti" />;
+        if (sk === 'context') return <HistoricalArtifact3D variant="helmet" />;
+        const beatNum = sk.startsWith('beat_') ? parseInt(sk.replace('beat_', ''), 10) : 0;
+        const BEAT_VARIANTS: PeriodVariant[] = ['candle', 'lantern', 'soldier', 'boombox', 'truck'];
+        const variant = BEAT_VARIANTS[beatNum % BEAT_VARIANTS.length];
+        return <PeriodObject3D variant={variant} />;
+      })()}
 
       {/* ShotBrief-driven layout */}
       {hasShotBrief && (
@@ -179,6 +201,15 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
           <AssetNarration text={beat.narration} emphasisWord={emphasis_keyword} />
         </div>
       )}
+
+      {/* Mograph kinetic text: emphasis keyword + supporting words */}
+      <KineticTextLayer
+        beat={beat}
+        accentColor={CFG.colors.accent1}
+        accentFont={CFG.accentFont}
+        bodyFont={CFG.bodyFont}
+        durationFrames={durationFrames}
+      />
 
       {audioPath ? <Audio src={toStatic(audioPath)} volume={1} /> : null}
 
@@ -223,7 +254,7 @@ export const Ch5Composition: React.FC<{ manifest: VideoManifest }> = ({ manifest
       {wordBoundaries && (
         <CaptionTrack
           wordBoundariesByBeat={wordBoundaries}
-          beats={beats}
+          beats={timedBeats}
           channelId="ch5"
           accentColor={CFG.colors.accent1}
           accentFont={CFG.accentFont}

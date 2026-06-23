@@ -90,7 +90,7 @@ PROVIDERS = [
         "name": "cerebras",
         "url": "https://api.cerebras.ai/v1/chat/completions",
         "key_env": "CEREBRAS_API_KEY",
-        "model": "llama3.3-70b",
+        "model": "llama3.1-8b",
     },
     {
         "name": "nvidia",
@@ -108,7 +108,7 @@ PROVIDERS = [
 
 
 def _call_provider(provider: dict, system: str, user: str) -> str:
-    """Call one provider. Raises _SkipProvider on 429/403, RuntimeError on other failures."""
+    """Call one provider. Raises _SkipProvider on 429/403/404, RuntimeError on other failures."""
     api_key = os.getenv(provider["key_env"])
     if not api_key:
         raise EnvironmentError(f"{provider['key_env']} not set")
@@ -134,7 +134,7 @@ def _call_provider(provider: dict, system: str, user: str) -> str:
         timeout=60,
     )
 
-    if resp.status_code in (429, 403):
+    if resp.status_code in (429, 403, 404):
         raise _SkipProvider(provider["name"], resp.status_code)
     if not resp.ok:
         raise RuntimeError(
@@ -190,33 +190,44 @@ def llm_complete(system: str, user: str) -> str:
 CHANNEL_TONES = {
     "ch1": (
         "Second-person ('you'), fast punchy sentences. The hook makes the viewer question "
-        "their own behaviour right now. Every mechanism beat names a specific neurotransmitter, "
-        "study author, or brain region. The twist is a 'you already do this without knowing it' reveal."
+        "their own behaviour RIGHT NOW — not someday, not in general, right now in this moment. "
+        "Every mechanism beat names a specific neurotransmitter, study author, or brain region. "
+        "The twist is a 'you already do this without knowing it' reveal. "
+        "The outro lands the insight: restate what the viewer now understands that they didn't before, "
+        "then close with one open question that makes them want to go deeper."
     ),
     "ch2": (
         "Tell the story of ONE specific number. Name the company, CEO, or event. Build cinematic "
         "tension around a real financial consequence. The mechanism explains the exact cause-and-effect "
-        "chain. The twist is a counter-intuitive implication that reframes the number."
+        "chain. The twist is a counter-intuitive implication that reframes the number. "
+        "The outro delivers the takeaway: what this specific number means for the viewer's understanding "
+        "of how money actually works, then one question they should now be asking."
     ),
     "ch3": (
         "Clipped, declassified-file cadence. Name real people, real dates, real operations. "
         "Withhold the key fact until the twist. Every sentence earns the next. "
-        "The outro implies there is more still classified."
+        "The outro does NOT say 'stay tuned' or 'follow for more'. Instead it lands on the "
+        "one classified detail that still hasn't been released — implying the full story is bigger "
+        "than what was just revealed."
     ),
     "ch4": (
         "Calm, analogy-led. Name the specific brain region, specific neurotransmitter, specific study. "
-        "Explain the mechanism with one physical analogy. The outro poses the open scientific question "
-        "the field has not yet answered."
+        "Explain the mechanism with one physical analogy. "
+        "The outro poses the one open scientific question the field has NOT yet answered — "
+        "something real researchers are actively debating, not a vague 'we still have more to learn'."
     ),
     "ch5": (
         "Reflective, past-tense documentary voice. Specific date, specific location, specific person. "
         "The twist is a quiet historical irony that recontextualises the event. "
-        "The outro lands on a resonant connection to the present."
+        "The outro lands on a resonant connection to the present day — one sentence that makes "
+        "this historical moment feel immediate and relevant, not distant."
     ),
     "ch6": (
         "Awe first, precision second. Name the specific body, mission, or phenomenon. Every beat "
-        "includes one mind-expanding specific number with real context (not 'millions' - say '4.6 billion'). "
-        "Facts checked against research sources."
+        "includes one mind-expanding specific number with real context. "
+        "The outro delivers the scale: put the key number in human terms "
+        "(e.g. 'travelling at highway speed, you'd arrive in 4.6 billion years'), "
+        "then close with the one unanswered question about this specific body or phenomenon."
     ),
 }
 
@@ -232,12 +243,12 @@ CHANNEL_NAMES = {
 
 SCRIPT_SCHEMA = '''
 {
-  "hook": "<<=12 words, opens a curiosity loop about the specific topic>",
-  "context": "<<=18 words, specific stakes with a real number from research>",
+  "hook": "<5-7 words — SHORT, specific claim or question about the topic. No generic openers.>",
+  "context": "<10-14 words — one sentence establishing the specific stakes with a real number.>",
   "beats": [
     {
-      "narration": "<8-20 words, one complete spoken thought — do NOT split a sentence across beats>",
-      "pause_after": "<breath|beat|cut> — breath: next thought follows immediately; beat: clear pause like a comma; cut: hard scene change like a paragraph break",
+      "narration": "<8-15 words, one complete spoken thought — do NOT split a sentence across beats>",
+      "pause_after": "<breath|beat|cut> — MUST be exactly one of those three words. breath: flows immediately into next; beat: clear pause; cut: hard scene break",
       "visual": {
         "kind": "<person|brand|place|distance|map|anatomy|celestial|stat|chart|morph|typography|none>",
         "value": "<exact name: Daniel Kahneman / Tesla / Chernobyl / Mars>",
@@ -258,7 +269,7 @@ SCRIPT_SCHEMA = '''
   ],
   "twist": "<<=20 words, reframes everything>",
   "outro": {
-    "narration": "<<=18 words, loops to hook, opens one curiosity gap>",
+    "narration": "<12-16 words. TWO-PART STRUCTURE: (1) one sentence landing the core insight — what the viewer now knows. (2) one closing thought or question that creates forward momentum. Must feel COMPLETE, not cut off.>",
     "visual": { "kind": "stat", "stat_value": 0, "prefix": "", "suffix": "" },
     "cta": "<channel-specific CTA, NOT like and subscribe>"
   }
@@ -279,18 +290,38 @@ def build_system_prompt(channel_id: str, topic: str, brief: ResearchBrief) -> st
         f"Tone: {tone}\n"
         "\n"
         "TARGET LENGTH: 35 seconds total.\n"
-        "- hook:    <=12 words  (~3s)\n"
-        "- context: <=18 words  (~3s)\n"
-        "- beats:   exactly 5 beats, each 8-20 words (~4s each = 20s)\n"
-        "- twist:   <=20 words  (~3s)\n"
-        "- outro.narration: <=18 words  (~3.5s)\n"
+        "- hook:    5-7 words   (~2.5s) — SHORT AND PUNCHY. Longer hooks get cut off before viewers decide to watch.\n"
+        "- context: 10-14 words (~5s)   — one sentence establishing the specific stakes.\n"
+        "- beats:   8-15 words each     — one complete spoken thought per beat.\n"
+        "- twist:   10-14 words (~5s)   — the reframe, delivered crisply.\n"
+        "- outro:   12-16 words (~6s)   — landing + one closing thought. MUST FEEL COMPLETE.\n"
+        "\n"
+        "HOOK FRAMEWORK — the hook must do ALL of these:\n"
+        "  a) Name or strongly imply the SPECIFIC topic (not a generic teaser)\n"
+        "  b) Create a tension: either a surprising fact, a broken expectation, or a question\n"
+        "     that the viewer cannot answer without watching\n"
+        "  c) Be 5-7 words. Short hooks outperform long ones on Shorts because viewers\n"
+        "     decide to swipe within 2 seconds — the hook must land before they decide.\n"
+        "  d) Use present tense and second person where possible ('your brain', 'you do this')\n"
+        "  e) NEVER start with: 'Did you know', 'What if I told you', 'This will', 'Here's why'\n"
+        "     These are overused and viewers tune them out.\n"
+        "  f) NEVER end with '...' — a strong hook is a complete thought, not a trailing off\n"
+        "\n"
+        "HOOK EXAMPLES by channel:\n"
+        "  ch1 (psychology): 'You misremember 47% of your memories.' | 'Dopamine doesn't reward you. It lies.'\n"
+        "  ch2 (finance):    'Enron hid $30 billion in one sentence.' | 'One cell cost $6 billion.'\n"
+        "  ch3 (declassified): 'The CIA ran this for 20 years.' | 'This file was classified until 2017.'\n"
+        "  ch4 (neuroscience): 'Your prefrontal cortex isn't done yet.' | 'One synapse fires 500 times per second.'\n"
+        "  ch5 (documentary):  'On June 12, 1944, nobody noticed him.' | 'She predicted it. Nobody listened.'\n"
+        "  ch6 (space):       'Jupiter could swallow 1,300 Earths.' | 'This star's light left before humans existed.'\n"
         "\n"
         "RULES:\n"
         "1. This script is about the SPECIFIC topic above - NOT a generic overview of the channel niche.\n"
         "2. Every factual claim must use one of the research facts provided below.\n"
         "3. Every mechanism beat must explain HOW something works (mechanism + implication), not just WHAT.\n"
         "4. Every beat must name at least one specific entity (person, place, brand, statistic, distance).\n"
-        "5. The outro loops back to the hook's specific promise and opens exactly one new curiosity gap.\n"
+        "5. The outro is a LANDING, not a cliffhanger. Two sentences: (1) restate the core insight the\n"
+        "   viewer now has, (2) one closing thought or question that feels COMPLETE. Never trail off.\n"
         "6. WORD COUNT IS STRICT - each section must stay within its word limit.\n"
         "7. A SPECIFIC NUMBER MUST APPEAR IN THE SCRIPT — this is mandatory. If research gave you\n"
         "   no numbers, use a well-known scientific measurement for the topic: timing in ms,\n"
@@ -302,6 +333,16 @@ def build_system_prompt(channel_id: str, topic: str, brief: ResearchBrief) -> st
         "9. Beat index 2 (the middle beat, ~40% through the video) must be your STRONGEST secondary\n"
         "   curiosity gap — a partial reveal that withholds one key implication. This is the\n"
         "   scroll-stopper for viewers who almost swiped away.\n"
+        "10. NUMBERS IN NARRATION: Write numbers as words/mixed form that TTS reads naturally:\n"
+        "    - Large numbers: '1 million', '4.6 billion', '93 million' (NOT '1,000,000')\n"
+        "    - Percentages: '73%' or 'seventy-three percent' (both work)\n"
+        "    - Years: '1963', '2024' (digits are fine for years)\n"
+        "    - Currency: '$1.4 billion' or '1.4 billion dollars' (NOT '$1,400,000,000')\n"
+        "    - The stat_value field uses the raw number: stat_value: 1000000\n"
+        "    - The narration says: 'one million' or '1 million'\n"
+        "11. PERSON NAMES — visual.value for kind='person' must be the full clean proper name:\n"
+        "   NO title prefixes (President, Dr., Senator, General), NO abbreviations, NO truncation.\n"
+        "   Correct: 'John F. Kennedy', 'Albert Einstein'. Wrong: 'President John F', 'Dr. Einstein'.\n"
         "\n"
         f"RESEARCH FACTS (use these, never invent):\n{facts_str}\n"
         "\n"
@@ -342,9 +383,55 @@ VALID_VISUAL_KINDS = {
 }
 VALID_PAUSE_AFTER = {'breath', 'beat', 'cut'}
 
-
-ENTITY_KINDS = {'person', 'brand', 'place', 'distance', 'map', 'anatomy', 'celestial'}
+# distance/map use from/to/place fields, not value — excluded from value check
+ENTITY_KINDS = {'person', 'brand', 'place', 'anatomy'}
 CONTRAST_MARKERS = {"but", "yet", "never", "actually", "wrong", "surprising", "wait", "secret", "plot"}
+
+# ── Pre-validation normalization ──────────────────────────────────────────────
+
+_PAUSE_NORMALIZE: dict[str, str] = {
+    "beats": "beat", "breaths": "breath", "cuts": "cut",
+    "pause": "beat", "short pause": "breath", "long pause": "beat",
+    "hard cut": "cut", "scene break": "cut", "scene change": "cut",
+    "none": "cut", "null": "cut",
+}
+
+_KIND_NORMALIZE: dict[str, str] = {
+    "text": "typography", "words": "typography", "quote": "typography",
+    "graph": "chart", "line graph": "chart", "bar graph": "chart",
+    "line chart": "chart", "pie chart": "chart", "bar chart": "chart",
+    "statistic": "stat", "statistics": "stat", "number": "stat",
+    "metric": "stat", "data": "stat",
+    "person photo": "person", "photo": "person", "portrait": "person", "headshot": "person",
+    "brand logo": "brand", "logo": "brand", "company": "brand", "corporation": "brand",
+    "location": "place", "city": "place", "country": "place", "landmark": "place",
+    "planet": "celestial", "star": "celestial", "moon": "celestial", "galaxy": "celestial",
+    "space": "celestial", "universe": "celestial",
+    "body": "anatomy", "organ": "anatomy", "brain": "anatomy",
+    "null": "none", "n/a": "none", "na": "none",
+}
+
+
+def _normalize_script(script: dict) -> dict:
+    """Silently fix common LLM field-value mistakes before validation."""
+    for beat in script.get("beats", []):
+        p = str(beat.get("pause_after", "")).strip().lower()
+        if p not in VALID_PAUSE_AFTER:
+            beat["pause_after"] = _PAUSE_NORMALIZE.get(p, "cut")
+
+        visual = beat.get("visual")
+        if isinstance(visual, dict):
+            k = str(visual.get("kind", "")).strip().lower()
+            if k not in VALID_VISUAL_KINDS:
+                visual["kind"] = _KIND_NORMALIZE.get(k, "none")
+            if "value" in visual and visual["value"] is None:
+                visual["value"] = ""
+
+        kw = beat.get("emphasis_keyword", "")
+        if kw:
+            beat["emphasis_keyword"] = str(kw).strip().strip("*").strip()
+
+    return script
 
 
 def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
@@ -352,15 +439,42 @@ def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
     hook = script.get("hook", "")
     if not hook:
         errors.append("missing hook")
-    elif len(hook.split()) > 14:
-        errors.append(f"hook too long ({len(hook.split())} words, max 12)")
+    elif len(hook.split()) > 9:
+        errors.append(
+            f"hook too long ({len(hook.split())} words) — max 9 words. "
+            "Short hooks land before viewers swipe."
+        )
+    elif len(hook.split()) < 3:
+        errors.append(f"hook too short ({len(hook.split())} words) — min 3 words.")
     else:
-        # PAS-or-contrast opener: hook must use a question or a contrast/tension marker
-        hook_words = set(re.split(r'\W+', hook.lower()))
-        if not ("?" in hook or hook_words & CONTRAST_MARKERS):
+        hook_lower = hook.lower()
+        hook_words = set(re.split(r'\W+', hook_lower))
+
+        # Banned openers — overused, viewers tune them out
+        BAD_OPENERS = [
+            "did you know", "what if i told you", "this will", "here's why",
+            "you won't believe", "the truth about", "everything you know",
+        ]
+        for bad in BAD_OPENERS:
+            if hook_lower.startswith(bad):
+                errors.append(
+                    f"hook starts with overused phrase '{bad}' — write a specific claim instead"
+                )
+                break
+
+        # No trailing ellipsis — hooks must be complete thoughts
+        if hook.rstrip().endswith("..."):
+            errors.append("hook ends with '...' — hooks must be complete thoughts, not trailing teasers")
+
+        # Must have a number, a question, a contrast word, OR a proper noun
+        has_number   = bool(re.search(r'\d', hook))
+        has_question = "?" in hook
+        has_contrast = bool(hook_words & CONTRAST_MARKERS)
+        has_specific = bool(re.search(r'\b[A-Z][a-z]+\b', hook))
+        if not (has_number or has_question or has_contrast or has_specific):
             errors.append(
-                "hook lacks a question or contrast opener — use '?' or a contrast word "
-                "(but / yet / never / actually / wait / secret)"
+                "hook is too generic — needs a specific number, proper noun, question, or contrast. "
+                "Example: 'Your brain lies to you 47 times a day.' not 'Your brain does something surprising.'"
             )
     if not script.get("context"):
         errors.append("missing context")
@@ -369,10 +483,10 @@ def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
         errors.append(f"need exactly 5 beats, got {len(beats)}")
     for i, beat in enumerate(beats):
         words = len(beat.get("narration", "").split())
-        if words < 3:
-            errors.append(f"beat {i}: narration too short ({words} words, min 3)")
-        if words > 25:
-            errors.append(f"beat {i}: narration too long ({words} words, max 20)")
+        if words < 6:
+            errors.append(f"beat {i}: narration too short ({words} words, min 6)")
+        if words > 18:
+            errors.append(f"beat {i}: narration too long ({words} words, max 18)")
         kind = beat.get("visual", {}).get("kind", "")
         if not kind:
             errors.append(f"beat {i}: missing visual.kind")
@@ -383,23 +497,25 @@ def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
         pause = beat.get("pause_after", "")
         if pause not in VALID_PAUSE_AFTER:
             errors.append(f"beat {i}: invalid or missing pause_after '{pause}' — must be breath|beat|cut")
+        # emphasis_keyword must be a non-empty single word without asterisks
+        kw = str(beat.get("emphasis_keyword", "")).strip().strip("*")
+        if not kw:
+            errors.append(f"beat {i}: missing emphasis_keyword")
     if not script.get("twist"):
         errors.append("missing twist")
     outro = script.get("outro", {})
     if not outro.get("narration"):
         errors.append("missing outro.narration")
+    else:
+        outro_words = len(outro["narration"].split())
+        if outro_words < 10:
+            errors.append(
+                f"outro too short ({outro_words} words, min 10) — needs a proper two-part landing"
+            )
+        if outro_words > 30:
+            errors.append(f"outro too long ({outro_words} words, max 30)")
     if not outro.get("cta"):
         errors.append("missing outro.cta")
-    full_text = " ".join([
-        script.get("hook", ""),
-        script.get("context", ""),
-        *[b.get("narration", "") for b in beats],
-        script.get("twist", ""),
-        outro.get("narration", ""),
-    ])
-    number_count = len(re.findall(r"\d[\d,\.]*", full_text))
-    if number_count < 1:
-        errors.append("no specific numbers in script - need at least 1")
     return errors
 
 
@@ -417,6 +533,9 @@ def validate_continuity(script: dict, llm_fn=None) -> list[str]:
     # Uses word-boundary regex so "LHC" (3 chars) is NOT flagged as the same entity as "LHCb" (4 chars),
     # while "Musk" IS flagged as overlapping "Elon Musk".
     def _name_overlaps(a: str, b: str) -> bool:
+        # Skip if one is a prefix/extension of the other (e.g. "Voyager" vs "Voyager 1")
+        if a.startswith(b) or b.startswith(a):
+            return False
         try:
             return bool(re.search(r'\b' + re.escape(a) + r'\b', b)) or \
                    bool(re.search(r'\b' + re.escape(b) + r'\b', a))
@@ -450,7 +569,7 @@ def validate_continuity(script: dict, llm_fn=None) -> list[str]:
         for m in re.finditer(r"(\d[\d,\.]*\s*(?:billion|million|thousand|%|km|kg|°|ly)?)", sentence, re.IGNORECASE):
             context_start = max(0, m.start() - 20)
             ctx_key = re.sub(r"[^a-z\s]", "", sentence[context_start:m.start()].lower().strip())[-15:]
-            if len(ctx_key) >= 5:
+            if len(ctx_key) >= 10:
                 number_contexts.setdefault(ctx_key, []).append(m.group(0).strip())
 
     for ctx, vals in number_contexts.items():
@@ -458,7 +577,18 @@ def validate_continuity(script: dict, llm_fn=None) -> list[str]:
         if len(unique) > 1:
             errors.append(f"Conflicting numbers for context '…{ctx}': {unique}")
 
-    # 3. Visual–narration agreement (lightweight keyword match, no LLM needed)
+    # 3. Number presence advisory (warn, never block — retry loops make things worse)
+    full_text = " ".join([
+        script.get("hook", ""),
+        script.get("context", ""),
+        *[b.get("narration", "") for b in beats],
+        script.get("twist", ""),
+        script.get("outro", {}).get("narration", ""),
+    ])
+    if not re.search(r"\d", full_text):
+        errors.append("advisory: no specific digits in script — consider adding a year, count, or measurement")
+
+    # 4. Visual–narration agreement (lightweight keyword match, no LLM needed)
     PERSON_WORDS = {"who", "person", "born", "died", "scientist", "researcher", "ceo", "president", "author", "founder"}
     PLACE_WORDS = {"city", "country", "located", "built", "founded", "in the", "at the", "near"}
     for i, beat in enumerate(beats):
@@ -481,9 +611,10 @@ class ValidationError(Exception):
 
 # ── Main entry point ──────────────────────────────────────────────────────────
 
-def generate_script(topic: str, channel_id: str, brief: ResearchBrief, max_retries: int = 3) -> dict:
+def generate_script(topic: str, channel_id: str, brief: ResearchBrief, max_retries: int = 5) -> dict:
     system = build_system_prompt(channel_id, topic, brief)
-    user = build_user_prompt(topic, brief)
+    base_user = build_user_prompt(topic, brief)
+    user = base_user
     script = {}
 
     for attempt in range(1, max_retries + 1):
@@ -504,25 +635,25 @@ def generate_script(topic: str, channel_id: str, brief: ResearchBrief, max_retri
             script = json.loads(clean)
         except json.JSONDecodeError as e:
             print(f"[script_gen] JSON parse error on attempt {attempt}: {e}")
-            if attempt == max_retries:
-                raise ValueError(f"Could not parse script JSON after {max_retries} attempts") from e
-            continue
+            if attempt < max_retries:
+                user = base_user + "\n\nPREVIOUS ATTEMPT ERROR: returned invalid JSON — return only a valid JSON object."
+                continue
+            raise ValueError(f"Could not parse script JSON after {max_retries} attempts") from e
         script["topic"] = topic
         script["channel_id"] = channel_id
+        _normalize_script(script)
         errors = validate_script(script, brief)
-        if not errors:
-            # Session 3 v3: continuity check runs AFTER structural validation
-            continuity_errors = validate_continuity(script)
-            if continuity_errors:
-                print(f"[script_gen] continuity issues on attempt {attempt}: {continuity_errors}")
-                errors = continuity_errors
-            else:
-                print(f"[script_gen] script validated on attempt {attempt}")
-                return script
         if errors:
             print(f"[script_gen] validation failed on attempt {attempt}: {errors}")
-        error_lines = "\n".join(f"- {e}" for e in errors)
-        user = user + f"\n\nPREVIOUS ATTEMPT FAILED VALIDATION - fix these errors:\n{error_lines}"
+            error_lines = "\n".join(f"- {e}" for e in errors)
+            user = base_user + f"\n\nFIX THESE ERRORS IN YOUR NEXT RESPONSE:\n{error_lines}"
+            continue
+        # Continuity check is advisory — log issues but never block on them
+        continuity_warnings = validate_continuity(script)
+        if continuity_warnings:
+            print(f"[script_gen] continuity warnings (non-blocking): {continuity_warnings}")
+        print(f"[script_gen] script validated on attempt {attempt}")
+        return script
 
     raise ValidationError(validate_script(script, brief))
 

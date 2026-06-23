@@ -39,7 +39,9 @@ ASSET_BEAT_KINDS = {"person", "brand", "product", "place", "distance",
 
 
 def captions_visible(beat_kind: str) -> bool:
-    return beat_kind not in ASSET_BEAT_KINDS
+    # Always show captions — even over photos/planets. Asset beats need captions most:
+    # the viewer sees the image AND hears/reads the narration simultaneously.
+    return True
 
 
 # ── Channel config loader ─────────────────────────────────────────────────────
@@ -228,6 +230,8 @@ _CHANNEL_BG = {
 
 def _channel_bg(channel_id: str) -> str:
     return _CHANNEL_BG.get(channel_id, "#0d0d0d")
+
+
 
 
 def _first_noun(text: str) -> str:

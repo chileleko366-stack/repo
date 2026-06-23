@@ -4,17 +4,16 @@
  * Usage:
  *   <CaptionTrack
  *     wordBoundariesByBeat={...}
- *     beats={manifest.beats}
+ *     beats={timedBeats}
  *     channelId="ch1"
  *   />
  *
  * Rules (hardcoded, no exceptions):
- * - Captions HIDDEN on beats where captionsVisible === false
- *   (person / brand / place / map / anatomy / celestial)
- * - Captions RESUME only after the beat's own durationFrames ends
- * - One page per ~1200ms of narration (combineTokensWithinMilliseconds)
- * - Active word: spring scale 1.0→1.12, accent colour, accent font
- * - Page entrance: spring translateY +28→0, damping 14, stiffness 240
+ * - Captions ALWAYS shown (captionsVisible is always true from manifest_builder)
+ * - Timing derived from cumulative audioFrames (actual TTS duration), not static startFrame
+ * - One page per ~400ms of narration (word-by-word)
+ * - Active word: spring scale 1.0→1.18, accent colour, accent font
+ * - Page entrance: spring translateY +20→0, damping 14, stiffness 240
  *
  * Word boundaries JSON format (public/audio/{beatId}_words.json):
  *   [ { word, startMs, durationMs, endMs }, ... ]
@@ -34,11 +33,11 @@ import {
   createTikTokStyleCaptions,
   type Caption,
 } from '@remotion/captions';
-import type { ManifestBeat } from '../../pipeline/types';
+import type { TimedBeat } from '../transitions/BeatCompositor';
 import { CaptionPage } from './CaptionPage';
 
-// How many ms of narration to group into one caption page
-const COMBINE_WITHIN_MS = 1200;
+// Word-by-word: one page per 400ms
+const COMBINE_WITHIN_MS = 400;
 
 export interface WordBoundary {
   word: string;
@@ -50,7 +49,7 @@ export interface WordBoundary {
 export interface CaptionTrackProps {
   /** beatId → word boundaries array */
   wordBoundariesByBeat: Record<string, WordBoundary[]>;
-  beats: ManifestBeat[];
+  beats: TimedBeat[];
   channelId: string;
   accentColor: string;
   accentFont: string;
@@ -67,27 +66,29 @@ export const CaptionTrack: React.FC<CaptionTrackProps> = ({
 }) => {
   const { fps } = useVideoConfig();
 
-  // Build flat Caption[] for the whole video, skipping hidden beats
+  // Build flat Caption[] using cumulative audioFrames for accurate timing
   const allCaptions = useMemo<Caption[]>(() => {
     const out: Caption[] = [];
+    let cumulativeFrames = 0;
     for (const beat of beats) {
-      if (!beat.captionsVisible) continue;
-      const wbs = wordBoundariesByBeat[beat.beatId];
-      if (!wbs || wbs.length === 0) continue;
-
-      const beatStartMs = Math.round((beat.startFrame / fps) * 1000);
-      for (let i = 0; i < wbs.length; i++) {
-        const wb = wbs[i];
-        // Prepend space on every word after the first within a beat
-        const text = i === 0 ? wb.word : ` ${wb.word}`;
-        out.push({
-          text,
-          startMs: beatStartMs + wb.startMs,
-          endMs: beatStartMs + wb.endMs,
-          timestampMs: beatStartMs + wb.startMs,
-          confidence: 1,
-        });
+      const beatStartMs = Math.round((cumulativeFrames / fps) * 1000);
+      if (beat.captionsVisible !== false) {
+        const wbs = wordBoundariesByBeat[beat.beatId];
+        if (wbs && wbs.length > 0) {
+          for (let i = 0; i < wbs.length; i++) {
+            const wb = wbs[i];
+            const text = i === 0 ? wb.word : ` ${wb.word}`;
+            out.push({
+              text,
+              startMs: beatStartMs + wb.startMs,
+              endMs: beatStartMs + wb.endMs,
+              timestampMs: beatStartMs + wb.startMs,
+              confidence: 1,
+            });
+          }
+        }
       }
+      cumulativeFrames += beat.audioFrames;
     }
     return out;
   }, [wordBoundariesByBeat, beats, fps]);
@@ -132,7 +133,7 @@ export const CaptionTrack: React.FC<CaptionTrackProps> = ({
   );
 };
 
-// ── Animated page wrapper (spring entrance, ported from tiktok template) ─────
+// ── Animated page wrapper (spring entrance) ───────────────────────────────────
 
 const CaptionPageAnimated: React.FC<{
   page: ReturnType<typeof createTikTokStyleCaptions>['pages'][number];
@@ -143,8 +144,6 @@ const CaptionPageAnimated: React.FC<{
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // Spring entrance: 0→1 over first 6 frames of this Sequence
-  // frame is relative to the Sequence's from= because we're inside a <Sequence>
   const enterProgress = spring({
     frame,
     fps,

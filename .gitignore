@@ -1,6 +1,7 @@
 node_modules/
 .env
 out/
+build/
 
 # Python
 __pycache__/

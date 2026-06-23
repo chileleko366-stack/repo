@@ -94,7 +94,6 @@ export const PersonCard: React.FC<{
           transform: `scale(${scale}) translateX(${camX + idleX}px) translateY(${idleY}px)`,
           transformOrigin: 'center bottom',
           opacity,
-          isolation: accentColors ? 'isolate' : undefined,
         }}
       >
         <Img
@@ -104,34 +103,8 @@ export const PersonCard: React.FC<{
             maxWidth: 800,
             objectFit: 'contain',
             display: 'block',
-            filter: accentColors ? 'grayscale(1) contrast(1.05)' : undefined,
           }}
         />
-
-        {accentColors && (
-          <>
-            {/* Duotone shadow layer: accent2 tints the dark areas */}
-            <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                background: accentColors.secondary,
-                mixBlendMode: 'multiply',
-                opacity: 0.6,
-              }}
-            />
-            {/* Duotone highlight layer: accent1 tints the light areas */}
-            <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                background: accentColors.primary,
-                mixBlendMode: 'screen',
-                opacity: 0.4,
-              }}
-            />
-          </>
-        )}
       </div>
     </AbsoluteFill>
   );

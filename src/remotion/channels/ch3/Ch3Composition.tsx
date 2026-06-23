@@ -32,6 +32,10 @@ import { SfxLayer } from '../../sound/SfxLayer';
 import { Soundtrack } from '../../sound/Soundtrack';
 import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
 import type { TimedBeat } from '../../transitions/BeatCompositor';
+import { KineticTextLayer } from '../../mograph/KineticTextLayer';
+import { AntiqueCamera3D } from './AntiqueCamera3D';
+import { ClassifiedObject3D } from './ClassifiedObject3D';
+import type { ClassifiedVariant } from './ClassifiedObject3D';
 import { ClassifiedStamp } from './ClassifiedStamp';
 import { GlitchWord } from './GlitchWord';
 import { ScrambleReveal } from './ScrambleReveal';
@@ -48,7 +52,14 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
   const { visual, emphasis_keyword, resolvedAsset, bg_color, audioPath, shotBrief } = beat;
   const kind     = visual.kind;
   const bg       = bg_color || CFG.colors.bgPrimary;
-  const hasAsset     = !!resolvedAsset;
+  const hasAsset = (() => {
+    if (!resolvedAsset) return false;
+    const a = resolvedAsset as unknown as Record<string, unknown>;
+    if ('path' in a) return a.path != null;
+    if ('svgString' in a) return true;
+    if ('map_image' in a) return true;
+    return false;
+  })();
   const isFullscreen = hasAsset && kind !== 'none' && kind !== 'stat';
   const isHookCtx    = beat.sectionKey === 'hook' || beat.sectionKey === 'context';
   const isTwist      = beat.sectionKey === 'twist';
@@ -89,8 +100,20 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         />
       )}
 
+      {/* Antique camera for hook/context beats without an asset */}
+      {isHookCtx && !isFullscreen && <AntiqueCamera3D />}
+
+      {/* Classified objects for other non-asset, non-twist, non-shotbrief beats */}
+      {!isHookCtx && !isFullscreen && !isTwist && !hasShotBrief && (() => {
+        const sk = beat.sectionKey ?? '';
+        const beatNum = sk.startsWith('beat_') ? parseInt(sk.replace('beat_', ''), 10) : 0;
+        const BEAT_VARIANTS: ClassifiedVariant[] = ['soldier', 'lantern', 'skull', 'soldier', 'broken_window'];
+        const variant = BEAT_VARIANTS[beatNum % BEAT_VARIANTS.length];
+        return <ClassifiedObject3D variant={variant} />;
+      })()}
+
       {/* ShotBrief-driven layout */}
-      {hasShotBrief && (
+      {hasShotBrief && !isTwist && (
         <ShotBriefLayer
           beat={beat}
           accentColor={CFG.colors.accent1}
@@ -150,6 +173,15 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         }}
       />
 
+      {/* Mograph kinetic text: emphasis keyword + supporting words */}
+      <KineticTextLayer
+        beat={beat}
+        accentColor={CFG.colors.accent1}
+        accentFont={CFG.accentFont}
+        bodyFont={CFG.bodyFont}
+        durationFrames={durationFrames}
+      />
+
       {audioPath ? <Audio src={toStatic(audioPath)} volume={1} /> : null}
 
       {/* Red cut flash */}
@@ -190,7 +222,7 @@ export const Ch3Composition: React.FC<{ manifest: VideoManifest }> = ({
       {wordBoundaries && (
         <CaptionTrack
           wordBoundariesByBeat={wordBoundaries}
-          beats={beats}
+          beats={timedBeats}
           channelId="ch3"
           accentColor={CFG.colors.accent1}
           accentFont={CFG.accentFont}

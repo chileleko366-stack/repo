@@ -4,8 +4,7 @@
  * Layout per beat:
  *   ─ Background fill
  *   ─ AssetLayer      (full-screen for person/brand/place/map)
- *   ─ NeuronPulse     (anatomy beats — SVG neuron overlay)
- *   ─ ThreeBrain      (anatomy beats — 3-D wireframe brain)
+ *   ─ ThreeBrain      (anatomy beats — real BrainStem.glb 3D model)
  *   ─ Gradient scrim
  *   ─ Counter         (stat beats)
  *   ─ Narration text  (Fraunces italic for general, Anton for anatomy)
@@ -29,8 +28,10 @@ import { SfxLayer } from '../../sound/SfxLayer';
 import { Soundtrack } from '../../sound/Soundtrack';
 import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
 import type { TimedBeat } from '../../transitions/BeatCompositor';
+import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { HardCutFlash } from './HardCutFlash';
-import { NeuronPulse } from './NeuronPulse';
+import { NeuroObject3D } from './NeuroObject3D';
+import type { NeuroVariant } from './NeuroObject3D';
 import { ThreeBrain } from './ThreeBrain';
 
 const CFG = CHANNEL_CONFIGS.ch4;
@@ -103,7 +104,14 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
   const { visual, emphasis_keyword, resolvedAsset, bg_color, audioPath, shotBrief } = beat;
   const kind      = visual.kind;
   const bg        = bg_color || CFG.colors.bgPrimary;
-  const hasAsset  = !!resolvedAsset;
+  const hasAsset = (() => {
+    if (!resolvedAsset) return false;
+    const a = resolvedAsset as unknown as Record<string, unknown>;
+    if ('path' in a) return a.path != null;
+    if ('svgString' in a) return true;
+    if ('map_image' in a) return true;
+    return false;
+  })();
   const isAnatomy = kind === 'anatomy';
   const isStat    = kind === 'stat';
   const hasShotBrief = !!shotBrief;
@@ -124,13 +132,20 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         />
       )}
 
-      {/* Anatomy: SVG neuron + 3-D brain */}
-      {isAnatomy && (
-        <>
-          <NeuronPulse durationFrames={durationFrames} />
-          <ThreeBrain />
-        </>
-      )}
+      {/* Anatomy: 3-D brain */}
+      {isAnatomy && <ThreeBrain durationFrames={durationFrames} />}
+
+      {/* Neuro objects for non-anatomy, non-fullscreen, non-shotbrief beats */}
+      {!isAnatomy && !isFullscreen && !hasShotBrief && (() => {
+        const sk = beat.sectionKey ?? '';
+        const beatNum = sk.startsWith('beat_') ? parseInt(sk.replace('beat_', ''), 10) : 0;
+        const BEAT_VARIANTS: NeuroVariant[] = ['fish', 'crystal', 'skull', 'vase', 'mosquito'];
+        const variant: NeuroVariant =
+          sk === 'hook' ? 'spheres' :
+          sk === 'context' ? 'plant' :
+          BEAT_VARIANTS[beatNum % BEAT_VARIANTS.length];
+        return <NeuroObject3D variant={variant} />;
+      })()}
 
       {/* Gradient scrim */}
       {(isFullscreen || isAnatomy) && (
@@ -140,7 +155,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
             bottom: 0, left: 0, right: 0,
             height: 720,
             background:
-              'linear-gradient(to top, rgba(255,255,255,0.97) 0%, rgba(255,255,255,0.4) 60%, transparent 100%)',
+              'linear-gradient(to top, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.15) 45%, transparent 100%)',
             pointerEvents: 'none',
           }}
         />
@@ -154,6 +169,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
           bgColor={bg}
           bodyFont={CFG.bodyFont}
           accentFont={CFG.accentFont}
+          suppressPrimitive={isAnatomy}
         />
       )}
 
@@ -201,6 +217,15 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         </div>
       )}
 
+      {/* Mograph kinetic text: emphasis keyword + supporting words */}
+      <KineticTextLayer
+        beat={beat}
+        accentColor={CFG.colors.accent1}
+        accentFont={CFG.accentFont}
+        bodyFont={CFG.bodyFont}
+        durationFrames={durationFrames}
+      />
+
       {audioPath ? <Audio src={toStatic(audioPath)} volume={1} /> : null}
 
       <HardCutFlash color={CFG.colors.accent2} peakOpacity={0.35} />
@@ -241,7 +266,7 @@ export const Ch4Composition: React.FC<{ manifest: VideoManifest }> = ({ manifest
       {wordBoundaries && (
         <CaptionTrack
           wordBoundariesByBeat={wordBoundaries}
-          beats={beats}
+          beats={timedBeats}
           channelId="ch4"
           accentColor={CFG.colors.accent1}
           accentFont={CFG.accentFont}

@@ -23,6 +23,7 @@
  */
 
 import React from 'react';
+import { AbsoluteFill } from 'remotion';
 import type { ManifestBeat } from '../../pipeline/types';
 import type { ShotBrief } from '../../pipeline/shotBrief';
 import { AssetLayer } from '../assets/AssetLayer';
@@ -40,9 +41,45 @@ import {
   TypographicCard,
   AnimatedIcon,
   BarChart,
+  TextKinetic,
+  TextScramble,
+  TextWave,
+  TextMaskReveal,
+  TextGlitch,
+  TextNeon,
+  TextCounter,
+  TextGradient,
+  Text3DFlip,
+  DataLineChart,
+  DataGauge,
+  DataRanking,
+  DataTimeline,
+  DataStatsCards,
+  LayoutGiantNumber,
+  LayoutSplitContrast,
+  LayoutFullscreenType,
+  LayoutMultiColumn,
+  ShapeCircularProgress,
+  ShapeSpinningRings,
+  ParticleShootingStars,
+  ParticleSparks,
+  CinematicDocumentary,
+  CinematicNoir,
+  CinematicSciFi,
+  BackgroundAurora,
+  BackgroundGeometric,
+  EffectFilmGrain,
+  EffectLightLeak,
+  EffectVHS,
+  EffectGlow,
 } from './primitives';
 import type { IconName } from './primitives/AnimatedIcon';
 import type { BarData } from './primitives/BarChart';
+import type { LineChartPoint } from './primitives/DataLineChart';
+import type { RankItem } from './primitives/DataRanking';
+import type { TimelineEvent } from './primitives/DataTimeline';
+import type { StatCard } from './primitives/DataStatsCards';
+import type { ColumnData } from './primitives/LayoutMultiColumn';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -118,6 +155,36 @@ function FallbackCard({
   );
 }
 
+// ─── CSV helpers ─────────────────────────────────────────────────────────────
+
+function parseCsv(text: string): string[] {
+  return text.split(',').map(s => s.trim()).filter(Boolean);
+}
+
+function parseLabelValue(text: string, defaultVal: number): { label: string; value: number }[] {
+  return parseCsv(text).map((s, i) => {
+    const [lbl, val] = s.split(':');
+    return { label: lbl?.trim() ?? `Item ${i + 1}`, value: parseFloat(val ?? String(defaultVal)) || defaultVal };
+  });
+}
+
+// ─── Label sanitizer ─────────────────────────────────────────────────────────
+// Guards against the LLM putting channel names, CTAs, or outro text in the
+// label typography role. Returns undefined so the consumer's fallback fires.
+
+function sanitizeLabel(text: string | undefined): string | undefined {
+  if (!text) return undefined;
+  const t = text.trim();
+  // Reject long labels (label role is max 4 words per spec)
+  if (t.split(/\s+/).length > 5) return undefined;
+  const lower = t.toLowerCase();
+  // Reject channel name patterns
+  if (/^(ch[1-6]|dopamine\s*loop|financefiction|redacted|grey\s*matter|quiet\s*record|red\s*space)/i.test(lower)) return undefined;
+  // Reject CTA / outro language
+  if (/(follow|subscribe|like\s+and|comment|tap|share|still\s+holds|contradicting|are\s+you)/i.test(lower)) return undefined;
+  return t || undefined;
+}
+
 // ─── Primitive dispatcher ─────────────────────────────────────────────────────
 
 function PrimitiveDispatch({
@@ -140,6 +207,7 @@ function PrimitiveDispatch({
   const labelTypo   = typography.find((t) => t.role === 'label');
   const bodyTypo    = typography.find((t) => t.role === 'body');
   const primaryText = primaryTypo?.text ?? beat.emphasis_keyword ?? '';
+  const primaryColor = primaryTypo?.color ?? '#ffffff';
 
   switch (primitive) {
     // ── Channel-specific bespoke components ─────────────────────────────────
@@ -166,7 +234,7 @@ function PrimitiveDispatch({
       return (
         <ScrambleReveal
           text={beat.narration}
-          color={primaryTypo?.color ?? '#e0e0e0'}
+          color={primaryColor}
           fontSize={primaryTypo?.sizePx ?? 64}
         />
       );
@@ -201,7 +269,7 @@ function PrimitiveDispatch({
       return (
         <GlassCard
           primary={primaryText}
-          label={labelTypo?.text}
+          label={sanitizeLabel(labelTypo?.text)}
           body={bodyTypo?.text}
           accentColor={accentColor}
           backgroundColor={bgColor}
@@ -217,13 +285,13 @@ function PrimitiveDispatch({
           text={primaryText}
           highlightWord={beat.emphasis_keyword}
           highlightColor={accentColor}
-          color={primaryTypo?.color ?? '#ffffff'}
+          color={primaryColor}
           backgroundColor={bgColor}
         />
       );
 
     case 'WordCarousel': {
-      const words = primaryText.split(',').map((w) => w.trim()).filter(Boolean);
+      const words = parseCsv(primaryText);
       return (
         <WordCarousel
           words={words.length > 0 ? words : [primaryText]}
@@ -245,12 +313,7 @@ function PrimitiveDispatch({
       );
 
     case 'BarChart': {
-      const bars: BarData[] = primaryText
-        .split(',')
-        .map((s, i) => {
-          const [lbl, val] = s.trim().split(':');
-          return { label: lbl?.trim() ?? `Item ${i + 1}`, value: parseFloat(val ?? '50') || 50 };
-        });
+      const bars: BarData[] = parseLabelValue(primaryText, 50);
       return (
         <BarChart
           data={bars.length > 0 ? bars : [{ label: beat.emphasis_keyword ?? 'Value', value: 75 }]}
@@ -260,6 +323,301 @@ function PrimitiveDispatch({
         />
       );
     }
+
+    // ── Text primitives ──────────────────────────────────────────────────────
+
+    case 'TextKinetic':
+      return (
+        <TextKinetic
+          words={primaryText}
+          accentColor={accentColor}
+          fontSize={primaryTypo?.sizePx ?? 96}
+          fontFamily={accentFont}
+          backgroundColor={bgColor}
+        />
+      );
+
+    case 'TextScramble':
+      return (
+        <TextScramble
+          text={primaryText}
+          color={primaryColor}
+          fontSize={primaryTypo?.sizePx ?? 80}
+          backgroundColor={bgColor}
+        />
+      );
+
+    case 'TextWave':
+      return (
+        <TextWave
+          text={primaryText}
+          color={primaryColor}
+          accentColor={accentColor}
+          fontSize={primaryTypo?.sizePx ?? 80}
+          backgroundColor={bgColor}
+        />
+      );
+
+    case 'TextMaskReveal':
+      return (
+        <TextMaskReveal
+          text={primaryText}
+          color={primaryColor}
+          accentColor={accentColor}
+          fontSize={primaryTypo?.sizePx ?? 96}
+          backgroundColor={bgColor}
+        />
+      );
+
+    case 'TextGlitch':
+      return (
+        <TextGlitch
+          text={primaryText}
+          color={primaryColor}
+          fontSize={primaryTypo?.sizePx ?? 100}
+          backgroundColor={bgColor}
+        />
+      );
+
+    case 'TextNeon':
+      return (
+        <TextNeon
+          text={primaryText}
+          glowColor={accentColor}
+          fontSize={primaryTypo?.sizePx ?? 100}
+          backgroundColor={bgColor}
+        />
+      );
+
+    case 'TextCounter': {
+      const numStr = primaryText.replace(/[^0-9.]/g, '');
+      return (
+        <TextCounter
+          target={parseFloat(numStr) || 0}
+          prefix={beat.visual.prefix}
+          suffix={beat.visual.suffix}
+          accentColor={accentColor}
+          fontSize={primaryTypo?.sizePx ?? 140}
+          backgroundColor={bgColor}
+        />
+      );
+    }
+
+    case 'TextGradient':
+      return (
+        <TextGradient
+          text={primaryText}
+          fontSize={primaryTypo?.sizePx ?? 100}
+          backgroundColor={bgColor}
+        />
+      );
+
+    case 'Text3DFlip':
+      return (
+        <Text3DFlip
+          text={primaryText}
+          color={primaryColor}
+          accentColor={accentColor}
+          fontSize={primaryTypo?.sizePx ?? 100}
+          backgroundColor={bgColor}
+        />
+      );
+
+    // ── Data / Chart primitives ──────────────────────────────────────────────
+
+    case 'DataLineChart': {
+      const pts: LineChartPoint[] = parseLabelValue(primaryText, 50).map((d, i) => ({ x: i, y: d.value }));
+      return (
+        <DataLineChart
+          data={pts.length > 1 ? pts : [{ x: 0, y: 20 }, { x: 1, y: 50 }, { x: 2, y: 80 }]}
+          accentColor={accentColor}
+          label={sanitizeLabel(labelTypo?.text)}
+          backgroundColor={bgColor}
+        />
+      );
+    }
+
+    case 'DataGauge': {
+      const gVal = parseFloat(primaryText.replace(/[^0-9.]/g, '')) || 50;
+      return (
+        <DataGauge
+          value={gVal}
+          max={100}
+          label={sanitizeLabel(labelTypo?.text) ?? primaryText}
+          accentColor={accentColor}
+          backgroundColor={bgColor}
+        />
+      );
+    }
+
+    case 'DataRanking': {
+      const items: RankItem[] = parseLabelValue(primaryText, 50);
+      return (
+        <DataRanking
+          items={items.length > 0 ? items : [{ label: primaryText, value: 75 }]}
+          title={sanitizeLabel(labelTypo?.text)}
+          accentColor={accentColor}
+          backgroundColor={bgColor}
+        />
+      );
+    }
+
+    case 'DataTimeline': {
+      const events: TimelineEvent[] = parseCsv(primaryText).map(s => {
+        const colonIdx = s.indexOf(':');
+        if (colonIdx > 0) {
+          return { year: s.slice(0, colonIdx).trim(), label: s.slice(colonIdx + 1).trim() };
+        }
+        return { year: '—', label: s };
+      });
+      return (
+        <DataTimeline
+          events={events.length > 0 ? events : [{ year: '?', label: primaryText }]}
+          accentColor={accentColor}
+          backgroundColor={bgColor}
+        />
+      );
+    }
+
+    case 'DataStatsCards': {
+      const stats: StatCard[] = parseCsv(primaryText).map(s => {
+        const colonIdx = s.indexOf(':');
+        if (colonIdx > 0) {
+          return { value: s.slice(0, colonIdx).trim(), label: s.slice(colonIdx + 1).trim() };
+        }
+        return { value: s, label: '' };
+      });
+      return (
+        <DataStatsCards
+          stats={stats.length > 0 ? stats : [{ value: primaryText, label: sanitizeLabel(labelTypo?.text) ?? '' }]}
+          backgroundColor={bgColor}
+          accentColor={accentColor}
+        />
+      );
+    }
+
+    // ── Layout primitives ────────────────────────────────────────────────────
+
+    case 'LayoutGiantNumber':
+      return (
+        <LayoutGiantNumber
+          number={primaryText}
+          label={sanitizeLabel(labelTypo?.text)}
+          accentColor={accentColor}
+          backgroundColor={bgColor}
+          fontFamily={accentFont}
+        />
+      );
+
+    case 'LayoutSplitContrast': {
+      const [left, right] = primaryText.includes(' vs ')
+        ? primaryText.split(' vs ')
+        : primaryText.includes('/')
+        ? primaryText.split('/')
+        : [primaryText, bodyTypo?.text ?? ''];
+      return (
+        <LayoutSplitContrast
+          leftText={(left ?? primaryText).trim()}
+          rightText={(right ?? '').trim()}
+          leftColor={bgColor}
+          rightColor={accentColor}
+        />
+      );
+    }
+
+    case 'LayoutFullscreenType':
+      return (
+        <LayoutFullscreenType
+          text={primaryText}
+          accentWord={beat.emphasis_keyword}
+          accentColor={accentColor}
+          backgroundColor={bgColor}
+          fontFamily={accentFont}
+        />
+      );
+
+    case 'LayoutMultiColumn': {
+      const cols: ColumnData[] = parseCsv(primaryText).map(s => {
+        const colonIdx = s.indexOf(':');
+        if (colonIdx > 0) {
+          return { title: s.slice(0, colonIdx).trim(), body: s.slice(colonIdx + 1).trim() };
+        }
+        return { title: s, body: '' };
+      });
+      return (
+        <LayoutMultiColumn
+          columns={cols.length > 0 ? cols : [{ title: primaryText, body: bodyTypo?.text ?? '' }]}
+          accentColor={accentColor}
+          backgroundColor={bgColor}
+          fontFamily={bodyFont}
+        />
+      );
+    }
+
+    // ── Shape primitives ─────────────────────────────────────────────────────
+
+    case 'ShapeCircularProgress': {
+      const pct = parseFloat(primaryText.replace(/[^0-9.]/g, '')) || 75;
+      return (
+        <ShapeCircularProgress
+          progress={pct}
+          label={sanitizeLabel(labelTypo?.text) ?? beat.emphasis_keyword}
+          accentColor={accentColor}
+          backgroundColor={bgColor}
+        />
+      );
+    }
+
+    case 'ShapeSpinningRings':
+      return <ShapeSpinningRings accentColor={accentColor} backgroundColor={bgColor} />;
+
+    // ── Particle primitives ──────────────────────────────────────────────────
+
+    case 'ParticleShootingStars':
+      return <ParticleShootingStars accentColor={accentColor} backgroundColor={bgColor} />;
+
+    case 'ParticleSparks':
+      return <ParticleSparks accentColor={accentColor} backgroundColor={bgColor} />;
+
+    // ── Cinematic primitives ─────────────────────────────────────────────────
+
+    case 'CinematicDocumentary':
+      return (
+        <CinematicDocumentary
+          title={primaryText}
+          subtitle={sanitizeLabel(labelTypo?.text) ?? beat.visual.value}
+          accentColor={accentColor}
+          backgroundColor={bgColor}
+        />
+      );
+
+    case 'CinematicNoir':
+      return <CinematicNoir accentColor={accentColor} backgroundColor={bgColor} />;
+
+    case 'CinematicSciFi':
+      return <CinematicSciFi accentColor={accentColor} backgroundColor={bgColor} />;
+
+    // ── Background primitives ────────────────────────────────────────────────
+
+    case 'BackgroundAurora':
+      return <BackgroundAurora color1={accentColor} backgroundColor={bgColor} />;
+
+    case 'BackgroundGeometric':
+      return <BackgroundGeometric accentColors={[accentColor]} backgroundColor={bgColor} />;
+
+    // ── Effect overlays ──────────────────────────────────────────────────────
+
+    case 'EffectFilmGrain':
+      return <EffectFilmGrain opacity={0.06} />;
+
+    case 'EffectLightLeak':
+      return <EffectLightLeak warmColor={accentColor} />;
+
+    case 'EffectVHS':
+      return <EffectVHS />;
+
+    case 'EffectGlow':
+      return <EffectGlow accentColor={accentColor} />;
 
     case 'TypographicCard':
     default:
@@ -286,6 +644,7 @@ export interface ShotBriefLayerProps {
   bgColor: string;
   bodyFont: string;
   accentFont: string;
+  suppressPrimitive?: boolean; // true on celestial/anatomy — visual handles itself
 }
 
 export const ShotBriefLayer: React.FC<ShotBriefLayerProps> = ({
@@ -294,9 +653,20 @@ export const ShotBriefLayer: React.FC<ShotBriefLayerProps> = ({
   bgColor,
   bodyFont,
   accentFont,
+  suppressPrimitive = false,
 }) => {
   const brief = beat.shotBrief;
   if (!brief) return null;
+
+  // When the host composition already renders the full-screen visual (planet / brain),
+  // only emit the ShotBrief glow atmosphere — skip the primitive card entirely.
+  if (suppressPrimitive) {
+    return (
+      <AbsoluteFill style={{ pointerEvents: 'none' }}>
+        <GlowOverlays brief={brief} />
+      </AbsoluteFill>
+    );
+  }
 
   // Derive duotone accent colors from typography for resolved-asset path
   const accent1Color = brief.typography.find((t) => t.role === 'accent')?.color
@@ -306,8 +676,19 @@ export const ShotBriefLayer: React.FC<ShotBriefLayerProps> = ({
     ?? brief.typography.find((t) => t.role === 'body')?.color
     ?? '#7700cc';
 
-  // Resolved-asset-first: real imagery always wins, wrapped in Shot Brief positioning
-  const content = (beat.resolvedAsset && brief.primitive !== 'AnimatedIcon')
+  // Resolved-asset-first: real imagery always wins, wrapped in Shot Brief positioning.
+  // Check that the asset actually has renderable content (path != null, svgString, or map_image).
+  const hasRealAsset = (() => {
+    const ra = beat.resolvedAsset;
+    if (!ra) return false;
+    const a = ra as unknown as Record<string, unknown>;
+    if ('path' in a) return a.path != null;
+    if ('svgString' in a) return true;
+    if ('map_image' in a) return true;
+    return false;
+  })();
+
+  const content = (hasRealAsset && brief.primitive !== 'AnimatedIcon')
     ? (
       <AssetLayer
         beat={beat}

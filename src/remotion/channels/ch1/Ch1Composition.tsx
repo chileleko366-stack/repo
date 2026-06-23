@@ -6,8 +6,8 @@
  *   ─ Background fill (beat.bg_color || channel bgPrimary)
  *   ─ AssetLayer       (person/brand/place/map — full-screen)
  *   ─ Gradient scrim   (bottom 600px, asset beats only — legibility)
- *   ─ KineticTitle     (narration text, overlaid bottom-of-asset or centered)
- *   ─ PsychCard        (stat/none beats — centered card)
+ *   ─ SocialFigure3D   (non-asset non-shotbrief beats — variant per section)
+ *   ─ KineticTextLayer (emphasis keyword reveal + supporting words)
  *   ─ Beat audio       (<Audio> per beat voiceover)
  *   ─ HardCutFlash     (accent flash on frames 0-4 of each Sequence)
  * Global:
@@ -19,7 +19,7 @@
 import '@fontsource/anton';
 import '@fontsource/space-grotesk';
 import React from 'react';
-import { AbsoluteFill, Audio, Sequence, staticFile } from 'remotion';
+import { AbsoluteFill, Audio, staticFile } from 'remotion';
 import type { ManifestBeat, VideoManifest } from '../../../pipeline/types';
 import { CHANNEL_CONFIGS } from '../../../pipeline/channelConfigs';
 import { AssetLayer } from '../../assets/AssetLayer';
@@ -30,9 +30,10 @@ import { SfxLayer } from '../../sound/SfxLayer';
 import { Soundtrack } from '../../sound/Soundtrack';
 import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
 import type { TimedBeat } from '../../transitions/BeatCompositor';
+import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { HardCutFlash } from './HardCutFlash';
-import { KineticTitle } from './KineticTitle';
-import { PsychCard } from './PsychCard';
+import { SocialFigure3D } from './SocialFigure3D';
+import type { SocialFigureVariant } from './SocialFigure3D';
 
 const CFG = CHANNEL_CONFIGS.ch1;
 
@@ -47,7 +48,14 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
   const { visual, emphasis_keyword, resolvedAsset, bg_color, audioPath, shotBrief } = beat;
   const kind     = visual.kind;
   const bg       = bg_color || CFG.colors.bgPrimary;
-  const hasAsset = !!resolvedAsset;
+  const hasAsset = (() => {
+    if (!resolvedAsset) return false;
+    const a = resolvedAsset as unknown as Record<string, unknown>;
+    if ('path' in a) return a.path != null;
+    if ('svgString' in a) return true;
+    if ('map_image' in a) return true;
+    return false;
+  })();
 
   // person/brand/place/map/distance take the full frame
   const isFullscreen =
@@ -86,8 +94,21 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         />
       )}
 
+      {/* 3D social figure for non-asset, non-shotbrief beats */}
+      {!isFullscreen && !hasShotBrief && (() => {
+        const sk = beat.sectionKey ?? '';
+        const beatNum = sk.startsWith('beat_') ? parseInt(sk.replace('beat_', ''), 10) : 0;
+        const BEAT_VARIANTS: SocialFigureVariant[] = ['xbot', 'michelle', 'kira'];
+        const variant: SocialFigureVariant =
+          sk === 'hook' ? 'xbot' :
+          sk === 'context' ? 'michelle' :
+          sk === 'outro' ? 'kira' :
+          BEAT_VARIANTS[beatNum % BEAT_VARIANTS.length];
+        return <SocialFigure3D variant={variant} />;
+      })()}
+
       {/* ShotBrief-driven layout: primitive at primaryAnchor position with depth effects */}
-      {hasShotBrief && (
+      {hasShotBrief && !isFullscreen && (
         <ShotBriefLayer
           beat={beat}
           accentColor={CFG.colors.accent1}
@@ -97,37 +118,14 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         />
       )}
 
-      {/* Fallback: stat / none beats — PsychCard is the primary visual */}
-      {!hasShotBrief && (kind === 'none' || kind === 'stat') && (
-        <PsychCard
-          keyword={emphasis_keyword}
-          kind={kind}
-          statValue={
-            kind === 'stat' ? (parseFloat(visual.value ?? '0') || 0) : undefined
-          }
-          statPrefix={visual.prefix}
-          statSuffix={visual.suffix}
-        />
-      )}
-
-      {/* Fallback: kinetic narration text (hardcoded anchoring) */}
-      {!hasShotBrief && !isFullscreen && (
-        <div
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            top: 160,
-            display: 'flex',
-            justifyContent: 'center',
-          }}
-        >
-          <KineticTitle
-            text={beat.narration}
-            emphasisWord={emphasis_keyword}
-          />
-        </div>
-      )}
+      {/* Mograph kinetic text: emphasis keyword + supporting words */}
+      <KineticTextLayer
+        beat={beat}
+        accentColor={CFG.colors.accent1}
+        accentFont={CFG.accentFont}
+        bodyFont={CFG.bodyFont}
+        durationFrames={durationFrames}
+      />
 
       {/* Beat voiceover */}
       {audioPath ? (
@@ -187,7 +185,7 @@ export const Ch1Composition: React.FC<{ manifest: VideoManifest }> = ({
       {wordBoundaries && (
         <CaptionTrack
           wordBoundariesByBeat={wordBoundaries}
-          beats={beats}
+          beats={timedBeats}
           channelId="ch1"
           accentColor={CFG.colors.accent1}
           accentFont={CFG.accentFont}

@@ -31,6 +31,30 @@ UA = {"User-Agent": "DopamineStudios/1.0 (contact@dopaminestudios.com)"}
 
 # ── Wikipedia helpers ────────────────────────────────────────────────────
 
+_KNOWN_FULL_NAMES: dict[str, str] = {
+    "trump":        "Donald Trump",
+    "obama":        "Barack Obama",
+    "biden":        "Joe Biden",
+    "musk":         "Elon Musk",
+    "elon":         "Elon Musk",
+    "bezos":        "Jeff Bezos",
+    "zuckerberg":   "Mark Zuckerberg",
+    "gates":        "Bill Gates",
+    "einstein":     "Albert Einstein",
+    "newton":       "Isaac Newton",
+    "darwin":       "Charles Darwin",
+    "tesla":        "Nikola Tesla",
+    "napoleon":     "Napoleon Bonaparte",
+    "lincoln":      "Abraham Lincoln",
+    "shakespeare":  "William Shakespeare",
+    "freud":        "Sigmund Freud",
+    "jung":         "Carl Jung",
+    "hawking":      "Stephen Hawking",
+    "curie":        "Marie Curie",
+    "jobs":         "Steve Jobs",
+}
+
+
 async def _wikipedia_thumbnail(
     session: aiohttp.ClientSession,
     title: str,
@@ -46,11 +70,56 @@ async def _wikipedia_thumbnail(
         async with session.get(url, headers=UA, timeout=aiohttp.ClientTimeout(total=10)) as resp:
             data = await resp.json(content_type=None)
         for page in data.get("query", {}).get("pages", {}).values():
+            if page.get("pageid", -1) == -1:
+                return None  # disambiguation / missing page
             thumb = page.get("thumbnail")
             if thumb:
                 return thumb["source"], f"Wikipedia — {title}"
     except Exception as e:
         print(f"[assets] Wikipedia error for {title!r}: {e}")
+    return None
+
+
+async def _wikipedia_thumbnail_with_fallback(
+    session: aiohttp.ClientSession,
+    name: str,
+    size: int = 800,
+) -> tuple[str, str] | None:
+    # Step 1: direct title lookup
+    result = await _wikipedia_thumbnail(session, name, size)
+    if result:
+        return result
+
+    # Step 2: known full names for common last-name-only lookups
+    key = name.lower().strip()
+    for token in key.split():
+        if token in _KNOWN_FULL_NAMES:
+            full = _KNOWN_FULL_NAMES[token]
+            if full.lower() != key:
+                result = await _wikipedia_thumbnail(session, full, size)
+                if result:
+                    return result
+            break
+
+    # Step 3: Wikipedia OpenSearch API — returns top article title for the query
+    try:
+        search_url = (
+            "https://en.wikipedia.org/w/api.php"
+            "?action=opensearch"
+            f"&search={urllib.parse.quote(name)}"
+            "&limit=3&namespace=0&format=json"
+        )
+        async with session.get(search_url, headers=UA, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+            data = await resp.json(content_type=None)
+        # OpenSearch returns [query, [titles], [descriptions], [urls]]
+        titles = data[1] if len(data) > 1 else []
+        for title in titles[:3]:
+            result = await _wikipedia_thumbnail(session, title, size)
+            if result:
+                return result
+    except Exception as e:
+        print(f"[assets] Wikipedia OpenSearch error for {name!r}: {e}")
+
     return None
 
 
@@ -74,24 +143,38 @@ async def _download_file(
 
 # ── Person: Wikipedia photo + rembg ────────────────────────────────────────────
 
+_PERSON_TITLE_PREFIXES = re.compile(
+    r"^\s*(president|vice\s*president|senator|secretary|general|admiral|colonel|captain|"
+    r"doctor|dr\.?|professor|prof\.?|sir|dame|lord|lady|mr\.?|mrs\.?|ms\.?|the\s+)[\s,]+",
+    re.IGNORECASE,
+)
+
+
+def _clean_person_name(name: str) -> str:
+    """Strip honorific/title prefixes so 'President John F' → 'John F'."""
+    cleaned = _PERSON_TITLE_PREFIXES.sub("", name).strip()
+    return cleaned if cleaned else name
+
+
 async def resolve_person(name: str, out_dir: Path) -> dict | None:
-    slug = re.sub(r"[^a-z0-9]", "_", name.lower())
+    clean_name = _clean_person_name(name)
+    slug = re.sub(r"[^a-z0-9]", "_", clean_name.lower())
     cutout_path = out_dir / f"person_{slug}.png"
     raw_path    = out_dir / f"person_{slug}_raw.jpg"
 
     if cutout_path.exists():
-        return {"path": str(cutout_path), "credit": f"Wikipedia — {name}", "fallback": None}
+        return {"path": str(cutout_path), "credit": f"Wikipedia — {clean_name}", "fallback": None}
 
     async with aiohttp.ClientSession() as session:
-        result = await _wikipedia_thumbnail(session, name, size=800)
+        result = await _wikipedia_thumbnail_with_fallback(session, clean_name, size=800)
         if not result:
             print(f"[assets] No Wikipedia image for person: {name!r}")
-            return {"path": None, "credit": None, "fallback": name[:1].upper()}
+            return {"path": None, "credit": None, "fallback": clean_name[:1].upper()}
 
         img_url, credit = result
         ok = await _download_file(session, img_url, raw_path)
         if not ok:
-            return {"path": None, "credit": None, "fallback": name[:1].upper()}
+            return {"path": None, "credit": None, "fallback": clean_name[:1].upper()}
 
     try:
         from rembg import remove
