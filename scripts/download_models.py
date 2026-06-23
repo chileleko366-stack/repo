@@ -140,6 +140,62 @@ MODELS = [
     # ── Material Showcases (visually interesting) ─────────────────────────────
     ("shader_ball.glb",       f"{BASE_T}/ShaderBall.glb",                                               100_000),
     ("sheen_wood_sofa.glb",   f"{BASE_K}/SheenWoodLeatherSofa/glTF-Binary/SheenWoodLeatherSofa.glb", 1_000_000),
+
+    # ── Channel-prefixed aliases ───────────────────────────────────────────────
+    # ModelLibrary.tsx and the ch-specific components request these exact filenames.
+    # They are identical source files as above, just downloaded under the ch-prefixed
+    # name the components expect. Both copies coexist in public/models/.
+    ("ch1_xbot.glb",          f"{BASE_T}/Xbot.glb",                                                      500_000),
+    ("ch1_michelle.glb",      f"{BASE_T}/Michelle.glb",                                                   500_000),
+    ("ch1_kira.glb",          f"{BASE_T}/kira.glb",                                                     1_000_000),
+    ("ch1_flamingo.glb",      f"{BASE_T}/Flamingo.glb",                                                    10_000),
+    ("ch1_fox.glb",           f"{BASE_K}/Fox/glTF-Binary/Fox.glb",                                        50_000),
+    ("ch1_velvet_sofa.glb",   f"{BASE_K}/GlamVelvetSofa/glTF-Binary/GlamVelvetSofa.glb",                 500_000),
+    ("ch1_sheen_chair.glb",   f"{BASE_K}/SheenChair/glTF-Binary/SheenChair.glb",                         500_000),
+    ("ch1_venice_mask.glb",   f"{BASE_T}/venice_mask.glb",                                                500_000),
+
+    ("ch2_watch.glb",         f"{BASE_K}/ChronographWatch/glTF-Binary/ChronographWatch.glb",           1_000_000),
+    ("ch2_rolex.glb",         f"{BASE_T}/rolex.glb",                                                     500_000),
+    ("ch2_gears.glb",         f"{BASE_T}/gears.glb",                                                      10_000),
+    ("ch2_virtual_city.glb",  f"{BASE_K}/VirtualCity/glTF-Binary/VirtualCity.glb",                       500_000),
+    ("ch2_shoe.glb",          f"{BASE_K}/MaterialsVariantsShoe/glTF-Binary/MaterialsVariantsShoe.glb", 1_000_000),
+    ("ch2_carbon_bike.glb",   f"{BASE_T}/CarbonFrameBike.glb",                                           500_000),
+    ("ch2_toy_car.glb",       f"{BASE_K}/ToyCar/glTF-Binary/ToyCar.glb",                               1_000_000),
+    ("ch2_sunglasses.glb",    f"{BASE_K}/SunglassesKhronos/glTF-Binary/SunglassesKhronos.glb",           50_000),
+    ("ch2_tokyo.glb",         f"{BASE_T}/LittlestTokyo.glb",                                           1_000_000),
+    ("ch2_car_concept.glb",   f"{BASE_K}/CarConcept/glTF-Binary/CarConcept.glb",                       1_000_000),
+
+    ("ch3_skull.glb",         f"{BASE_K}/ScatteringSkull/glTF-Binary/ScatteringSkull.glb",               500_000),
+    ("ch3_lantern.glb",       f"{BASE_K}/Lantern/glTF-Binary/Lantern.glb",                             1_000_000),
+    ("ch3_soldier.glb",       f"{BASE_T}/Soldier.glb",                                                   500_000),
+    ("ch3_broken_window.glb", f"{BASE_K}/GlassBrokenWindow/glTF-Binary/GlassBrokenWindow.glb",          100_000),
+    ("ch3_coals.glb",         f"{BASE_K}/PotOfCoals/glTF-Binary/PotOfCoals.glb",                        500_000),
+    ("ch3_bust.glb",          f"{BASE_T}/tennyson-bust.glb",                                              50_000),
+    ("ch3_steampunk_cam.glb", f"{BASE_T}/steampunk_camera.glb",                                          500_000),
+
+    ("ch4_skull.glb",         f"{BASE_K}/ScatteringSkull/glTF-Binary/ScatteringSkull.glb",               500_000),
+    ("ch4_plant.glb",         f"{BASE_K}/DiffuseTransmissionPlant/glTF-Binary/DiffuseTransmissionPlant.glb", 500_000),
+    ("ch4_fish.glb",          f"{BASE_K}/BarramundiFish/glTF-Binary/BarramundiFish.glb",               1_000_000),
+    ("ch4_metal_spheres.glb", f"{BASE_K}/MetalRoughSpheres/glTF-Binary/MetalRoughSpheres.glb",        1_000_000),
+    ("ch4_crystal_dragon.glb",f"{BASE_K}/DragonAttenuation/glTF-Binary/DragonAttenuation.glb",        1_000_000),
+    ("ch4_glass_vase.glb",    f"{BASE_K}/GlassVaseFlowers/glTF-Binary/GlassVaseFlowers.glb",            500_000),
+    ("ch4_mosquito_amber.glb",f"{BASE_K}/MosquitoInAmber/glTF-Binary/MosquitoInAmber.glb",           1_000_000),
+
+    ("ch5_candle.glb",        f"{BASE_K}/GlassHurricaneCandleHolder/glTF-Binary/GlassHurricaneCandleHolder.glb", 500_000),
+    ("ch5_lantern.glb",       f"{BASE_K}/Lantern/glTF-Binary/Lantern.glb",                             1_000_000),
+    ("ch5_soldier.glb",       f"{BASE_T}/Soldier.glb",                                                   500_000),
+    ("ch5_boombox.glb",       f"{BASE_K}/BoomBox/glTF-Binary/BoomBox.glb",                            1_000_000),
+    ("ch5_milk_truck.glb",    f"{BASE_K}/CesiumMilkTruck/glTF-Binary/CesiumMilkTruck.glb",               50_000),
+    ("ch5_venice_mask.glb",   f"{BASE_T}/venice_mask.glb",                                               500_000),
+    ("ch5_corset.glb",        f"{BASE_K}/Corset/glTF-Binary/Corset.glb",                              1_000_000),
+
+    ("ch6_ion_drive.glb",     f"{BASE_T}/PrimaryIonDrive.glb",                                        1_000_000),
+    ("ch6_ship_hallway.glb",  f"{BASE_T}/space_ship_hallway.glb",                                       500_000),
+    ("ch6_metal_spheres.glb", f"{BASE_K}/MetalRoughSpheres/glTF-Binary/MetalRoughSpheres.glb",        1_000_000),
+    ("ch6_crystal.glb",       f"{BASE_K}/IridescenceSuzanne/glTF-Binary/IridescenceSuzanne.glb",        50_000),
+    ("ch6_dispersion.glb",    f"{BASE_K}/DragonAttenuation/glTF-Binary/DragonAttenuation.glb",        1_000_000),
+    ("ch6_glass_shatter.glb", f"{BASE_K}/GlassBrokenWindow/glTF-Binary/GlassBrokenWindow.glb",         100_000),
+    ("ch6_shader_ball.glb",   f"{BASE_T}/ShaderBall.glb",                                               100_000),
 ]
 
 
