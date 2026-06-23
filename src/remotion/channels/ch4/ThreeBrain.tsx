@@ -1,68 +1,74 @@
 /**
- * ThreeBrain — animated 3-D icosahedron wireframe brain for anatomy beats.
+ * ThreeBrain — real 3D brain stem model (BrainStem.glb from KhronosGroup).
  *
- * Uses @remotion/three ThreeCanvas so the scene is driven by useCurrentFrame()
- * (no R3F useFrame — that would break Remotion frame accuracy).
- * Two overlapping wireframe meshes (red + cyan) create a dual-hemisphere look.
+ * Replaces the wireframe icosahedron with an actual brain geometry.
+ * Uses @remotion/three + @react-three/drei's useGLTF.
+ *
+ * Camera slowly orbits around the brain. Accent lights from above and below
+ * give it a cinematic MRI/scan aesthetic in ch4's cyan color palette.
  */
 
 import React from 'react';
+import { useGLTF } from '@react-three/drei';
 import { ThreeCanvas } from '@remotion/three';
-import { interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
+import { staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
+import * as THREE from 'three';
 
-const BrainMesh: React.FC = () => {
-  const frame    = useCurrentFrame();
-  const { fps }  = useVideoConfig();
-  const rotation = (frame / fps) * 0.4;
-  const scale    = interpolate(frame, [0, 40], [0.4, 1], { extrapolateRight: 'clamp' });
+const BrainModel: React.FC<{ durationFrames: number }> = ({ durationFrames: _durationFrames }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const t = frame / fps;
+
+  const { scene } = useGLTF(staticFile('models/brain.glb'));
+
+  // Slow orbit: full rotation in 20 seconds
+  const rotY = t * 0.31;
+
+  // Apply cyan/teal material tint to match ch4 aesthetic
+  scene.traverse((child) => {
+    if (child instanceof THREE.Mesh) {
+      const mat = child.material as THREE.MeshStandardMaterial;
+      if (mat) {
+        mat.color = new THREE.Color('#d0f4f7');
+        mat.roughness = 0.6;
+        mat.metalness = 0.1;
+      }
+    }
+  });
 
   return (
     <>
-      <ambientLight intensity={0.25} />
-      <pointLight position={[5, 8, 8]}  intensity={3.5} color="#e94560" />
-      <pointLight position={[-6, -4, 6]} intensity={1.8} color="#4cc9f0" />
+      {/* Main overhead light — bright, cool, medical */}
+      <directionalLight position={[0, 8, 4]} intensity={2.8} color="#e0f8ff" />
+      {/* Rim light from below — adds depth */}
+      <pointLight position={[0, -5, 2]} intensity={1.4} color="#0097a7" />
+      {/* Ambient fill */}
+      <ambientLight intensity={0.4} />
+      {/* Accent glow */}
+      <pointLight position={[-4, 2, 3]} intensity={1.0} color="#4dd0e1" />
 
-      {/* Primary red hemisphere */}
-      <mesh rotation={[0.3, rotation, 0.1]} scale={[scale, scale, scale]}>
-        <icosahedronGeometry args={[2.8, 3]} />
-        <meshStandardMaterial
-          color="#e94560"
-          wireframe
-          opacity={0.55}
-          transparent
-        />
-      </mesh>
-
-      {/* Cyan inner shell — slightly smaller, counter-rotates */}
-      <mesh rotation={[-0.2, -rotation * 0.6, 0.15]} scale={[scale * 0.72, scale * 0.72, scale * 0.72]}>
-        <icosahedronGeometry args={[2.8, 2]} />
-        <meshStandardMaterial
-          color="#4cc9f0"
-          wireframe
-          opacity={0.35}
-          transparent
-        />
-      </mesh>
+      <group rotation={[0, rotY, 0.1]} scale={[0.85, 0.85, 0.85]}>
+        <primitive object={scene} />
+      </group>
     </>
   );
 };
 
-export const ThreeBrain: React.FC = () => (
+export const ThreeBrain: React.FC<{ durationFrames?: number }> = ({ durationFrames = 240 }) => (
   <ThreeCanvas
     width={1080}
     height={1920}
     style={{ position: 'absolute', inset: 0 }}
     gl={{
-      // Allow software (SwiftShader) rendering — don't fail when no GPU is available
       failIfMajorPerformanceCaveat: false,
-      // Required for Remotion's frame-accurate screenshot capture
       preserveDrawingBuffer: true,
-      // Prefer low power mode — uses integrated/software GPU rather than discrete
       powerPreference: 'low-power' as WebGLPowerPreference,
-      // Explicit antialias: true to prevent undefined behaviour on software renderers
       antialias: true,
     }}
+    camera={{ position: [0, 0, 5.5], fov: 45 }}
   >
-    <BrainMesh />
+    <BrainModel durationFrames={durationFrames} />
   </ThreeCanvas>
 );
+
+useGLTF.preload(staticFile('models/brain.glb'));

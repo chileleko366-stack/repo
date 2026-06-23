@@ -32,6 +32,7 @@ import { SfxLayer } from '../../sound/SfxLayer';
 import { Soundtrack } from '../../sound/Soundtrack';
 import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
 import type { TimedBeat } from '../../transitions/BeatCompositor';
+import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { ClassifiedStamp } from './ClassifiedStamp';
 import { GlitchWord } from './GlitchWord';
 import { ScrambleReveal } from './ScrambleReveal';
@@ -155,6 +156,15 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
           background: `linear-gradient(to right, transparent, ${CFG.colors.accent1}, transparent)`,
           opacity: 0.85,
         }}
+      />
+
+      {/* Mograph kinetic text: emphasis keyword + supporting words */}
+      <KineticTextLayer
+        beat={beat}
+        accentColor={CFG.colors.accent1}
+        accentFont={CFG.accentFont}
+        bodyFont={CFG.bodyFont}
+        durationFrames={durationFrames}
       />
 
       {audioPath ? <Audio src={toStatic(audioPath)} volume={1} /> : null}

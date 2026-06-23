@@ -30,6 +30,7 @@ import { SfxLayer } from '../../sound/SfxLayer';
 import { Soundtrack } from '../../sound/Soundtrack';
 import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
 import type { TimedBeat } from '../../transitions/BeatCompositor';
+import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { HardCutFlash } from './HardCutFlash';
 import { KineticTitle } from './KineticTitle';
 import { PsychCard } from './PsychCard';
@@ -135,6 +136,15 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
           />
         </div>
       )}
+
+      {/* Mograph kinetic text: emphasis keyword + supporting words */}
+      <KineticTextLayer
+        beat={beat}
+        accentColor={CFG.colors.accent1}
+        accentFont={CFG.accentFont}
+        bodyFont={CFG.bodyFont}
+        durationFrames={durationFrames}
+      />
 
       {/* Beat voiceover */}
       {audioPath ? (

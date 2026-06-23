@@ -23,6 +23,7 @@
  */
 
 import React from 'react';
+import { AbsoluteFill } from 'remotion';
 import type { ManifestBeat } from '../../pipeline/types';
 import type { ShotBrief } from '../../pipeline/shotBrief';
 import { AssetLayer } from '../assets/AssetLayer';
@@ -643,6 +644,7 @@ export interface ShotBriefLayerProps {
   bgColor: string;
   bodyFont: string;
   accentFont: string;
+  suppressPrimitive?: boolean; // true on celestial/anatomy — visual handles itself
 }
 
 export const ShotBriefLayer: React.FC<ShotBriefLayerProps> = ({
@@ -651,9 +653,20 @@ export const ShotBriefLayer: React.FC<ShotBriefLayerProps> = ({
   bgColor,
   bodyFont,
   accentFont,
+  suppressPrimitive = false,
 }) => {
   const brief = beat.shotBrief;
   if (!brief) return null;
+
+  // When the host composition already renders the full-screen visual (planet / brain),
+  // only emit the ShotBrief glow atmosphere — skip the primitive card entirely.
+  if (suppressPrimitive) {
+    return (
+      <AbsoluteFill style={{ pointerEvents: 'none' }}>
+        <GlowOverlays brief={brief} />
+      </AbsoluteFill>
+    );
+  }
 
   // Derive duotone accent colors from typography for resolved-asset path
   const accent1Color = brief.typography.find((t) => t.role === 'accent')?.color

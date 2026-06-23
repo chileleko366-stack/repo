@@ -29,6 +29,7 @@ import { SfxLayer } from '../../sound/SfxLayer';
 import { Soundtrack } from '../../sound/Soundtrack';
 import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
 import type { TimedBeat } from '../../transitions/BeatCompositor';
+import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { HardCutFlash } from './HardCutFlash';
 import { NeuronPulse } from './NeuronPulse';
 import { ThreeBrain } from './ThreeBrain';
@@ -135,7 +136,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
       {isAnatomy && (
         <>
           <NeuronPulse durationFrames={durationFrames} />
-          <ThreeBrain />
+          <ThreeBrain durationFrames={durationFrames} />
         </>
       )}
 
@@ -161,6 +162,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
           bgColor={bg}
           bodyFont={CFG.bodyFont}
           accentFont={CFG.accentFont}
+          suppressPrimitive={isAnatomy}
         />
       )}
 
@@ -207,6 +209,15 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
           />
         </div>
       )}
+
+      {/* Mograph kinetic text: emphasis keyword + supporting words */}
+      <KineticTextLayer
+        beat={beat}
+        accentColor={CFG.colors.accent1}
+        accentFont={CFG.accentFont}
+        bodyFont={CFG.bodyFont}
+        durationFrames={durationFrames}
+      />
 
       {audioPath ? <Audio src={toStatic(audioPath)} volume={1} /> : null}
 
