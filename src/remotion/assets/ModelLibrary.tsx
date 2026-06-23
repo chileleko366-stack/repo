@@ -151,6 +151,14 @@ export const MODELS = {
     suggestedChannels: ['ch5', 'ch4'],
     sizeMB: 0.4,
   },
+  nefertiti: {
+    path: 'models/nefertiti.glb',
+    description: 'Nefertiti bust — ancient Egyptian artifact scan',
+    license: 'CC-BY',
+    attribution: 'Nefertiti — three.js examples',
+    suggestedChannels: ['ch5'],
+    sizeMB: 1.2,
+  },
   suzanne: {
     path: 'models/suzanne.glb',
     description: "Blender's Suzanne monkey head with iridescence",

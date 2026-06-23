@@ -4,8 +4,7 @@
  * Layout per beat:
  *   ─ Background fill
  *   ─ AssetLayer      (full-screen for person/brand/place/map)
- *   ─ NeuronPulse     (anatomy beats — SVG neuron overlay)
- *   ─ ThreeBrain      (anatomy beats — 3-D wireframe brain)
+ *   ─ ThreeBrain      (anatomy beats — real BrainStem.glb 3D model)
  *   ─ Gradient scrim
  *   ─ Counter         (stat beats)
  *   ─ Narration text  (Fraunces italic for general, Anton for anatomy)

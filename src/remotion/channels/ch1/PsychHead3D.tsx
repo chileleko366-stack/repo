@@ -1,7 +1,7 @@
 /**
  * PsychHead3D — animated 3D face for psychology beats.
- * Uses facecap.glb from three.js examples.
- * File: public/models/facecap.glb
+ * Uses face_cap.glb (three.js facecap example) via ModelLibrary registry.
+ * Download: python scripts/download_models.py
  *
  * Subtle oscillating rotation evokes consciousness / the mind turning over an idea.
  */
@@ -9,14 +9,15 @@
 import React from 'react';
 import { useGLTF } from '@react-three/drei';
 import { ThreeCanvas } from '@remotion/three';
-import { interpolate, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
+import { interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
+import { modelPath } from '../../assets/ModelLibrary';
 
 const HeadModel: React.FC<{ durationFrames: number }> = ({ durationFrames }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const t = frame / fps;
 
-  const { scene } = useGLTF(staticFile('models/facecap.glb'));
+  const { scene } = useGLTF(modelPath('faceCap'));
 
   const rotY = Math.sin(t * 0.4) * 0.3;
   const progress = durationFrames > 0 ? frame / durationFrames : 0;
@@ -55,4 +56,4 @@ export const PsychHead3D: React.FC<{ durationFrames?: number }> = ({ durationFra
   </ThreeCanvas>
 );
 
-useGLTF.preload(staticFile('models/facecap.glb'));
+useGLTF.preload(modelPath('faceCap'));

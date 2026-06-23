@@ -1,14 +1,21 @@
+/**
+ * AntiqueCamera3D — vintage camera for ch3 Redacted hook/context beats.
+ * Uses antique_camera.glb (KhronosGroup AntiqueCamera) via ModelLibrary registry.
+ * Download: python scripts/download_models.py
+ */
+
 import React from 'react';
 import { useGLTF } from '@react-three/drei';
 import { ThreeCanvas } from '@remotion/three';
-import { staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
+import { useCurrentFrame, useVideoConfig } from 'remotion';
+import { modelPath } from '../../assets/ModelLibrary';
 
 const CameraModel: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const t = frame / fps;
 
-  const { scene } = useGLTF(staticFile('models/antique_camera.glb'));
+  const { scene } = useGLTF(modelPath('antiqueCamera'));
 
   const rotY = Math.sin(t * 0.28) * 0.45;
   const rotX = Math.sin(t * 0.15) * 0.08;
@@ -43,4 +50,4 @@ export const AntiqueCamera3D: React.FC = () => (
   </ThreeCanvas>
 );
 
-useGLTF.preload(staticFile('models/antique_camera.glb'));
+useGLTF.preload(modelPath('antiqueCamera'));

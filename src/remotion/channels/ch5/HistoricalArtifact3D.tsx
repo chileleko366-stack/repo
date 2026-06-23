@@ -1,14 +1,22 @@
+/**
+ * HistoricalArtifact3D — rotating artifact for ch5 The Quiet Record.
+ * variant='helmet' → DamagedHelmet.glb (battle-worn flight helmet)
+ * variant='nefertiti' → Nefertiti.glb (Egyptian bust scan)
+ * Both via ModelLibrary registry. Download: python scripts/download_models.py
+ */
+
 import React from 'react';
 import { useGLTF } from '@react-three/drei';
 import { ThreeCanvas } from '@remotion/three';
-import { staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
+import { useCurrentFrame, useVideoConfig } from 'remotion';
+import { modelPath } from '../../assets/ModelLibrary';
 
 const HelmetModel: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const t = frame / fps;
 
-  const { scene } = useGLTF(staticFile('models/damaged_helmet.glb'));
+  const { scene } = useGLTF(modelPath('damagedHelmet'));
   const rotY = t * 0.22;
 
   return (
@@ -29,7 +37,7 @@ const NefertitiModel: React.FC = () => {
   const { fps } = useVideoConfig();
   const t = frame / fps;
 
-  const { scene } = useGLTF(staticFile('models/nefertiti.glb'));
+  const { scene } = useGLTF(modelPath('nefertiti'));
   const rotY = Math.sin(t * 0.3) * 0.4;
 
   return (
@@ -64,5 +72,5 @@ export const HistoricalArtifact3D: React.FC<{ variant?: 'helmet' | 'nefertiti' }
   </ThreeCanvas>
 );
 
-useGLTF.preload(staticFile('models/damaged_helmet.glb'));
-useGLTF.preload(staticFile('models/nefertiti.glb'));
+useGLTF.preload(modelPath('damagedHelmet'));
+useGLTF.preload(modelPath('nefertiti'));

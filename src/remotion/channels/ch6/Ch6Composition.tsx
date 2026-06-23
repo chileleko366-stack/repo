@@ -20,6 +20,8 @@ import { AbsoluteFill, Audio, interpolate, spring, staticFile, useCurrentFrame, 
 import type { ManifestBeat, VideoManifest } from '../../../pipeline/types';
 import { CHANNEL_CONFIGS } from '../../../pipeline/channelConfigs';
 import { AssetLayer } from '../../assets/AssetLayer';
+import { CaptionTrack } from '../../captions/CaptionTrack';
+import { useWordBoundaries } from '../../captions/useWordBoundaries';
 import { Counter } from '../../morph/Counter';
 import { ShotBriefLayer } from '../../mograph/ShotBriefLayer';
 import { SfxLayer } from '../../sound/SfxLayer';
@@ -29,6 +31,7 @@ import type { TimedBeat } from '../../transitions/BeatCompositor';
 import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { CelestialBody } from './CelestialBody';
 import { HardCutFlash } from './HardCutFlash';
+import { SphereFallback3D } from './SphereFallback3D';
 import { Starfield } from './Starfield';
 
 const CFG = CHANNEL_CONFIGS.ch6;
@@ -136,6 +139,11 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         />
       )}
 
+      {/* Metallic sphere on non-celestial, non-asset, non-stat beats */}
+      {!isCelestial && !isFullscreen && !isStat && (
+        <SphereFallback3D />
+      )}
+
       {needsScrim && (
         <div
           style={{
@@ -220,6 +228,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
 
 export const Ch6Composition: React.FC<{ manifest: VideoManifest }> = ({ manifest }) => {
   const { beats, soundDesign, fps, script } = manifest;
+  const wordBoundaries = useWordBoundaries(beats);
 
   const audioDurationsMs: Record<string, number> = {};
   const pauseAfterMap: Record<string, 'breath' | 'beat' | 'cut'> = {};
@@ -244,6 +253,17 @@ export const Ch6Composition: React.FC<{ manifest: VideoManifest }> = ({ manifest
       />
 
       <SfxLayer soundDesign={soundDesign ?? []} />
+
+      {wordBoundaries && (
+        <CaptionTrack
+          wordBoundariesByBeat={wordBoundaries}
+          beats={timedBeats}
+          channelId="ch6"
+          accentColor={CFG.colors.accent1}
+          accentFont={CFG.accentFont}
+          bodyFont={CFG.bodyFont}
+        />
+      )}
     </AbsoluteFill>
   );
 };

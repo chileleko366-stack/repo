@@ -6,8 +6,8 @@
  *   ─ Background fill (beat.bg_color || channel bgPrimary)
  *   ─ AssetLayer       (person/brand/place/map — full-screen)
  *   ─ Gradient scrim   (bottom 600px, asset beats only — legibility)
- *   ─ KineticTitle     (narration text, overlaid bottom-of-asset or centered)
- *   ─ PsychCard        (stat/none beats — centered card)
+ *   ─ PsychHead3D      (none-kind non-asset beats — animated 3D face)
+ *   ─ KineticTextLayer (emphasis keyword reveal + supporting words)
  *   ─ Beat audio       (<Audio> per beat voiceover)
  *   ─ HardCutFlash     (accent flash on frames 0-4 of each Sequence)
  * Global:
@@ -19,7 +19,7 @@
 import '@fontsource/anton';
 import '@fontsource/space-grotesk';
 import React from 'react';
-import { AbsoluteFill, Audio, Sequence, staticFile } from 'remotion';
+import { AbsoluteFill, Audio, staticFile } from 'remotion';
 import type { ManifestBeat, VideoManifest } from '../../../pipeline/types';
 import { CHANNEL_CONFIGS } from '../../../pipeline/channelConfigs';
 import { AssetLayer } from '../../assets/AssetLayer';
@@ -32,8 +32,6 @@ import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatComposito
 import type { TimedBeat } from '../../transitions/BeatCompositor';
 import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { HardCutFlash } from './HardCutFlash';
-import { KineticTitle } from './KineticTitle';
-import { PsychCard } from './PsychCard';
 import { PsychHead3D } from './PsychHead3D';
 
 const CFG = CHANNEL_CONFIGS.ch1;
@@ -109,38 +107,6 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
           bodyFont={CFG.bodyFont}
           accentFont={CFG.accentFont}
         />
-      )}
-
-      {/* Fallback: stat / none beats — PsychCard is the primary visual */}
-      {!hasShotBrief && (kind === 'none' || kind === 'stat') && (
-        <PsychCard
-          keyword={emphasis_keyword}
-          kind={kind}
-          statValue={
-            kind === 'stat' ? (parseFloat(visual.value ?? '0') || 0) : undefined
-          }
-          statPrefix={visual.prefix}
-          statSuffix={visual.suffix}
-        />
-      )}
-
-      {/* Fallback: kinetic narration text (hardcoded anchoring) */}
-      {!hasShotBrief && !isFullscreen && (
-        <div
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            top: 160,
-            display: 'flex',
-            justifyContent: 'center',
-          }}
-        >
-          <KineticTitle
-            text={beat.narration}
-            emphasisWord={emphasis_keyword}
-          />
-        </div>
       )}
 
       {/* Mograph kinetic text: emphasis keyword + supporting words */}

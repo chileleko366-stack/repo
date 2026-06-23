@@ -1,14 +1,21 @@
+/**
+ * Ferrari3D — animated sports car for ch2 FinanceFiction hook beats.
+ * Uses ferrari.glb (three.js example) via ModelLibrary registry.
+ * Download: python scripts/download_models.py
+ */
+
 import React from 'react';
 import { useGLTF } from '@react-three/drei';
 import { ThreeCanvas } from '@remotion/three';
-import { staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
+import { useCurrentFrame, useVideoConfig } from 'remotion';
+import { modelPath } from '../../assets/ModelLibrary';
 
 const FerrariModel: React.FC<{ durationFrames: number }> = ({ durationFrames: _d }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const t = frame / fps;
 
-  const { scene } = useGLTF(staticFile('models/ferrari.glb'));
+  const { scene } = useGLTF(modelPath('ferrari'));
 
   const rotY = t * 0.35;
 
@@ -43,4 +50,4 @@ export const Ferrari3D: React.FC<{ durationFrames?: number }> = ({ durationFrame
   </ThreeCanvas>
 );
 
-useGLTF.preload(staticFile('models/ferrari.glb'));
+useGLTF.preload(modelPath('ferrari'));
