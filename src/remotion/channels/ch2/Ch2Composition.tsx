@@ -15,7 +15,6 @@ import React from 'react';
 import {
   AbsoluteFill,
   Audio,
-  Sequence,
   interpolate,
   spring,
   staticFile,
@@ -34,8 +33,8 @@ import { Soundtrack } from '../../sound/Soundtrack';
 import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
 import type { TimedBeat } from '../../transitions/BeatCompositor';
 import { KineticTextLayer } from '../../mograph/KineticTextLayer';
-import { BrowserFrame } from './BrowserFrame';
 import { CandlestickChart } from './CandlestickChart';
+import { Ferrari3D } from './Ferrari3D';
 import { TickerTape } from './TickerTape';
 
 const CFG = CHANNEL_CONFIGS.ch2;
@@ -63,7 +62,6 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
     return false;
   })();
   const isFullscreen = hasAsset && kind !== 'none' && kind !== 'stat';
-  const showBrowser  = beat.sectionKey === 'hook' || beat.sectionKey === 'context';
   const hasShotBrief = !!shotBrief;
 
   const enter = spring({
@@ -97,7 +95,10 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         />
       )}
 
-      {showBrowser && <BrowserFrame />}
+      {/* Ferrari3D on hook beats without an asset */}
+      {beat.sectionKey === 'hook' && !isFullscreen && (
+        <Ferrari3D durationFrames={durationFrames} />
+      )}
 
       {/* ShotBrief-driven layout: primitive at primaryAnchor */}
       {hasShotBrief && (
@@ -116,7 +117,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
           style={{
             position: 'absolute',
             left: 60, right: 60,
-            ...(isFullscreen ? { bottom: 300 } : { top: showBrowser ? 120 : 200 }),
+            ...(isFullscreen ? { bottom: 300 } : { top: 200 }),
             opacity: enter,
             transform: `translateY(${translateY}px)`,
           }}
@@ -170,7 +171,9 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         </div>
       )}
 
-      <TickerTape durationFrames={durationFrames} accent={CFG.colors.accent1} />
+      {(beat.sectionKey === 'context' || (beat.sectionKey ?? '').startsWith('beat_')) && (
+        <TickerTape durationFrames={durationFrames} accent={CFG.colors.accent1} />
+      )}
 
       {/* Mograph kinetic text: emphasis keyword + supporting words */}
       <KineticTextLayer

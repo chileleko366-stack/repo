@@ -30,6 +30,7 @@ import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { DocumentaryQuote } from './DocumentaryQuote';
 import { FilmGrain } from './FilmGrain';
 import { HardCutFlash } from './HardCutFlash';
+import { HistoricalArtifact3D } from './HistoricalArtifact3D';
 
 const CFG = CHANNEL_CONFIGS.ch5;
 
@@ -127,7 +128,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
           position: 'absolute',
           inset: 0,
           background:
-            'radial-gradient(ellipse at center, transparent 40%, rgba(255,255,255,0.55) 100%)',
+            'radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%)',
           pointerEvents: 'none',
         }}
       />
@@ -140,9 +141,16 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
             bottom: 0, left: 0, right: 0,
             height: 640,
             background:
-              'linear-gradient(to top, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.35) 65%, transparent 100%)',
+              'linear-gradient(to top, rgba(16,13,8,0.92) 0%, rgba(16,13,8,0.25) 65%, transparent 100%)',
             pointerEvents: 'none',
           }}
+        />
+      )}
+
+      {/* Historical artifact 3D for non-asset, non-shotbrief beats */}
+      {!isFullscreen && !hasShotBrief && (
+        <HistoricalArtifact3D
+          variant={beat.sectionKey === 'hook' ? 'nefertiti' : 'helmet'}
         />
       )}
 

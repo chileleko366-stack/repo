@@ -20,8 +20,6 @@ import { AbsoluteFill, Audio, interpolate, spring, staticFile, useCurrentFrame, 
 import type { ManifestBeat, VideoManifest } from '../../../pipeline/types';
 import { CHANNEL_CONFIGS } from '../../../pipeline/channelConfigs';
 import { AssetLayer } from '../../assets/AssetLayer';
-import { CaptionTrack } from '../../captions/CaptionTrack';
-import { useWordBoundaries } from '../../captions/useWordBoundaries';
 import { Counter } from '../../morph/Counter';
 import { ShotBriefLayer } from '../../mograph/ShotBriefLayer';
 import { SfxLayer } from '../../sound/SfxLayer';
@@ -151,15 +149,14 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         />
       )}
 
-      {/* ShotBrief-driven layout */}
-      {hasShotBrief && (
+      {/* ShotBrief-driven layout — skip on celestial (planet owns the frame) */}
+      {hasShotBrief && !isCelestial && (
         <ShotBriefLayer
           beat={beat}
           accentColor={CFG.colors.accent1}
           bgColor={bg}
           bodyFont={CFG.bodyFont}
           accentFont={CFG.accentFont}
-          suppressPrimitive={isCelestial}
         />
       )}
 
@@ -223,7 +220,6 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
 
 export const Ch6Composition: React.FC<{ manifest: VideoManifest }> = ({ manifest }) => {
   const { beats, soundDesign, fps, script } = manifest;
-  const wordBoundaries = useWordBoundaries(beats);
 
   const audioDurationsMs: Record<string, number> = {};
   const pauseAfterMap: Record<string, 'breath' | 'beat' | 'cut'> = {};
@@ -248,17 +244,6 @@ export const Ch6Composition: React.FC<{ manifest: VideoManifest }> = ({ manifest
       />
 
       <SfxLayer soundDesign={soundDesign ?? []} />
-
-      {wordBoundaries && (
-        <CaptionTrack
-          wordBoundariesByBeat={wordBoundaries}
-          beats={timedBeats}
-          channelId="ch6"
-          accentColor={CFG.colors.accent1}
-          accentFont={CFG.accentFont}
-          bodyFont={CFG.bodyFont}
-        />
-      )}
     </AbsoluteFill>
   );
 };

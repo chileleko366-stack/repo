@@ -47,7 +47,7 @@ const BrainModel: React.FC<{ durationFrames: number }> = ({ durationFrames: _dur
       {/* Accent glow */}
       <pointLight position={[-4, 2, 3]} intensity={1.0} color="#4dd0e1" />
 
-      <group rotation={[0, rotY, 0.1]} scale={[0.85, 0.85, 0.85]}>
+      <group rotation={[0.1, rotY, 0]} scale={[0.9, 0.9, 0.9]}>
         <primitive object={scene} />
       </group>
     </>
@@ -65,7 +65,7 @@ export const ThreeBrain: React.FC<{ durationFrames?: number }> = ({ durationFram
       powerPreference: 'low-power' as WebGLPowerPreference,
       antialias: true,
     }}
-    camera={{ position: [0, 0, 5.5], fov: 45 }}
+    camera={{ position: [0, 0.5, 6.5], fov: 42 }}
   >
     <BrainModel durationFrames={durationFrames} />
   </ThreeCanvas>

@@ -34,6 +34,7 @@ import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { HardCutFlash } from './HardCutFlash';
 import { KineticTitle } from './KineticTitle';
 import { PsychCard } from './PsychCard';
+import { PsychHead3D } from './PsychHead3D';
 
 const CFG = CHANNEL_CONFIGS.ch1;
 
@@ -94,8 +95,13 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         />
       )}
 
+      {/* 3D head for none-kind non-asset beats */}
+      {!isFullscreen && kind === 'none' && !hasShotBrief && (
+        <PsychHead3D durationFrames={durationFrames} />
+      )}
+
       {/* ShotBrief-driven layout: primitive at primaryAnchor position with depth effects */}
-      {hasShotBrief && (
+      {hasShotBrief && !isFullscreen && (
         <ShotBriefLayer
           beat={beat}
           accentColor={CFG.colors.accent1}

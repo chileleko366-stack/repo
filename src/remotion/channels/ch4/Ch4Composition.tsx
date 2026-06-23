@@ -31,7 +31,6 @@ import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatComposito
 import type { TimedBeat } from '../../transitions/BeatCompositor';
 import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { HardCutFlash } from './HardCutFlash';
-import { NeuronPulse } from './NeuronPulse';
 import { ThreeBrain } from './ThreeBrain';
 
 const CFG = CHANNEL_CONFIGS.ch4;
@@ -132,13 +131,8 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         />
       )}
 
-      {/* Anatomy: SVG neuron + 3-D brain */}
-      {isAnatomy && (
-        <>
-          <NeuronPulse durationFrames={durationFrames} />
-          <ThreeBrain durationFrames={durationFrames} />
-        </>
-      )}
+      {/* Anatomy: 3-D brain */}
+      {isAnatomy && <ThreeBrain durationFrames={durationFrames} />}
 
       {/* Gradient scrim */}
       {(isFullscreen || isAnatomy) && (
@@ -148,7 +142,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
             bottom: 0, left: 0, right: 0,
             height: 720,
             background:
-              'linear-gradient(to top, rgba(255,255,255,0.97) 0%, rgba(255,255,255,0.4) 60%, transparent 100%)',
+              'linear-gradient(to top, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.15) 45%, transparent 100%)',
             pointerEvents: 'none',
           }}
         />

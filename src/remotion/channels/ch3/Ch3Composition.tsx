@@ -33,6 +33,7 @@ import { Soundtrack } from '../../sound/Soundtrack';
 import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
 import type { TimedBeat } from '../../transitions/BeatCompositor';
 import { KineticTextLayer } from '../../mograph/KineticTextLayer';
+import { AntiqueCamera3D } from './AntiqueCamera3D';
 import { ClassifiedStamp } from './ClassifiedStamp';
 import { GlitchWord } from './GlitchWord';
 import { ScrambleReveal } from './ScrambleReveal';
@@ -97,8 +98,11 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         />
       )}
 
+      {/* Antique camera for hook/context beats without an asset */}
+      {isHookCtx && !isFullscreen && <AntiqueCamera3D />}
+
       {/* ShotBrief-driven layout */}
-      {hasShotBrief && (
+      {hasShotBrief && !isTwist && (
         <ShotBriefLayer
           beat={beat}
           accentColor={CFG.colors.accent1}
