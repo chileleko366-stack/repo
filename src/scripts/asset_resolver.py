@@ -384,55 +384,6 @@ async def resolve_distance(
     unit: str,
     out_dir: Path,
 ) -> dict | None:
-    # Hardcoded astronomical distances — Nominatim geocodes planet names as
-    # Earth towns. Values are mean distances in km (IAU standard).
-    _ASTRO_DISTANCES_KM: dict[tuple[str, str], float] = {
-        ("earth", "moon"):     384_400,
-        ("moon", "earth"):     384_400,
-        ("earth", "mars"):     225_000_000,
-        ("mars", "earth"):     225_000_000,
-        ("earth", "jupiter"):  778_500_000,
-        ("jupiter", "earth"):  778_500_000,
-        ("earth", "saturn"):   1_432_000_000,
-        ("saturn", "earth"):   1_432_000_000,
-        ("earth", "venus"):    261_000_000,
-        ("venus", "earth"):    261_000_000,
-        ("earth", "mercury"):  155_000_000,
-        ("mercury", "earth"):  155_000_000,
-        ("earth", "uranus"):   2_870_000_000,
-        ("uranus", "earth"):   2_870_000_000,
-        ("earth", "neptune"):  4_495_000_000,
-        ("neptune", "earth"):  4_495_000_000,
-        ("sun", "earth"):      149_600_000,
-        ("earth", "sun"):      149_600_000,
-    }
-
-    astro_key = (from_place.lower(), to_place.lower())
-    if astro_key in _ASTRO_DISTANCES_KM:
-        dist_km = _ASTRO_DISTANCES_KM[astro_key]
-        if unit == "miles":
-            display_val = dist_km * 0.621371
-            dist_label = f"{display_val:,.0f} miles"
-        elif unit == "ly":
-            ly = dist_km / 9.461e12
-            dist_label = f"{ly:.4f} light-years"
-        else:
-            dist_label = f"{dist_km:,.0f} km"
-        print(f"[assets] distance (astronomical): {from_place} → {to_place} = {dist_label}")
-        return {
-            "map_image":      None,
-            "from_place":     from_place,
-            "from_lat":       None,
-            "from_lon":       None,
-            "from_px":        None,
-            "to_place":       to_place,
-            "to_lat":         None,
-            "to_lon":         None,
-            "to_px":          None,
-            "distance_km":    round(dist_km, 1),
-            "distance_label": dist_label,
-        }
-
     slug     = re.sub(r"[^a-z0-9]", "_", f"{from_place}_{to_place}".lower())
     img_path = out_dir / f"dist_{slug}.png"
 

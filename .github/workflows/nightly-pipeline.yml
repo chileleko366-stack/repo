@@ -27,7 +27,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
 
       - run: npm install
 
@@ -38,17 +37,11 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - name: Cache rembg model
-        uses: actions/cache@v4
-        with:
-          path: ~/.u2net
-          key: rembg-u2net-v1
-
       - name: Install system deps for Remotion
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
-            ffmpeg libgbm-dev \
+            chromium-browser ffmpeg libgbm-dev \
             libatk1.0-0 libatk-bridge2.0-0 libcups2 \
             libxkbcommon0 libxdamage1 libpango-1.0-0 libcairo2
 
@@ -83,21 +76,7 @@ jobs:
           YT_CH6_REFRESH_TOKEN=${{ secrets.YT_CH6_REFRESH_TOKEN }}
           ENVEOF
 
-      - name: Cache 3D models
-        uses: actions/cache@v4
-        id: models-cache
-        with:
-          path: public/models
-          key: glb-models-${{ hashFiles('scripts/download_models.py') }}
-          restore-keys: |
-            glb-models-
-
-      - name: Download 3D models
-        if: steps.models-cache.outputs.cache-hit != 'true'
-        run: python scripts/download_models.py
-
       - name: Generate content (Python pipeline)
-        continue-on-error: true
         run: |
           CH="${{ github.event.inputs.channel }}"
           if [ -z "$CH" ]; then
@@ -147,22 +126,19 @@ jobs:
                   echo '[]' > "$json"
                 fi
               done
-            else
-              echo "::notice::${ch} has no manifest (pipeline failed) — skipping audio check for this channel"
             fi
           done
           if [ "$MISSING_BEATS" -gt 0 ]; then
-            echo "::error::${MISSING_BEATS} beat audio file(s) are missing for channels that DID complete pipeline. Aborting upload."
+            echo "::error::${MISSING_BEATS} beat(s) have silent placeholder audio — TTS failed. Aborting upload."
             exit 1
           fi
 
       - name: Bundle Remotion
         run: npx remotion bundle
 
-      - name: Download Remotion browser (Chrome Headless Shell)
-        run: npx remotion browser ensure
-
       - name: Render videos
+        env:
+          REMOTION_CHROME_EXECUTABLE: /usr/bin/chromium-browser
         run: |
           CH="${{ github.event.inputs.channel }}"
           if [ -z "$CH" ]; then

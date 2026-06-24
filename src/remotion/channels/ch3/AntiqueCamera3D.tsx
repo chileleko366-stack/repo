@@ -9,7 +9,6 @@ import { useGLTF } from '@react-three/drei';
 import { ThreeCanvas } from '@remotion/three';
 import { useCurrentFrame, useVideoConfig } from 'remotion';
 import { modelPath } from '../../assets/ModelLibrary';
-import { ModelErrorBoundary } from '../../assets/ModelErrorBoundary';
 
 const CameraModel: React.FC = () => {
   const frame = useCurrentFrame();
@@ -35,22 +34,20 @@ const CameraModel: React.FC = () => {
 };
 
 export const AntiqueCamera3D: React.FC = () => (
-  <ModelErrorBoundary accentColor="#cc0000">
-    <ThreeCanvas
-      width={1080}
-      height={1920}
-      style={{ position: 'absolute', inset: 0 }}
-      gl={{
-        failIfMajorPerformanceCaveat: false,
-        preserveDrawingBuffer: true,
-        powerPreference: 'low-power' as WebGLPowerPreference,
-        antialias: true,
-      }}
-      camera={{ position: [0, 0.5, 4.0], fov: 46 }}
-    >
-      <CameraModel />
-    </ThreeCanvas>
-  </ModelErrorBoundary>
+  <ThreeCanvas
+    width={1080}
+    height={1920}
+    style={{ position: 'absolute', inset: 0 }}
+    gl={{
+      failIfMajorPerformanceCaveat: false,
+      preserveDrawingBuffer: true,
+      powerPreference: 'low-power' as WebGLPowerPreference,
+      antialias: true,
+    }}
+    camera={{ position: [0, 0.5, 4.0], fov: 46 }}
+  >
+    <CameraModel />
+  </ThreeCanvas>
 );
 
 useGLTF.preload(modelPath('antiqueCamera'));

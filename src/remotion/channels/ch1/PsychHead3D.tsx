@@ -11,7 +11,6 @@ import { useGLTF } from '@react-three/drei';
 import { ThreeCanvas } from '@remotion/three';
 import { interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
 import { modelPath } from '../../assets/ModelLibrary';
-import { ModelErrorBoundary } from '../../assets/ModelErrorBoundary';
 
 const HeadModel: React.FC<{ durationFrames: number }> = ({ durationFrames }) => {
   const frame = useCurrentFrame();
@@ -41,22 +40,20 @@ const HeadModel: React.FC<{ durationFrames: number }> = ({ durationFrames }) => 
 };
 
 export const PsychHead3D: React.FC<{ durationFrames?: number }> = ({ durationFrames = 240 }) => (
-  <ModelErrorBoundary accentColor="#d400ff">
-    <ThreeCanvas
-      width={1080}
-      height={1920}
-      style={{ position: 'absolute', inset: 0 }}
-      gl={{
-        failIfMajorPerformanceCaveat: false,
-        preserveDrawingBuffer: true,
-        powerPreference: 'low-power' as WebGLPowerPreference,
-        antialias: true,
-      }}
-      camera={{ position: [0, 0.2, 3.5], fov: 48 }}
-    >
-      <HeadModel durationFrames={durationFrames} />
-    </ThreeCanvas>
-  </ModelErrorBoundary>
+  <ThreeCanvas
+    width={1080}
+    height={1920}
+    style={{ position: 'absolute', inset: 0 }}
+    gl={{
+      failIfMajorPerformanceCaveat: false,
+      preserveDrawingBuffer: true,
+      powerPreference: 'low-power' as WebGLPowerPreference,
+      antialias: true,
+    }}
+    camera={{ position: [0, 0.2, 3.5], fov: 48 }}
+  >
+    <HeadModel durationFrames={durationFrames} />
+  </ThreeCanvas>
 );
 
 useGLTF.preload(modelPath('faceCap'));
