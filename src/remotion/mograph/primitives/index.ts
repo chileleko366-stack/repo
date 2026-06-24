@@ -67,3 +67,7 @@ export { LightSweep } from './LightSweep';
 export { UIMockup } from './UIMockup';
 export { AvatarOrbit } from './AvatarOrbit';
 export type { AvatarBadge } from './AvatarOrbit';
+// Lesson 5 additions
+export { EffectVignette } from './EffectVignette';
+export { TextHorizontalSlide } from './TextHorizontalSlide';
+export { Card3DFlip } from './Card3DFlip';

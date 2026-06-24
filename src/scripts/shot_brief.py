@@ -154,6 +154,9 @@ SAAS / MOTION-GRAPHIC PRIMITIVES (from AE motion lessons):
   "FlowConnector"         — Animated SVG lines connecting 2-4 labelled nodes. For workflow, neural pathway, timeline, system beats.
   "LightSweep"            — Diagonal light scan over a GlassCard. For premium logo/product reveal beats.
   "AvatarOrbit"           — Coloured avatar badges orbiting a centre with upright counter-rotation. For team/network/satellite beats.
+  "EffectVignette"        — Radial blur vignette overlay over GlassCard. Adds cinematic depth to atmospheric or dramatic beats.
+  "TextHorizontalSlide"   — Words slide in from right, staggered. Primary: comma-separated list of items/facts/attributes.
+  "Card3DFlip"            — Card flips in via 3D Y+X spring rotation. For document/report/invoice/stat reveals. Primary: "Title:Value".
 
 CHANNEL-SPECIFIC (channel-gated — only use on the specified channelId):
   "CelestialBody"      — ch6 ONLY. Rotating 3D sphere (planet/moon). Always use for celestial beats on ch6.
@@ -206,6 +209,11 @@ BEAT_3 — depth and atmosphere:
   atmospheric: "BackgroundAurora" or "ShapeSpinningRings"
   team/network/satellite: "AvatarOrbit"
   logo/product reveal: "LightSweep"
+  cinematic depth: "EffectVignette" (wraps GlassCard with dark edge vignette)
+
+BEAT_4 / TWIST — document/report/stat reveal:
+  "Card3DFlip" (flips in like an invoice — Primary: "Title:Value")
+  "TextHorizontalSlide" (bullet list of items — Primary: comma-separated)
   ch6: "ParticleShootingStars" + "CelestialBody"
   ch4: "ThreeBrain"
   person/place with resolvedAsset: "GlassCard" is acceptable here as overlay

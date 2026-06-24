@@ -79,6 +79,9 @@ import {
   LightSweep,
   UIMockup,
   AvatarOrbit,
+  EffectVignette,
+  TextHorizontalSlide,
+  Card3DFlip,
 } from './primitives';
 import type { CarouselPanel } from './primitives/HexCarousel';
 import type { IconName } from './primitives/AnimatedIcon';
@@ -697,12 +700,13 @@ function PrimitiveDispatch({
       );
 
     case 'FlowConnector': {
-      const items = (beat.visual.items ?? []) as Array<{label?: string; color?: string}>;
-      const nodes = items.length >= 2
-        ? items.map((it, i) => ({
-            label: it.label ?? `${i + 1}`,
-            color: it.color ?? accentColor,
-            xPct: 15 + (i / Math.max(items.length - 1, 1)) * 70,
+      // Parse beat.visual.value as CSV labels (VisualTag has no items field)
+      const csvLabels = parseCsv(beat.visual.value ?? primaryText);
+      const nodes = csvLabels.length >= 2
+        ? csvLabels.map((lbl, i) => ({
+            label: lbl,
+            color: accentColor,
+            xPct: 15 + (i / Math.max(csvLabels.length - 1, 1)) * 70,
             yPct: 50,
           }))
         : [
@@ -737,12 +741,13 @@ function PrimitiveDispatch({
       );
 
     case 'AvatarOrbit': {
-      const items = (beat.visual.items ?? []) as Array<{label?: string; color?: string}>;
+      // Parse beat.visual.value as CSV labels (VisualTag has no items field)
+      const csvLabels = parseCsv(beat.visual.value ?? primaryText);
       const AVATAR_COLORS = [accentColor, '#3b82f6', '#ef4444', '#f59e0b', '#10b981'];
-      const avatars = items.length >= 2
-        ? items.slice(0, 5).map((it, i) => ({
-            initial: (it.label ?? '?').charAt(0).toUpperCase(),
-            color: it.color ?? AVATAR_COLORS[i % AVATAR_COLORS.length],
+      const avatars = csvLabels.length >= 2
+        ? csvLabels.slice(0, 5).map((lbl, i) => ({
+            initial: lbl.charAt(0).toUpperCase(),
+            color: AVATAR_COLORS[i % AVATAR_COLORS.length],
           }))
         : [
             { initial: 'A', color: accentColor },
@@ -757,6 +762,53 @@ function PrimitiveDispatch({
           accentColor={accentColor}
           backgroundColor={bgColor}
           fontFamily={bodyFont}
+        />
+      );
+    }
+
+    // ── Lesson 5 primitives ──────────────────────────────────────────────────────
+
+    case 'EffectVignette':
+      return (
+        <EffectVignette strength={0.6}>
+          <GlassCard
+            primary={primaryText}
+            label={sanitizeLabel(labelTypo?.text)}
+            body={bodyTypo?.text}
+            accentColor={accentColor}
+            backgroundColor={bgColor}
+            fontFamily={bodyFont}
+            accentFont={accentFont}
+          />
+        </EffectVignette>
+      );
+
+    case 'TextHorizontalSlide':
+      return (
+        <TextHorizontalSlide
+          text={primaryText}
+          color={primaryTypo?.color ?? '#ffffff'}
+          accentColor={accentColor}
+          fontSize={primaryTypo?.sizePx ?? 72}
+          backgroundColor={bgColor}
+          fontFamily={bodyFont}
+        />
+      );
+
+    case 'Card3DFlip': {
+      const colonIdx = primaryText.indexOf(':');
+      const cardTitle = colonIdx > 0 ? primaryText.slice(0, colonIdx).trim() : (beat.emphasis_keyword ?? primaryText);
+      const cardValue = colonIdx > 0 ? primaryText.slice(colonIdx + 1).trim() : undefined;
+      return (
+        <Card3DFlip
+          title={cardTitle.toUpperCase()}
+          value={cardValue}
+          subtitle={bodyTypo?.text}
+          accentColor={accentColor}
+          backgroundColor={bgColor}
+          cardColor={bgColor === '#ffffff' || bgColor.startsWith('#f') ? bgColor : '#ffffff'}
+          fontFamily={bodyFont}
+          accentFont={accentFont}
         />
       );
     }
