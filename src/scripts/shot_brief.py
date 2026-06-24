@@ -137,14 +137,16 @@ SHAPE / PARTICLE PRIMITIVES (for visual energy):
   "ParticleSparks"        — energy sparks burst from center. Use for high-energy reveals, breakthroughs.
   "AnimatedIcon"          — Lottie icon. visual.value must be one of: chart-up|chart-down|brain-idea|lock-security|globe-world|alert-warning|checkmark-success|clock-time.
 
-CINEMATIC PRIMITIVES (for documentary/narrative style):
-  "CinematicDocumentary"  — letterbox bars + Ken Burns + lower-third text overlay. Primary is the title text.
-  "CinematicNoir"         — high contrast scanlines + vignette overlay. For dark, serious, historical beats.
-  "CinematicSciFi"        — HUD grid + scan line + corner brackets. For technology, future, space beats.
-
 BACKGROUND / ATMOSPHERIC (use when beat needs an ambient visual layer):
   "BackgroundAurora"      — animated aurora color waves with blur. For space, science, wonder beats.
   "BackgroundGeometric"   — floating geometric shapes (circles, squares, triangles). For abstract concept beats.
+  "BackgroundSaaSLight"   — soft animated pastel 4-colour gradient. For ch2 white-bg beats or bright concept beats.
+
+SAAS / MOTION-GRAPHIC PRIMITIVES (from AE motion lessons):
+  "SaaSCard"              — white opaque card, spring entrance, drop shadow. Best for ch2 key-stat beats on white bg.
+  "OrbitalHub"            — SVG ellipse orbit + 4 rotating keyword dots. Primary must be comma-separated words (4 max). For concept clusters, product features.
+  "CursorClick"           — SVG cursor travels quadratic bezier path then clicks. For UX/product demo beats.
+  "CardGrid"              — 4 floating cards in 2×2 CSS perspective grid, staggered spring entrance. Primary: "Title1:Value1,Title2:Value2,Title3:Value3,Title4:Value4".
 
 CHANNEL-SPECIFIC (channel-gated — only use on the specified channelId):
   "CelestialBody"      — ch6 ONLY. Rotating 3D sphere (planet/moon). Always use for celestial beats on ch6.
@@ -155,12 +157,12 @@ CHANNEL-SPECIFIC (channel-gated — only use on the specified channelId):
   "GlitchWord"         — ch3 ONLY. Single word glitches and stabilizes. Use for emphasis beats on ch3.
 
 PRIMITIVE SELECTION BY BEAT TYPE (follow these unless channelId overrides):
-- sectionKey="hook": prefer "GlassCard" or "TextKinetic" — big bold spring entry. Or "ClassifiedStamp" for ch3, "CinematicDocumentary" for ch5.
+- sectionKey="hook": prefer "GlassCard" or "TextKinetic" — big bold spring entry. Or "ClassifiedStamp" for ch3, "SaaSCard" for ch2.
 - sectionKey="context": "GlassCard", "Typewriter", or "LayoutFullscreenType"
 - sectionKey="beat_X" with visual.kind="stat" and percentage: "ProgressBar" or "ShapeCircularProgress" or "DataGauge"
 - sectionKey="beat_X" with visual.kind="stat" and large number: "LayoutGiantNumber" or "TextCounter" or "GlassCard"
 - sectionKey="beat_X" with visual.kind="person": resolvedAsset handles rendering — primitive is backup, use "GlassCard"
-- sectionKey="beat_X" with visual.kind="place": resolvedAsset handles rendering — use "CinematicDocumentary" or "GlassCard"
+- sectionKey="beat_X" with visual.kind="place": resolvedAsset handles rendering — use "GlassCard" or "BackgroundGeometric"
 - sectionKey="beat_X" with visual.kind="celestial": "CelestialBody" (ch6), "ShapeSpinningRings" or "BackgroundAurora" (others)
 - sectionKey="beat_X" with visual.kind="anatomy": "ThreeBrain" (ch4), else "AnimatedIcon" with brain-idea
 - sectionKey="beat_X" with visual.kind="chart": "CandlestickChart" (ch2), "BarChart" or "DataLineChart" (others)

@@ -63,15 +63,15 @@ import {
   ShapeSpinningRings,
   ParticleShootingStars,
   ParticleSparks,
-  CinematicDocumentary,
-  CinematicNoir,
-  CinematicSciFi,
   BackgroundAurora,
   BackgroundGeometric,
+  BackgroundSaaSLight,
   EffectFilmGrain,
-  EffectLightLeak,
-  EffectVHS,
   EffectGlow,
+  SaaSCard,
+  OrbitalHub,
+  CursorClick,
+  CardGrid,
 } from './primitives';
 import type { IconName } from './primitives/AnimatedIcon';
 import type { BarData } from './primitives/BarChart';
@@ -579,24 +579,6 @@ function PrimitiveDispatch({
     case 'ParticleSparks':
       return <ParticleSparks accentColor={accentColor} backgroundColor={bgColor} />;
 
-    // ── Cinematic primitives ─────────────────────────────────────────────────
-
-    case 'CinematicDocumentary':
-      return (
-        <CinematicDocumentary
-          title={primaryText}
-          subtitle={sanitizeLabel(labelTypo?.text) ?? beat.visual.value}
-          accentColor={accentColor}
-          backgroundColor={bgColor}
-        />
-      );
-
-    case 'CinematicNoir':
-      return <CinematicNoir accentColor={accentColor} backgroundColor={bgColor} />;
-
-    case 'CinematicSciFi':
-      return <CinematicSciFi accentColor={accentColor} backgroundColor={bgColor} />;
-
     // ── Background primitives ────────────────────────────────────────────────
 
     case 'BackgroundAurora':
@@ -605,19 +587,63 @@ function PrimitiveDispatch({
     case 'BackgroundGeometric':
       return <BackgroundGeometric accentColors={[accentColor]} backgroundColor={bgColor} />;
 
+    case 'BackgroundSaaSLight':
+      return <BackgroundSaaSLight />;
+
     // ── Effect overlays ──────────────────────────────────────────────────────
 
     case 'EffectFilmGrain':
       return <EffectFilmGrain opacity={0.06} />;
 
-    case 'EffectLightLeak':
-      return <EffectLightLeak warmColor={accentColor} />;
-
-    case 'EffectVHS':
-      return <EffectVHS />;
-
     case 'EffectGlow':
       return <EffectGlow accentColor={accentColor} />;
+
+    // ── SaaS / motion-graphic primitives ────────────────────────────────────
+
+    case 'SaaSCard':
+      return (
+        <SaaSCard
+          primary={primaryText}
+          label={sanitizeLabel(labelTypo?.text)}
+          body={bodyTypo?.text}
+          accentColor={accentColor}
+        />
+      );
+
+    case 'OrbitalHub': {
+      const orbitWords = parseCsv(primaryText);
+      return (
+        <OrbitalHub
+          keywords={orbitWords.length >= 2 ? orbitWords : ['Speed', 'Scale', 'Trust', 'Value']}
+          accentColor={accentColor}
+          backgroundColor={bgColor}
+        />
+      );
+    }
+
+    case 'CursorClick':
+      return (
+        <CursorClick
+          accentColor={accentColor}
+          backgroundColor={bgColor}
+          label={sanitizeLabel(labelTypo?.text)}
+        />
+      );
+
+    case 'CardGrid': {
+      const gridItems = parseCsv(primaryText).map(s => {
+        const colonIdx = s.indexOf(':');
+        if (colonIdx > 0) return { title: s.slice(0, colonIdx).trim(), value: s.slice(colonIdx + 1).trim() };
+        return { title: s, value: undefined };
+      });
+      return (
+        <CardGrid
+          cards={gridItems.length >= 2 ? gridItems : undefined}
+          accentColor={accentColor}
+          backgroundColor={bgColor}
+        />
+      );
+    }
 
     case 'TypographicCard':
     default:
