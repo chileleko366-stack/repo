@@ -83,16 +83,13 @@ def render_channel(channel_id: str) -> None:
         comp_id,              # positional: composition ID
         str(output_path),     # positional: output file
         f"--props={props_path}",
-        # swangle = ANGLE on SwiftShader.  Remotion's recommended GL backend for
-        # GPU-less CI runners (same as the Lambda default).  Passing it here
-        # overrides remotion.config.ts for per-channel invocations and makes the
-        # choice explicit in CI logs.
+        # --gl=swangle: Remotion translates this to ['--use-gl=angle', '--use-angle=swiftshader']
+        # inside open-browser.js. This is the correct and ONLY flag needed for
+        # SwiftShader on GPU-less CI runners using Chrome Headless Shell.
+        # --no-sandbox is already hardcoded in Remotion's own launcher.
+        # --chromium-flags= does NOT exist as a Remotion CLI flag and is silently
+        # ignored — it must never be used here.
         "--gl=swangle",
-        # --no-sandbox: required for headless CI (no user namespace isolation)
-        # --enable-unsafe-swiftshader: required so Chrome accepts SwiftShader at all
-        # --disable-dev-shm-usage: prevents /dev/shm OOM on CI with small tmpfs
-        # --disable-gpu-sandbox: required alongside swiftshader on some Linux configs
-        "--chromium-flags=--no-sandbox --enable-unsafe-swiftshader --disable-dev-shm-usage --disable-gpu-sandbox",
         "--log=verbose",
         # Increase timeout from Remotion's default 30s to 90s per frame.
         # SwiftShader software rendering initialises slower than hardware — first
