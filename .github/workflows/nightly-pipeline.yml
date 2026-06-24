@@ -37,6 +37,12 @@ jobs:
 
       - run: pip install -r requirements.txt
 
+      - name: Cache rembg model
+        uses: actions/cache@v4
+        with:
+          path: ~/.u2net
+          key: rembg-u2net-v1
+
       - name: Install system deps for Remotion
         run: |
           sudo apt-get update -qq
@@ -80,6 +86,7 @@ jobs:
         run: python scripts/download_models.py
 
       - name: Generate content (Python pipeline)
+        continue-on-error: true
         run: |
           CH="${{ github.event.inputs.channel }}"
           if [ -z "$CH" ]; then
@@ -129,10 +136,12 @@ jobs:
                   echo '[]' > "$json"
                 fi
               done
+            else
+              echo "::notice::${ch} has no manifest (pipeline failed) — skipping audio check for this channel"
             fi
           done
           if [ "$MISSING_BEATS" -gt 0 ]; then
-            echo "::error::${MISSING_BEATS} beat(s) have silent placeholder audio — TTS failed. Aborting upload."
+            echo "::error::${MISSING_BEATS} beat audio file(s) are missing for channels that DID complete pipeline. Aborting upload."
             exit 1
           fi
 

@@ -74,24 +74,26 @@ PROVIDERS = [
         "key_env": "SAMBANOVA_API_KEY",
         "model": "Meta-Llama-3.3-70B-Instruct",
     },
-    {
-        "name": "xai",
-        "url": "https://api.x.ai/v1/chat/completions",
-        "key_env": "XAI_API_KEY",
-        "model": "grok-3-mini",
-    },
+    # xAI — currently returning 403 (key expired or plan changed)
+    # {
+    #     "name": "xai",
+    #     "url": "https://api.x.ai/v1/chat/completions",
+    #     "key_env": "XAI_API_KEY",
+    #     "model": "grok-3-mini",
+    # },
     {
         "name": "gemini",
         "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
         "key_env": "GEMINI_API_KEY",
         "model": "gemini-2.0-flash",
     },
-    {
-        "name": "cerebras",
-        "url": "https://api.cerebras.ai/v1/chat/completions",
-        "key_env": "CEREBRAS_API_KEY",
-        "model": "llama3.1-8b",
-    },
+    # Cerebras — currently returning 404 (endpoint changed)
+    # {
+    #     "name": "cerebras",
+    #     "url": "https://api.cerebras.ai/v1/chat/completions",
+    #     "key_env": "CEREBRAS_API_KEY",
+    #     "model": "llama3.1-8b",
+    # },
     {
         "name": "nvidia",
         "url": "https://integrate.api.nvidia.com/v1/chat/completions",
@@ -611,7 +613,7 @@ class ValidationError(Exception):
 
 # ── Main entry point ──────────────────────────────────────────────────────────
 
-def generate_script(topic: str, channel_id: str, brief: ResearchBrief, max_retries: int = 5) -> dict:
+def generate_script(topic: str, channel_id: str, brief: ResearchBrief, max_retries: int = 8) -> dict:
     system = build_system_prompt(channel_id, topic, brief)
     base_user = build_user_prompt(topic, brief)
     user = base_user
