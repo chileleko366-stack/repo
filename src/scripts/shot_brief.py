@@ -147,6 +147,8 @@ SAAS / MOTION-GRAPHIC PRIMITIVES (from AE motion lessons):
   "OrbitalHub"            — SVG ellipse orbit + 4 rotating keyword dots. Primary must be comma-separated words (4 max). For concept clusters, product features.
   "CursorClick"           — SVG cursor travels quadratic bezier path then clicks. For UX/product demo beats.
   "CardGrid"              — 4 floating cards in 2×2 CSS perspective grid, staggered spring entrance. Primary: "Title1:Value1,Title2:Value2,Title3:Value3,Title4:Value4".
+  "HexCarousel"           — CSS 3D perspective carousel; 6 panels rotating on Y axis. Primary: "Title:Body" comma-separated pairs (6 max). For feature lists, option comparisons, product pillars.
+  "StarTransition"        — radial star-burst rays from centre + glow pulse. Use for high-energy reveals, breakthroughs, or dramatic twist beats.
 
 CHANNEL-SPECIFIC (channel-gated — only use on the specified channelId):
   "CelestialBody"      — ch6 ONLY. Rotating 3D sphere (planet/moon). Always use for celestial beats on ch6.

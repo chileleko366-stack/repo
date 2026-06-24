@@ -15,7 +15,6 @@ renders its own composition (Ch1…Ch6), registered in src/Root.tsx.
 import argparse
 import glob
 import json
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -76,10 +75,6 @@ def render_channel(channel_id: str) -> None:
     with open(props_path, "w") as f:
         json.dump({"manifest": manifest_data}, f)
 
-    # Ensure Chromium path is forwarded to the subprocess.
-    chrome_exe = os.environ.get("REMOTION_CHROME_EXECUTABLE", "chromium-browser")
-    env = {**os.environ, "REMOTION_CHROME_EXECUTABLE": chrome_exe}
-
     # Remotion 4.x CLI: composition-id and output are positional args.
     # parsedCli._ contains only positional args — --composition= flags are
     # stripped before reaching getCompName() and are silently ignored.
@@ -112,10 +107,7 @@ def render_channel(channel_id: str) -> None:
     # Let stderr flow directly to the terminal so Remotion errors appear live
     # in CI output right after the channel header line, not buried under
     # subsequent channels' audio-mixing progress.
-    result = subprocess.run(
-        cmd,
-        env=env,
-    )
+    result = subprocess.run(cmd)
 
     if result.returncode != 0:
         raise RuntimeError(

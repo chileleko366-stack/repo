@@ -27,6 +27,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
 
       - run: npm install
 
@@ -47,7 +48,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
-            chromium-browser ffmpeg libgbm-dev \
+            ffmpeg libgbm-dev \
             libatk1.0-0 libatk-bridge2.0-0 libcups2 \
             libxkbcommon0 libxdamage1 libpango-1.0-0 libcairo2
 
@@ -82,7 +83,17 @@ jobs:
           YT_CH6_REFRESH_TOKEN=${{ secrets.YT_CH6_REFRESH_TOKEN }}
           ENVEOF
 
+      - name: Cache 3D models
+        uses: actions/cache@v4
+        id: models-cache
+        with:
+          path: public/models
+          key: glb-models-${{ hashFiles('scripts/download_models.py') }}
+          restore-keys: |
+            glb-models-
+
       - name: Download 3D models
+        if: steps.models-cache.outputs.cache-hit != 'true'
         run: python scripts/download_models.py
 
       - name: Generate content (Python pipeline)
@@ -148,9 +159,10 @@ jobs:
       - name: Bundle Remotion
         run: npx remotion bundle
 
+      - name: Download Remotion browser (Chrome Headless Shell)
+        run: npx remotion browser ensure
+
       - name: Render videos
-        env:
-          REMOTION_CHROME_EXECUTABLE: /usr/bin/chromium-browser
         run: |
           CH="${{ github.event.inputs.channel }}"
           if [ -z "$CH" ]; then

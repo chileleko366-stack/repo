@@ -61,3 +61,8 @@ export { SaaSCard } from './SaaSCard';
 export { OrbitalHub } from './OrbitalHub';
 export { CursorClick } from './CursorClick';
 export { CardGrid } from './CardGrid';
+// Lesson 3 carousel primitives
+export { GradientBorder } from './GradientBorder';
+export { HexCarousel } from './HexCarousel';
+export type { CarouselPanel } from './HexCarousel';
+export { StarTransition } from './StarTransition';

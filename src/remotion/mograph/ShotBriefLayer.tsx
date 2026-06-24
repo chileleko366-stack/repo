@@ -72,7 +72,10 @@ import {
   OrbitalHub,
   CursorClick,
   CardGrid,
+  HexCarousel,
+  StarTransition,
 } from './primitives';
+import type { CarouselPanel } from './primitives/HexCarousel';
 import type { IconName } from './primitives/AnimatedIcon';
 import type { BarData } from './primitives/BarChart';
 import type { LineChartPoint } from './primitives/DataLineChart';
@@ -644,6 +647,26 @@ function PrimitiveDispatch({
         />
       );
     }
+
+    // ── Lesson 3 carousel primitives ────────────────────────────────────────
+
+    case 'HexCarousel': {
+      const carouselPanels: CarouselPanel[] = parseCsv(primaryText).map(s => {
+        const colonIdx = s.indexOf(':');
+        if (colonIdx > 0) return { title: s.slice(0, colonIdx).trim(), body: s.slice(colonIdx + 1).trim() };
+        return { title: s };
+      });
+      return (
+        <HexCarousel
+          panels={carouselPanels.length >= 2 ? carouselPanels : undefined}
+          accentColor={accentColor}
+          backgroundColor={bgColor}
+        />
+      );
+    }
+
+    case 'StarTransition':
+      return <StarTransition accentColor={accentColor} backgroundColor={bgColor} />;
 
     case 'TypographicCard':
     default:
