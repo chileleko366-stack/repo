@@ -158,19 +158,69 @@ CHANNEL-SPECIFIC (channel-gated — only use on the specified channelId):
   "ClassifiedStamp"    — ch3 ONLY. Red CLASSIFIED stamp slams in. Use for opening/hook beats on ch3.
   "GlitchWord"         — ch3 ONLY. Single word glitches and stabilizes. Use for emphasis beats on ch3.
 
-PRIMITIVE SELECTION BY BEAT TYPE (follow these unless channelId overrides):
-- sectionKey="hook": prefer "GlassCard" or "TextKinetic" — big bold spring entry. Or "ClassifiedStamp" for ch3, "SaaSCard" for ch2.
-- sectionKey="context": "GlassCard", "Typewriter", or "LayoutFullscreenType"
-- sectionKey="beat_X" with visual.kind="stat" and percentage: "ProgressBar" or "ShapeCircularProgress" or "DataGauge"
-- sectionKey="beat_X" with visual.kind="stat" and large number: "LayoutGiantNumber" or "TextCounter" or "GlassCard"
-- sectionKey="beat_X" with visual.kind="person": resolvedAsset handles rendering — primitive is backup, use "GlassCard"
-- sectionKey="beat_X" with visual.kind="place": resolvedAsset handles rendering — use "GlassCard" or "BackgroundGeometric"
-- sectionKey="beat_X" with visual.kind="celestial": "CelestialBody" (ch6), "ShapeSpinningRings" or "BackgroundAurora" (others)
-- sectionKey="beat_X" with visual.kind="anatomy": "ThreeBrain" (ch4), else "AnimatedIcon" with brain-idea
-- sectionKey="beat_X" with visual.kind="chart": "CandlestickChart" (ch2), "BarChart" or "DataLineChart" (others)
-- sectionKey="beat_X" with visual.kind="typography" or "none": "TextKinetic", "Typewriter", or "WordCarousel"
-- sectionKey="twist": "Typewriter" or "TextMaskReveal" — the twist is a reveal, wipe or type it in
-- sectionKey="outro": "WordCarousel", "TextGradient", or "GlassCard"
+PRIMITIVE SELECTION BY BEAT TYPE — rotate through ALL primitives. Never repeat the same primitive twice in one video. GlassCard is a last resort, not a default.
+
+HOOK beats — channel-specific, high energy:
+  ch1: "TextKinetic" or "LayoutFullscreenType" (psychology impact opener)
+  ch2: "SaaSCard" or "CandlestickChart" (finance hook, white bg)
+  ch3: "ClassifiedStamp" (noir reveal)
+  ch4: "TextMaskReveal" or "Text3DFlip" (neuroscience dramatic entry)
+  ch5: "TextScramble" or "Typewriter" (history mystery)
+  ch6: "BackgroundAurora" or "ParticleShootingStars" (space energy)
+
+CONTEXT beats — always moving, never static:
+  "Typewriter", "LayoutFullscreenType", "TextMaskReveal", or "WordCarousel"
+  Do NOT use GlassCard for context — context needs motion.
+
+BEAT_0 (first content beat) — introduce the concept visually:
+  stat/number: "LayoutGiantNumber" or "DataGauge" or "TextCounter"
+  concept with 4 keywords: "OrbitalHub" (keywords orbit centre)
+  concept with 4 facts: "CardGrid" (floating cards grid)
+  person: resolvedAsset is fullscreen photo — use "TextKinetic" as overlay
+  place: resolvedAsset is fullscreen photo — use "BackgroundGeometric" as overlay
+
+BEAT_1 — always a data/chart primitive:
+  percentage: "ShapeCircularProgress" or "ProgressBar" or "DataGauge"
+  large number: "LayoutGiantNumber" or "TextCounter"
+  comparison: "BarChart" or "DataRanking" or "LayoutSplitContrast"
+  timeline: "DataTimeline"
+  ch2 finance: "CandlestickChart"
+
+BEAT_2 — variety beat, use something not yet used:
+  "HexCarousel" (for 3-6 feature items — primary as comma-separated "Title:Body" pairs)
+  "LayoutMultiColumn" (2-3 column comparison)
+  "DataStatsCards" (2-4 stat cards)
+  "TextGradient" or "TextWave" (rhythmic fact reveal)
+  "StarTransition" (energy burst for surprising fact)
+
+BEAT_3 — depth and atmosphere:
+  concept cluster: "OrbitalHub" or "CardGrid"
+  atmospheric: "BackgroundAurora" or "ShapeSpinningRings"
+  ch6: "ParticleShootingStars" + "CelestialBody"
+  ch4: "ThreeBrain"
+  person/place with resolvedAsset: "GlassCard" is acceptable here as overlay
+
+BEAT_4 — build to twist, high complexity:
+  "CardGrid" or "DataRanking" or "HexCarousel" (3-6 items)
+  ch2: "CandlestickChart" with stat typography
+  ch4: "ThreeBrain"
+  ch6: "CelestialBody"
+  ch3: "ScrambleReveal"
+
+TWIST beats — always a reveal primitive, never static:
+  "TextMaskReveal" (dramatic wipe), "StarTransition" (energy burst)
+  "TextGlitch" (shock/controversy), "Text3DFlip" (cinematic reveal)
+  ch3: "ScrambleReveal" or "GlitchWord"
+  NEVER use GlassCard for twist.
+
+OUTRO beats — resolution, always forward motion:
+  "WordCarousel" (cycling key concepts), "TextGradient" (vibrant close)
+  "OrbitalHub" (concept cluster closing), "SaaSCard" for ch2
+  NEVER repeat the hook primitive.
+
+STRICT RULE: Each primitive may only appear ONCE per video.
+If resolvedAsset is fullscreen (person/place), use a text/typography primitive as overlay.
+GlassCard is ONLY permitted on beat_3 or when resolvedAsset is present with no better option.
 
 TYPOGRAPHY RULES for the typography[] array:
 - "primary" role: the ONE key concept for this beat — the emphasis_keyword, a stat number, or the
