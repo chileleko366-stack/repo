@@ -9,6 +9,7 @@ import { useGLTF } from '@react-three/drei';
 import { ThreeCanvas } from '@remotion/three';
 import { useCurrentFrame, useVideoConfig } from 'remotion';
 import { modelPath } from '../../assets/ModelLibrary';
+import { ModelErrorBoundary } from '../../assets/ModelErrorBoundary';
 
 const FerrariModel: React.FC<{ durationFrames: number }> = ({ durationFrames: _d }) => {
   const frame = useCurrentFrame();
@@ -34,20 +35,22 @@ const FerrariModel: React.FC<{ durationFrames: number }> = ({ durationFrames: _d
 };
 
 export const Ferrari3D: React.FC<{ durationFrames?: number }> = ({ durationFrames = 240 }) => (
-  <ThreeCanvas
-    width={1080}
-    height={1920}
-    style={{ position: 'absolute', inset: 0 }}
-    gl={{
-      failIfMajorPerformanceCaveat: false,
-      preserveDrawingBuffer: true,
-      powerPreference: 'low-power' as WebGLPowerPreference,
-      antialias: true,
-    }}
-    camera={{ position: [0, 1.2, 4.5], fov: 50 }}
-  >
-    <FerrariModel durationFrames={durationFrames} />
-  </ThreeCanvas>
+  <ModelErrorBoundary accentColor="#00ff88">
+    <ThreeCanvas
+      width={1080}
+      height={1920}
+      style={{ position: 'absolute', inset: 0 }}
+      gl={{
+        failIfMajorPerformanceCaveat: false,
+        preserveDrawingBuffer: true,
+        powerPreference: 'low-power' as WebGLPowerPreference,
+        antialias: true,
+      }}
+      camera={{ position: [0, 1.2, 4.5], fov: 50 }}
+    >
+      <FerrariModel durationFrames={durationFrames} />
+    </ThreeCanvas>
+  </ModelErrorBoundary>
 );
 
 useGLTF.preload(modelPath('ferrari'));

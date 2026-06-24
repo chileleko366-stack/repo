@@ -10,6 +10,7 @@ import { useGLTF } from '@react-three/drei';
 import { ThreeCanvas } from '@remotion/three';
 import { useCurrentFrame, useVideoConfig } from 'remotion';
 import { modelPath } from '../../assets/ModelLibrary';
+import { ModelErrorBoundary } from '../../assets/ModelErrorBoundary';
 
 const HelmetModel: React.FC = () => {
   const frame = useCurrentFrame();
@@ -56,20 +57,22 @@ const NefertitiModel: React.FC = () => {
 export const HistoricalArtifact3D: React.FC<{ variant?: 'helmet' | 'nefertiti' }> = ({
   variant = 'helmet',
 }) => (
-  <ThreeCanvas
-    width={1080}
-    height={1920}
-    style={{ position: 'absolute', inset: 0 }}
-    gl={{
-      failIfMajorPerformanceCaveat: false,
-      preserveDrawingBuffer: true,
-      powerPreference: 'low-power' as WebGLPowerPreference,
-      antialias: true,
-    }}
-    camera={{ position: [0, 0.2, 3.8], fov: 48 }}
-  >
-    {variant === 'nefertiti' ? <NefertitiModel /> : <HelmetModel />}
-  </ThreeCanvas>
+  <ModelErrorBoundary accentColor="#c8a96e">
+    <ThreeCanvas
+      width={1080}
+      height={1920}
+      style={{ position: 'absolute', inset: 0 }}
+      gl={{
+        failIfMajorPerformanceCaveat: false,
+        preserveDrawingBuffer: true,
+        powerPreference: 'low-power' as WebGLPowerPreference,
+        antialias: true,
+      }}
+      camera={{ position: [0, 0.2, 3.8], fov: 48 }}
+    >
+      {variant === 'nefertiti' ? <NefertitiModel /> : <HelmetModel />}
+    </ThreeCanvas>
+  </ModelErrorBoundary>
 );
 
 useGLTF.preload(modelPath('damagedHelmet'));

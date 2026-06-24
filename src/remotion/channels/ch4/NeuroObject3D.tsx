@@ -14,6 +14,7 @@ import { useGLTF } from '@react-three/drei';
 import { ThreeCanvas } from '@remotion/three';
 import { useCurrentFrame, useVideoConfig } from 'remotion';
 import { modelPath } from '../../assets/ModelLibrary';
+import { ModelErrorBoundary } from '../../assets/ModelErrorBoundary';
 
 export type NeuroVariant = 'skull' | 'plant' | 'fish' | 'spheres' | 'crystal' | 'vase' | 'mosquito';
 
@@ -113,20 +114,22 @@ export const NeuroObject3D: React.FC<{ variant?: NeuroVariant }> = ({
 }) => {
   const cfg = CONFIGS[variant];
   return (
-    <ThreeCanvas
-      width={1080}
-      height={1920}
-      style={{ position: 'absolute', inset: 0 }}
-      gl={{
-        failIfMajorPerformanceCaveat: false,
-        preserveDrawingBuffer: true,
-        powerPreference: 'low-power' as WebGLPowerPreference,
-        antialias: true,
-      }}
-      camera={{ position: cfg.camera.position, fov: cfg.camera.fov }}
-    >
-      <NeuroModel variant={variant} />
-    </ThreeCanvas>
+    <ModelErrorBoundary accentColor="#e94560">
+      <ThreeCanvas
+        width={1080}
+        height={1920}
+        style={{ position: 'absolute', inset: 0 }}
+        gl={{
+          failIfMajorPerformanceCaveat: false,
+          preserveDrawingBuffer: true,
+          powerPreference: 'low-power' as WebGLPowerPreference,
+          antialias: true,
+        }}
+        camera={{ position: cfg.camera.position, fov: cfg.camera.fov }}
+      >
+        <NeuroModel variant={variant} />
+      </ThreeCanvas>
+    </ModelErrorBoundary>
   );
 };
 

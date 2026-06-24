@@ -14,6 +14,7 @@ import { useGLTF } from '@react-three/drei';
 import { ThreeCanvas } from '@remotion/three';
 import { useCurrentFrame, useVideoConfig } from 'remotion';
 import { modelPath } from '../../assets/ModelLibrary';
+import { ModelErrorBoundary } from '../../assets/ModelErrorBoundary';
 
 export type PeriodVariant = 'candle' | 'lantern' | 'soldier' | 'boombox' | 'truck' | 'mask' | 'corset';
 
@@ -113,20 +114,22 @@ export const PeriodObject3D: React.FC<{ variant?: PeriodVariant }> = ({
 }) => {
   const cfg = CONFIGS[variant];
   return (
-    <ThreeCanvas
-      width={1080}
-      height={1920}
-      style={{ position: 'absolute', inset: 0 }}
-      gl={{
-        failIfMajorPerformanceCaveat: false,
-        preserveDrawingBuffer: true,
-        powerPreference: 'low-power' as WebGLPowerPreference,
-        antialias: true,
-      }}
-      camera={{ position: cfg.camera.position, fov: cfg.camera.fov }}
-    >
-      <PeriodModel variant={variant} />
-    </ThreeCanvas>
+    <ModelErrorBoundary accentColor="#c8a96e">
+      <ThreeCanvas
+        width={1080}
+        height={1920}
+        style={{ position: 'absolute', inset: 0 }}
+        gl={{
+          failIfMajorPerformanceCaveat: false,
+          preserveDrawingBuffer: true,
+          powerPreference: 'low-power' as WebGLPowerPreference,
+          antialias: true,
+        }}
+        camera={{ position: cfg.camera.position, fov: cfg.camera.fov }}
+      >
+        <PeriodModel variant={variant} />
+      </ThreeCanvas>
+    </ModelErrorBoundary>
   );
 };
 
