@@ -5,18 +5,11 @@ export type { IconName } from './AnimatedIcon';
 export { Typewriter } from './Typewriter';
 export { BarChart } from './BarChart';
 export type { BarData } from './BarChart';
-export { PieChart } from './PieChart';
-export type { PieSlice } from './PieChart';
-export { ChatBubbles } from './ChatBubbles';
-export type { ChatMessage } from './ChatBubbles';
 export { WordCarousel } from './WordCarousel';
-export { SocialFrame, SOCIAL_SAFE_ZONE } from './SocialFrame';
 export { GlassCard } from './GlassCard';
 export type { GlassCardProps } from './GlassCard';
 export { TypographicCard } from './TypographicCard';
 export { ProgressBar } from './ProgressBar';
-export { Histogram } from './Histogram';
-export type { HistogramBar } from './Histogram';
 // Text primitives
 export { TextKinetic } from './TextKinetic';
 export { TextScramble } from './TextScramble';
