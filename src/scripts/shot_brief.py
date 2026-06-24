@@ -149,6 +149,11 @@ SAAS / MOTION-GRAPHIC PRIMITIVES (from AE motion lessons):
   "CardGrid"              — 4 floating cards in 2×2 CSS perspective grid, staggered spring entrance. Primary: "Title1:Value1,Title2:Value2,Title3:Value3,Title4:Value4".
   "HexCarousel"           — CSS 3D perspective carousel; 6 panels rotating on Y axis. Primary: "Title:Body" comma-separated pairs (6 max). For feature lists, option comparisons, product pillars.
   "StarTransition"        — radial star-burst rays from centre + glow pulse. Use for high-energy reveals, breakthroughs, or dramatic twist beats.
+  "BackgroundDotGrid"     — SVG repeating dot grid background. Use for analytics/data/planning beats on any channel.
+  "UIMockup"              — White SaaS UI card with separator bar, gradient CTA button, blinking cursor. Best for product demo beats.
+  "FlowConnector"         — Animated SVG lines connecting 2-4 labelled nodes. For workflow, neural pathway, timeline, system beats.
+  "LightSweep"            — Diagonal light scan over a GlassCard. For premium logo/product reveal beats.
+  "AvatarOrbit"           — Coloured avatar badges orbiting a centre with upright counter-rotation. For team/network/satellite beats.
 
 CHANNEL-SPECIFIC (channel-gated — only use on the specified channelId):
   "CelestialBody"      — ch6 ONLY. Rotating 3D sphere (planet/moon). Always use for celestial beats on ch6.
@@ -176,6 +181,7 @@ BEAT_0 (first content beat) — introduce the concept visually:
   stat/number: "LayoutGiantNumber" or "DataGauge" or "TextCounter"
   concept with 4 keywords: "OrbitalHub" (keywords orbit centre)
   concept with 4 facts: "CardGrid" (floating cards grid)
+  concept/system (cause→effect, A→B→C flow): "FlowConnector"
   person: resolvedAsset is fullscreen photo — use "TextKinetic" as overlay
   place: resolvedAsset is fullscreen photo — use "BackgroundGeometric" as overlay
 
@@ -192,10 +198,14 @@ BEAT_2 — variety beat, use something not yet used:
   "DataStatsCards" (2-4 stat cards)
   "TextGradient" or "TextWave" (rhythmic fact reveal)
   "StarTransition" (energy burst for surprising fact)
+  "UIMockup" (product demo — white card with CTA button)
+  "BackgroundDotGrid" (atmosphere layer for data/planning beats)
 
 BEAT_3 — depth and atmosphere:
   concept cluster: "OrbitalHub" or "CardGrid"
   atmospheric: "BackgroundAurora" or "ShapeSpinningRings"
+  team/network/satellite: "AvatarOrbit"
+  logo/product reveal: "LightSweep"
   ch6: "ParticleShootingStars" + "CelestialBody"
   ch4: "ThreeBrain"
   person/place with resolvedAsset: "GlassCard" is acceptable here as overlay

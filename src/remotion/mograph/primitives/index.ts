@@ -59,3 +59,11 @@ export { GradientBorder } from './GradientBorder';
 export { HexCarousel } from './HexCarousel';
 export type { CarouselPanel } from './HexCarousel';
 export { StarTransition } from './StarTransition';
+// Lesson 4 additions
+export { BackgroundDotGrid } from './BackgroundDotGrid';
+export { FlowConnector } from './FlowConnector';
+export type { FlowNode } from './FlowConnector';
+export { LightSweep } from './LightSweep';
+export { UIMockup } from './UIMockup';
+export { AvatarOrbit } from './AvatarOrbit';
+export type { AvatarBadge } from './AvatarOrbit';

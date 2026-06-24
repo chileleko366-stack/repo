@@ -74,6 +74,11 @@ import {
   CardGrid,
   HexCarousel,
   StarTransition,
+  BackgroundDotGrid,
+  FlowConnector,
+  LightSweep,
+  UIMockup,
+  AvatarOrbit,
 } from './primitives';
 import type { CarouselPanel } from './primitives/HexCarousel';
 import type { IconName } from './primitives/AnimatedIcon';
@@ -667,6 +672,94 @@ function PrimitiveDispatch({
 
     case 'StarTransition':
       return <StarTransition accentColor={accentColor} backgroundColor={bgColor} />;
+
+    // ── Lesson 4 primitives ──────────────────────────────────────────────────────
+
+    case 'BackgroundDotGrid':
+      return (
+        <BackgroundDotGrid
+          dotColor={accentColor + '55'}
+          backgroundColor={bgColor}
+        />
+      );
+
+    case 'UIMockup':
+      return (
+        <UIMockup
+          title={beat.emphasis_keyword?.toUpperCase() ?? primaryText ?? 'Workspace'}
+          subtitle={bodyTypo?.text ?? beat.narration.slice(0, 50)}
+          buttonLabel={sanitizeLabel(labelTypo?.text) ?? 'Explore'}
+          accentColor={accentColor}
+          backgroundColor={bgColor === '#ffffff' || bgColor.startsWith('#f') ? bgColor : '#f8f8fc'}
+          fontFamily={bodyFont}
+          accentFont={accentFont}
+        />
+      );
+
+    case 'FlowConnector': {
+      const items = (beat.visual.items ?? []) as Array<{label?: string; color?: string}>;
+      const nodes = items.length >= 2
+        ? items.map((it, i) => ({
+            label: it.label ?? `${i + 1}`,
+            color: it.color ?? accentColor,
+            xPct: 15 + (i / Math.max(items.length - 1, 1)) * 70,
+            yPct: 50,
+          }))
+        : [
+            { label: 'Input',   color: accentColor, xPct: 15, yPct: 50 },
+            { label: 'Process', color: accentColor, xPct: 50, yPct: 50 },
+            { label: 'Output',  color: accentColor, xPct: 85, yPct: 50 },
+          ];
+      return (
+        <FlowConnector
+          nodes={nodes}
+          lineColor={accentColor + '55'}
+          accentColor={accentColor}
+          backgroundColor={bgColor}
+          fontFamily={bodyFont}
+        />
+      );
+    }
+
+    case 'LightSweep':
+      return (
+        <LightSweep sweepColor="rgba(255,255,255,0.5)" startFrame={0} duration={25}>
+          <GlassCard
+            primary={primaryText ?? beat.emphasis_keyword ?? ''}
+            label={sanitizeLabel(labelTypo?.text)}
+            body={bodyTypo?.text}
+            accentColor={accentColor}
+            backgroundColor={bgColor}
+            fontFamily={bodyFont}
+            accentFont={accentFont}
+          />
+        </LightSweep>
+      );
+
+    case 'AvatarOrbit': {
+      const items = (beat.visual.items ?? []) as Array<{label?: string; color?: string}>;
+      const AVATAR_COLORS = [accentColor, '#3b82f6', '#ef4444', '#f59e0b', '#10b981'];
+      const avatars = items.length >= 2
+        ? items.slice(0, 5).map((it, i) => ({
+            initial: (it.label ?? '?').charAt(0).toUpperCase(),
+            color: it.color ?? AVATAR_COLORS[i % AVATAR_COLORS.length],
+          }))
+        : [
+            { initial: 'A', color: accentColor },
+            { initial: 'B', color: '#3b82f6' },
+            { initial: 'C', color: '#ef4444' },
+            { initial: 'D', color: '#f59e0b' },
+          ];
+      return (
+        <AvatarOrbit
+          avatars={avatars}
+          centreLabel={beat.emphasis_keyword?.toUpperCase().slice(0, 6) ?? 'HUB'}
+          accentColor={accentColor}
+          backgroundColor={bgColor}
+          fontFamily={bodyFont}
+        />
+      );
+    }
 
     case 'TypographicCard':
     default:
