@@ -150,20 +150,6 @@ jobs:
             exit 1
           fi
 
-      - name: Cache 3D models
-        uses: actions/cache@v4
-        with:
-          path: public/models
-          key: glb-models-${{ hashFiles('scripts/download_models.py') }}
-
-      - name: Download 3D models
-        run: |
-          if [ -z "$CH" ]; then
-            python scripts/download_models.py
-          else
-            python scripts/download_models.py --channel "$CH"
-          fi
-
       - name: Bundle Remotion
         run: npx remotion bundle
 

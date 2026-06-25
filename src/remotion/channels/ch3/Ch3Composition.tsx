@@ -107,7 +107,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
       {!isHookCtx && !isFullscreen && !isTwist && !hasShotBrief && (() => {
         const sk = beat.sectionKey ?? '';
         const beatNum = sk.startsWith('beat_') ? parseInt(sk.replace('beat_', ''), 10) : 0;
-        const BEAT_VARIANTS: ClassifiedVariant[] = ['soldier', 'lantern', 'skull', 'soldier', 'broken_window'];
+        const BEAT_VARIANTS: ClassifiedVariant[] = ['file', 'eye', 'lock', 'signal', 'file'];
         const variant = BEAT_VARIANTS[beatNum % BEAT_VARIANTS.length];
         return <ClassifiedObject3D variant={variant} />;
       })()}

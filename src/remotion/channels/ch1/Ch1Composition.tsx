@@ -98,11 +98,11 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
       {!isFullscreen && !hasShotBrief && (() => {
         const sk = beat.sectionKey ?? '';
         const beatNum = sk.startsWith('beat_') ? parseInt(sk.replace('beat_', ''), 10) : 0;
-        const BEAT_VARIANTS: SocialFigureVariant[] = ['xbot', 'michelle', 'kira'];
+        const BEAT_VARIANTS: SocialFigureVariant[] = ['figure', 'crowd', 'mirror'];
         const variant: SocialFigureVariant =
-          sk === 'hook' ? 'xbot' :
-          sk === 'context' ? 'michelle' :
-          sk === 'outro' ? 'kira' :
+          sk === 'hook' ? 'figure' :
+          sk === 'context' ? 'crowd' :
+          sk === 'outro' ? 'shadow' :
           BEAT_VARIANTS[beatNum % BEAT_VARIANTS.length];
         return <SocialFigure3D variant={variant} />;
       })()}

@@ -152,10 +152,10 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
       {/* 3D artifact for non-asset, non-shotbrief beats */}
       {!isFullscreen && !hasShotBrief && (() => {
         const sk = beat.sectionKey ?? '';
-        if (sk === 'hook') return <HistoricalArtifact3D variant="nefertiti" />;
-        if (sk === 'context') return <HistoricalArtifact3D variant="helmet" />;
+        if (sk === 'hook') return <HistoricalArtifact3D variant="artifact" />;
+        if (sk === 'context') return <HistoricalArtifact3D variant="relic" />;
         const beatNum = sk.startsWith('beat_') ? parseInt(sk.replace('beat_', ''), 10) : 0;
-        const BEAT_VARIANTS: PeriodVariant[] = ['candle', 'lantern', 'soldier', 'boombox', 'truck'];
+        const BEAT_VARIANTS: PeriodVariant[] = ['sword', 'vessel', 'crown', 'torch', 'sword'];
         const variant = BEAT_VARIANTS[beatNum % BEAT_VARIANTS.length];
         return <PeriodObject3D variant={variant} />;
       })()}

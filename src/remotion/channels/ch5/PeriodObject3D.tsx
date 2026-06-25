@@ -1,142 +1,188 @@
-/**
- * PeriodObject3D — historical/period objects for ch5 The Quiet Record beats.
- * variant='candle'   → ch5_candle.glb      (glass hurricane candle holder)
- * variant='lantern'  → ch5_lantern.glb     (old wooden street lantern)
- * variant='soldier'  → ch5_soldier.glb     (military historical figure)
- * variant='boombox'  → ch5_boombox.glb     (retro boombox cultural artifact)
- * variant='truck'    → ch5_milk_truck.glb  (animated vintage milk truck)
- * variant='mask'     → ch5_venice_mask.glb (Venetian carnival mask)
- * variant='corset'   → ch5_corset.glb      (period fabric corset)
- */
-
 import React from 'react';
-import { useGLTF } from '@react-three/drei';
 import { ThreeCanvas } from '@remotion/three';
 import { useCurrentFrame, useVideoConfig } from 'remotion';
-import { modelPath } from '../../assets/ModelLibrary';
-import { ModelErrorBoundary } from '../../assets/ModelErrorBoundary';
 
-export type PeriodVariant = 'candle' | 'lantern' | 'soldier' | 'boombox' | 'truck' | 'mask' | 'corset';
+export type PeriodVariant = 'sword' | 'vessel' | 'crown' | 'torch';
 
-const CONFIGS: Record<PeriodVariant, {
-  key: Parameters<typeof modelPath>[0];
-  scale: [number, number, number];
-  position: [number, number, number];
-  rotX: number;
-  rotY: (t: number) => number;
-  camera: { position: [number, number, number]; fov: number };
-}> = {
-  candle: {
-    key: 'ch5Candle',
-    scale: [2.2, 2.2, 2.2],
-    position: [0, -0.3, 0],
-    rotX: 0,
-    rotY: (t) => Math.sin(t * 0.22) * 0.3,
-    camera: { position: [0, 0.4, 4.0], fov: 46 },
-  },
-  lantern: {
-    key: 'ch5Lantern',
-    scale: [0.6, 0.6, 0.6],
-    position: [0, 0, 0],
-    rotX: 0,
-    rotY: (t) => Math.sin(t * 0.28) * 0.35,
-    camera: { position: [0, 0.3, 4.0], fov: 48 },
-  },
-  soldier: {
-    key: 'ch5Soldier',
-    scale: [1.0, 1.0, 1.0],
-    position: [0, -1.2, 0],
-    rotX: 0,
-    rotY: (t) => t * 0.15,
-    camera: { position: [0, 1.0, 4.0], fov: 48 },
-  },
-  boombox: {
-    key: 'ch5Boombox',
-    scale: [0.012, 0.012, 0.012],
-    position: [0, -0.2, 0],
-    rotX: 0.1,
-    rotY: (t) => Math.sin(t * 0.25) * 0.4,
-    camera: { position: [0, 0.2, 4.0], fov: 48 },
-  },
-  truck: {
-    key: 'ch5MilkTruck',
-    scale: [1.2, 1.2, 1.2],
-    position: [0, -0.3, 0],
-    rotX: 0.05,
-    rotY: (t) => t * 0.2,
-    camera: { position: [0, 0.5, 4.5], fov: 50 },
-  },
-  mask: {
-    key: 'ch5VeniceMask',
-    scale: [2.2, 2.2, 2.2],
-    position: [0, -0.2, 0],
-    rotX: 0.05,
-    rotY: (t) => Math.sin(t * 0.3) * 0.4,
-    camera: { position: [0, 0.2, 4.0], fov: 46 },
-  },
-  corset: {
-    key: 'ch5Corset',
-    scale: [0.9, 0.9, 0.9],
-    position: [0, -0.4, 0],
-    rotX: 0,
-    rotY: (t) => t * 0.18,
-    camera: { position: [0, 0.5, 4.5], fov: 48 },
-  },
-};
+const Sword: React.FC<{ t: number }> = ({ t }) => (
+  <>
+    <ambientLight intensity={0.3} />
+    <directionalLight position={[4, 6, 3]} intensity={3.5} color="#ffe8c8" />
+    <spotLight position={[0, 5, 3]} angle={0.3} penumbra={0.5} intensity={3.0} color="#ffffff" />
+    <pointLight position={[-2, 2, 3]} intensity={1.5} color="#c8a040" />
+    <group rotation={[0.2, Math.sin(t * 0.4) * 0.35 + t * 0.08, 0.1]}>
+      {/* Blade */}
+      <mesh position={[0, 0.8, 0]}>
+        <boxGeometry args={[0.1, 2.2, 0.04]} />
+        <meshStandardMaterial color="#ccddee" roughness={0.1} metalness={0.95} />
+      </mesh>
+      {/* Fuller (groove) */}
+      <mesh position={[0, 0.8, 0.025]}>
+        <boxGeometry args={[0.025, 1.8, 0.01]} />
+        <meshStandardMaterial color="#aabbcc" roughness={0.2} metalness={0.8} />
+      </mesh>
+      {/* Crossguard */}
+      <mesh position={[0, -0.2, 0]}>
+        <boxGeometry args={[0.9, 0.12, 0.1]} />
+        <meshStandardMaterial color="#c8a040" roughness={0.3} metalness={0.8} />
+      </mesh>
+      {/* Grip */}
+      <mesh position={[0, -0.65, 0]}>
+        <cylinderGeometry args={[0.07, 0.07, 0.8, 12]} />
+        <meshStandardMaterial color="#553311" roughness={0.8} metalness={0.1} />
+      </mesh>
+      {/* Pommel */}
+      <mesh position={[0, -1.1, 0]}>
+        <sphereGeometry args={[0.14, 16, 16]} />
+        <meshStandardMaterial color="#c8a040" roughness={0.3} metalness={0.8} />
+      </mesh>
+    </group>
+  </>
+);
 
-const PeriodModel: React.FC<{ variant: PeriodVariant }> = ({ variant }) => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const t = frame / fps;
+const Vessel: React.FC<{ t: number }> = ({ t }) => (
+  <>
+    <ambientLight intensity={0.4} />
+    <directionalLight position={[3, 6, 4]} intensity={2.5} color="#ffe8c8" />
+    <pointLight position={[-2, 2, 3]} intensity={1.5} color="#c8a040" />
+    <group rotation={[0, Math.sin(t * 0.3) * 0.3 + t * 0.1, 0]}>
+      {/* Goblet bowl */}
+      <mesh position={[0, 0.6, 0]}>
+        <cylinderGeometry args={[0.65, 0.35, 0.9, 24]} />
+        <meshStandardMaterial color="#c8a040" roughness={0.15} metalness={0.9} />
+      </mesh>
+      {/* Stem */}
+      <mesh position={[0, 0.0, 0]}>
+        <cylinderGeometry args={[0.08, 0.12, 0.65, 12]} />
+        <meshStandardMaterial color="#c8a040" roughness={0.2} metalness={0.85} />
+      </mesh>
+      {/* Base */}
+      <mesh position={[0, -0.42, 0]}>
+        <cylinderGeometry args={[0.5, 0.55, 0.18, 24]} />
+        <meshStandardMaterial color="#c8a040" roughness={0.2} metalness={0.85} />
+      </mesh>
+      {/* Rim */}
+      <mesh position={[0, 1.1, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.63, 0.05, 8, 32]} />
+        <meshStandardMaterial color="#d4b030" roughness={0.1} metalness={0.95} />
+      </mesh>
+    </group>
+  </>
+);
 
-  const cfg = CONFIGS[variant];
-  const { scene } = useGLTF(modelPath(cfg.key));
-
+const Crown: React.FC<{ t: number }> = ({ t }) => {
+  const points = 6;
   return (
     <>
       <ambientLight intensity={0.35} />
-      <directionalLight position={[2, 6, 4]} intensity={2.2} color="#ffe8c0" />
-      <pointLight position={[-3, 2, 2]} intensity={1.3} color="#c8a040" />
-      <pointLight position={[3, -1, 3]} intensity={0.7} color="#8b5a14" />
-      <group
-        rotation={[cfg.rotX, cfg.rotY(t), 0]}
-        scale={cfg.scale}
-        position={cfg.position}
-      >
-        <primitive object={scene} />
+      <directionalLight position={[3, 6, 4]} intensity={3.0} color="#ffe8c8" />
+      <spotLight position={[0, 5, 2]} angle={0.4} penumbra={0.4} intensity={2.5} color="#ffdd88" />
+      <pointLight position={[-2, 1, 3]} intensity={1.5} color="#c8a040" />
+      <group rotation={[0.1, t * 0.3, 0]}>
+        {/* Band */}
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[1.0, 0.18, 12, 48]} />
+          <meshStandardMaterial color="#c8a017" roughness={0.1} metalness={1.0} />
+        </mesh>
+        {/* Points */}
+        {Array.from({ length: points }, (_, i) => {
+          const angle = (i / points) * Math.PI * 2;
+          return (
+            <mesh key={i} position={[Math.cos(angle) * 1.0, 0.55, Math.sin(angle) * 1.0]}>
+              <coneGeometry args={[0.12, 0.65, 6]} />
+              <meshStandardMaterial color="#d4b030" roughness={0.1} metalness={1.0} />
+            </mesh>
+          );
+        })}
+        {/* Gems */}
+        {Array.from({ length: points }, (_, i) => {
+          const angle = ((i + 0.5) / points) * Math.PI * 2;
+          const gemColors = ['#ff4444', '#4444ff', '#44ff44', '#ff44ff', '#ffff44', '#44ffff'];
+          return (
+            <mesh key={i} position={[Math.cos(angle) * 1.0, 0.05, Math.sin(angle) * 1.0]}>
+              <octahedronGeometry args={[0.1, 0]} />
+              <meshStandardMaterial color={gemColors[i]} roughness={0.0} metalness={0.2} transparent opacity={0.85} emissive={gemColors[i]} emissiveIntensity={0.3} />
+            </mesh>
+          );
+        })}
       </group>
     </>
   );
 };
 
-export const PeriodObject3D: React.FC<{ variant?: PeriodVariant }> = ({
-  variant = 'lantern',
-}) => {
-  const cfg = CONFIGS[variant];
+const Torch: React.FC<{ t: number }> = ({ t }) => {
+  const flicker = 0.8 + Math.sin(t * 12) * 0.12 + Math.sin(t * 7.3) * 0.08;
+  const flameScale = flicker;
   return (
-    <ModelErrorBoundary accentColor="#c8a040">
-      <ThreeCanvas
-        width={1080}
-        height={1920}
-        style={{ position: 'absolute', inset: 0 }}
-        gl={{
-          failIfMajorPerformanceCaveat: false,
-          preserveDrawingBuffer: true,
-          powerPreference: 'low-power' as WebGLPowerPreference,
-          antialias: true,
-        }}
-        camera={{ position: cfg.camera.position, fov: cfg.camera.fov }}
-      >
-        <PeriodModel variant={variant} />
-      </ThreeCanvas>
-    </ModelErrorBoundary>
+    <>
+      <ambientLight intensity={0.1} />
+      <pointLight position={[0, 1.2, 0]} intensity={5.0 * flicker} color="#ff8800" />
+      <pointLight position={[-2, 2, 2]} intensity={1.0} color="#cc4400" />
+      <directionalLight position={[3, 5, 3]} intensity={1.5} color="#ffe8c8" />
+      <group rotation={[0.15, Math.sin(t * 0.4) * 0.25, 0]}>
+        {/* Handle */}
+        <mesh position={[0, -0.8, 0]}>
+          <cylinderGeometry args={[0.12, 0.1, 1.5, 10]} />
+          <meshStandardMaterial color="#553311" roughness={0.85} metalness={0.1} />
+        </mesh>
+        {/* Binding wrap */}
+        {[0, 1, 2].map((i) => (
+          <mesh key={i} position={[0, -0.3 + i * 0.35, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[0.13, 0.03, 6, 16]} />
+            <meshStandardMaterial color="#c8a040" roughness={0.4} metalness={0.6} />
+          </mesh>
+        ))}
+        {/* Torch head */}
+        <mesh position={[0, 0.35, 0]}>
+          <cylinderGeometry args={[0.22, 0.18, 0.45, 12]} />
+          <meshStandardMaterial color="#664422" roughness={0.7} metalness={0.15} />
+        </mesh>
+        {/* Flame base */}
+        <mesh position={[0, 0.75, 0]} scale={[flameScale, flameScale, flameScale]}>
+          <coneGeometry args={[0.25, 0.7, 12]} />
+          <meshStandardMaterial color="#ff6600" emissive="#ff4400" emissiveIntensity={1.5} roughness={1.0} transparent opacity={0.85} />
+        </mesh>
+        {/* Flame tip */}
+        <mesh position={[Math.sin(t * 4) * 0.04, 1.25, Math.cos(t * 3.5) * 0.04]}
+          scale={[flameScale * 0.6, flameScale, flameScale * 0.6]}>
+          <coneGeometry args={[0.14, 0.55, 8]} />
+          <meshStandardMaterial color="#ffee00" emissive="#ffaa00" emissiveIntensity={2.0} roughness={1.0} transparent opacity={0.75} />
+        </mesh>
+      </group>
+    </>
   );
 };
 
-useGLTF.preload(modelPath('ch5Candle'));
-useGLTF.preload(modelPath('ch5Lantern'));
-useGLTF.preload(modelPath('ch5Soldier'));
-useGLTF.preload(modelPath('ch5Boombox'));
-useGLTF.preload(modelPath('ch5MilkTruck'));
-useGLTF.preload(modelPath('ch5VeniceMask'));
-useGLTF.preload(modelPath('ch5Corset'));
+const SCENES: Record<PeriodVariant, React.FC<{ t: number }>> = {
+  sword: Sword,
+  vessel: Vessel,
+  crown: Crown,
+  torch: Torch,
+};
+
+const PeriodScene: React.FC<{ variant: PeriodVariant }> = ({ variant }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const t = frame / fps;
+  const Scene = SCENES[variant];
+  return <Scene t={t} />;
+};
+
+export const PeriodObject3D: React.FC<{ variant?: PeriodVariant }> = ({
+  variant = 'vessel',
+}) => (
+  <ThreeCanvas
+    width={1080}
+    height={1920}
+    style={{ position: 'absolute', inset: 0 }}
+    gl={{
+      failIfMajorPerformanceCaveat: false,
+      preserveDrawingBuffer: true,
+      powerPreference: 'low-power' as WebGLPowerPreference,
+      antialias: true,
+    }}
+    camera={{ position: [0, 0.3, 4.5], fov: 48 }}
+  >
+    <PeriodScene variant={variant} />
+  </ThreeCanvas>
+);

@@ -139,10 +139,10 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
       {!isAnatomy && !isFullscreen && !hasShotBrief && (() => {
         const sk = beat.sectionKey ?? '';
         const beatNum = sk.startsWith('beat_') ? parseInt(sk.replace('beat_', ''), 10) : 0;
-        const BEAT_VARIANTS: NeuroVariant[] = ['fish', 'crystal', 'skull', 'vase', 'mosquito'];
+        const BEAT_VARIANTS: NeuroVariant[] = ['neuron', 'synapse', 'cortex', 'signal', 'neuron'];
         const variant: NeuroVariant =
-          sk === 'hook' ? 'spheres' :
-          sk === 'context' ? 'plant' :
+          sk === 'hook' ? 'neuron' :
+          sk === 'context' ? 'cortex' :
           BEAT_VARIANTS[beatNum % BEAT_VARIANTS.length];
         return <NeuroObject3D variant={variant} />;
       })()}

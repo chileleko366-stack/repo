@@ -102,10 +102,10 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         const sk = beat.sectionKey ?? '';
         if (sk === 'hook') return <Ferrari3D durationFrames={durationFrames} />;
         const variant: LuxuryVariant =
-          kind === 'stat' ? 'watch' :
-          kind === 'chart' ? 'gears' :
-          sk === 'context' ? 'city' :
-          'rolex';
+          kind === 'stat' ? 'coin' :
+          kind === 'chart' ? 'ring' :
+          sk === 'context' ? 'tower' :
+          'crystal';
         return <LuxuryObject3D variant={variant} />;
       })()}
 
