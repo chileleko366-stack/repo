@@ -124,7 +124,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
       <AbsoluteFill style={{ background: bg }} />
 
       {/* Full-screen asset (person/brand/place/map) */}
-      {isFullscreen && (
+      {isFullscreen && !hasShotBrief && (
         <AssetLayer
           beat={beat}
           durationFrames={durationFrames}

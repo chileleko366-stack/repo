@@ -84,14 +84,14 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         }}
       />
 
-      {isFullscreen && (
+      {isFullscreen && !hasShotBrief && (
         <AssetLayer
           beat={beat}
           durationFrames={durationFrames}
           accentColors={{ primary: CFG.colors.accent1, secondary: CFG.colors.accent2 }}
         />
       )}
-      {isFullscreen && (
+      {isFullscreen && !hasShotBrief && (
         <div
           style={{
             position: 'absolute', bottom: 0, left: 0, right: 0, height: 700,
@@ -101,7 +101,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
       )}
 
       {/* Antique camera for hook/context beats without an asset */}
-      {isHookCtx && !isFullscreen && <AntiqueCamera3D />}
+      {isHookCtx && !isFullscreen && !hasShotBrief && <AntiqueCamera3D />}
 
       {/* Classified objects for other non-asset, non-twist, non-shotbrief beats */}
       {!isHookCtx && !isFullscreen && !isTwist && !hasShotBrief && (() => {

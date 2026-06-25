@@ -901,7 +901,10 @@ export const ShotBriefLayer: React.FC<ShotBriefLayerProps> = ({
       />
     );
 
-  const { xPct, yPct, widthPct, heightPct } = brief.composition.primaryAnchor;
+  const isMapKind = beat.visual.kind === 'map' || beat.visual.kind === 'distance';
+  const { xPct, yPct, widthPct, heightPct } = isMapKind
+    ? { xPct: 50, yPct: 50, widthPct: 100, heightPct: 100 }
+    : brief.composition.primaryAnchor;
   const boxShadow = buildBoxShadow(brief);
 
   return (

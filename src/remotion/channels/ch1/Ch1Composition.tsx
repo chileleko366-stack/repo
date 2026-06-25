@@ -70,7 +70,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
       <AbsoluteFill style={{ background: bg }} />
 
       {/* Full-screen asset */}
-      {isFullscreen && (
+      {isFullscreen && !hasShotBrief && (
         <AssetLayer
           beat={beat}
           durationFrames={durationFrames}
@@ -79,7 +79,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
       )}
 
       {/* Gradient scrim on asset beats so text stays legible */}
-      {isFullscreen && (
+      {isFullscreen && !hasShotBrief && (
         <div
           style={{
             position: 'absolute',
@@ -108,7 +108,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
       })()}
 
       {/* ShotBrief-driven layout: primitive at primaryAnchor position with depth effects */}
-      {hasShotBrief && !isFullscreen && (
+      {hasShotBrief && (
         <ShotBriefLayer
           beat={beat}
           accentColor={CFG.colors.accent1}

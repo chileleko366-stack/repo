@@ -81,14 +81,14 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         <CandlestickChart durationFrames={durationFrames} />
       )}
 
-      {isFullscreen && (
+      {isFullscreen && !hasShotBrief && (
         <AssetLayer
           beat={beat}
           durationFrames={durationFrames}
           accentColors={{ primary: CFG.colors.accent1, secondary: CFG.colors.accent2 }}
         />
       )}
-      {isFullscreen && (
+      {isFullscreen && !hasShotBrief && (
         <div
           style={{
             position: 'absolute', bottom: 0, left: 0, right: 0, height: 700,
@@ -98,7 +98,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
       )}
 
       {/* 3D object on non-asset beats — Ferrari on hook, luxury objects elsewhere */}
-      {!isFullscreen && (() => {
+      {!isFullscreen && !hasShotBrief && (() => {
         const sk = beat.sectionKey ?? '';
         if (sk === 'hook') return <Ferrari3D durationFrames={durationFrames} />;
         const variant: LuxuryVariant =

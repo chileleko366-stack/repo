@@ -125,7 +125,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
       {/* Stars are always visible (behind everything) */}
       <Starfield />
 
-      {isFullscreen && (
+      {isFullscreen && !hasShotBrief && (
         <AssetLayer
           beat={beat}
           durationFrames={durationFrames}
@@ -140,8 +140,8 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         />
       )}
 
-      {/* Cosmic object on non-celestial, non-asset, non-stat beats */}
-      {!isCelestial && !isFullscreen && !isStat && (() => {
+      {/* Cosmic object on non-celestial, non-asset, non-stat, non-shotbrief beats */}
+      {!isCelestial && !isFullscreen && !isStat && !hasShotBrief && (() => {
         const sk = beat.sectionKey ?? '';
         const beatNum = sk.startsWith('beat_') ? parseInt(sk.replace('beat_', ''), 10) : 0;
         const BEAT_VARIANTS: CosmicVariant[] = ['planet', 'nebula', 'satellite', 'blackhole', 'asteroid'];
