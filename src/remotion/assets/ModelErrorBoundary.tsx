@@ -79,9 +79,14 @@ export class ModelErrorBoundary extends React.Component<
   }
 
   render() {
+    const fallback = <FallbackSphere accentColor={this.props.accentColor ?? '#888888'} />;
     if (this.state.hasError) {
-      return <FallbackSphere accentColor={this.props.accentColor ?? '#888888'} />;
+      return fallback;
     }
-    return this.props.children;
+    return (
+      <React.Suspense fallback={fallback}>
+        {this.props.children}
+      </React.Suspense>
+    );
   }
 }

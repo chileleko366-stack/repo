@@ -10,6 +10,7 @@ import { ThreeCanvas } from '@remotion/three';
 import { interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
 import * as THREE from 'three';
 import { modelPath } from '../../assets/ModelLibrary';
+import { ModelErrorBoundary } from '../../assets/ModelErrorBoundary';
 
 // Preload so first frame doesn't stall
 useGLTF.preload(modelPath('brain'));
@@ -62,18 +63,20 @@ const BrainModel: React.FC<{ durationFrames: number }> = ({ durationFrames }) =>
 export const ThreeBrain: React.FC<{ durationFrames?: number }> = ({
   durationFrames = 240,
 }) => (
-  <ThreeCanvas
-    width={1080}
-    height={1920}
-    style={{ position: 'absolute', inset: 0 }}
-    gl={{
-      failIfMajorPerformanceCaveat: false,
-      preserveDrawingBuffer: true,
-      powerPreference: 'low-power' as WebGLPowerPreference,
-      antialias: true,
-    }}
-    camera={{ position: [0, 0.5, 6.5], fov: 42 }}
-  >
-    <BrainModel durationFrames={durationFrames} />
-  </ThreeCanvas>
+  <ModelErrorBoundary accentColor="#00ccff">
+    <ThreeCanvas
+      width={1080}
+      height={1920}
+      style={{ position: 'absolute', inset: 0 }}
+      gl={{
+        failIfMajorPerformanceCaveat: false,
+        preserveDrawingBuffer: true,
+        powerPreference: 'low-power' as WebGLPowerPreference,
+        antialias: true,
+      }}
+      camera={{ position: [0, 0.5, 6.5], fov: 42 }}
+    >
+      <BrainModel durationFrames={durationFrames} />
+    </ThreeCanvas>
+  </ModelErrorBoundary>
 );
