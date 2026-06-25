@@ -9,6 +9,7 @@ All URLs verified HTTP 200 with real content-length before being added here.
 Safe to re-run — skips files that already exist and are valid size.
 """
 
+import argparse
 import os
 import sys
 import urllib.request
@@ -172,11 +173,41 @@ def download(filename: str, url: str, min_bytes: int) -> str:
     return "downloaded"
 
 
+CHANNEL_MODELS: dict[str, set[str]] = {
+    'ch1': {'xbot.glb', 'michelle.glb', 'kira.glb', 'flamingo.glb', 'venice_mask.glb',
+            'velvet_sofa.glb', 'sheen_chair.glb', 'fox.glb', 'face_cap.glb'},
+    'ch2': {'chronograph_watch.glb', 'rolex.glb', 'carbon_bike.glb', 'toy_car.glb',
+            'car_concept.glb', 'sunglasses.glb', 'shoe.glb', 'virtual_city.glb',
+            'gears.glb', 'littlest_tokyo.glb', 'ferrari.glb'},
+    'ch3': {'steampunk_camera.glb', 'skull.glb', 'lantern.glb', 'broken_window.glb',
+            'pot_coals.glb', 'soldier.glb', 'tennyson_bust.glb', 'antique_camera.glb'},
+    'ch4': {'skull.glb', 'mosquito_amber.glb', 'plant.glb', 'fish.glb', 'dragon.glb',
+            'vase_flowers.glb', 'metal_spheres.glb', 'brain_stem.glb'},
+    'ch5': {'candle_holder.glb', 'lantern.glb', 'corset.glb', 'milk_truck.glb',
+            'soldier.glb', 'venice_mask.glb', 'boombox.glb', 'damaged_helmet.glb',
+            'nefertiti.glb'},
+    'ch6': {'ion_drive.glb', 'spaceship_hallway.glb', 'metal_spheres.glb', 'dragon.glb',
+            'broken_window.glb', 'shader_ball.glb'},
+}
+
+
 def main() -> None:
-    print(f"Downloading {len(MODELS)} models to {MODELS_DIR}/\n")
+    parser = argparse.ArgumentParser(description='Download 3D GLB models')
+    parser.add_argument('--channel', choices=['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6'],
+                        help='Download only models needed for this channel')
+    args = parser.parse_args()
+
+    channel_filter: set[str] | None = CHANNEL_MODELS.get(args.channel) if args.channel else None
+    models_to_fetch = [
+        m for m in MODELS
+        if channel_filter is None or m[0] in channel_filter
+    ]
+
+    print(f"Downloading {len(models_to_fetch)} models to {MODELS_DIR}/"
+          + (f" (channel={args.channel})" if args.channel else "") + "\n")
     downloaded = skipped = failed = 0
 
-    for filename, url, min_bytes in MODELS:
+    for filename, url, min_bytes in models_to_fetch:
         print(f"{filename}")
         result = download(filename, url, min_bytes)
         if result == "downloaded":
@@ -191,7 +222,7 @@ def main() -> None:
     print(f"Downloaded: {downloaded}")
     print(f"Skipped (already present): {skipped}")
     print(f"Failed: {failed}")
-    print(f"Total in public/models/: {len(list(MODELS_DIR.glob('*.glb')))}")
+    print(f"Fetched: {downloaded + skipped}/{len(models_to_fetch)} | Total in public/models/: {len(list(MODELS_DIR.glob('*.glb')))}")
 
     if failed:
         print(f"\nWARNING: {failed} model(s) failed. Check URLs.")

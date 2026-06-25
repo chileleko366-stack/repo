@@ -485,7 +485,7 @@ export const MODELS = {
 
   // ── Ch1 per-channel variants ───────────────────────────────────────────────
   ch1Xbot: {
-    path: 'models/ch1_xbot.glb',
+    path: 'models/xbot.glb',
     description: 'Robot humanoid — hook figure for ch1 social/psychology',
     license: 'CC-BY',
     attribution: 'Xbot — three.js examples',
@@ -493,7 +493,7 @@ export const MODELS = {
     sizeMB: 2.7,
   },
   ch1Michelle: {
-    path: 'models/ch1_michelle.glb',
+    path: 'models/michelle.glb',
     description: 'Animated female figure — context beat for ch1',
     license: 'CC-BY',
     attribution: 'Michelle — three.js examples',
@@ -501,7 +501,7 @@ export const MODELS = {
     sizeMB: 3.1,
   },
   ch1Kira: {
-    path: 'models/ch1_kira.glb',
+    path: 'models/kira.glb',
     description: 'Detailed female character — outro for ch1',
     license: 'CC-BY',
     attribution: 'Kira — three.js examples',
@@ -509,14 +509,14 @@ export const MODELS = {
     sizeMB: 11.6,
   },
   ch1Flamingo: {
-    path: 'models/ch1_flamingo.glb',
+    path: 'models/flamingo.glb',
     description: 'Animated flamingo — morphing wings, ch1 accent',
     license: 'CC0',
     suggestedChannels: ['ch1'],
     sizeMB: 0.07,
   },
   ch1VeniceMask: {
-    path: 'models/ch1_venice_mask.glb',
+    path: 'models/venice_mask.glb',
     description: 'Venetian carnival mask — identity/persona, ch1',
     license: 'CC-BY',
     attribution: 'venice_mask — three.js examples',
@@ -524,7 +524,7 @@ export const MODELS = {
     sizeMB: 4.0,
   },
   ch1VelvetSofa: {
-    path: 'models/ch1_velvet_sofa.glb',
+    path: 'models/velvet_sofa.glb',
     description: 'Glamorous velvet sofa — lifestyle, ch1',
     license: 'CC-BY',
     attribution: '© Wayfair LLC CC BY 4.0',
@@ -532,7 +532,7 @@ export const MODELS = {
     sizeMB: 3.0,
   },
   ch1SheenChair: {
-    path: 'models/ch1_sheen_chair.glb',
+    path: 'models/sheen_chair.glb',
     description: 'Modern fabric chair — lifestyle, ch1',
     license: 'CC-BY',
     attribution: 'SheenChair — KhronosGroup CC BY 4.0',
@@ -540,7 +540,7 @@ export const MODELS = {
     sizeMB: 3.9,
   },
   ch1Fox: {
-    path: 'models/ch1_fox.glb',
+    path: 'models/fox.glb',
     description: 'Animated fox — survey/walk/run, ch1 accent',
     license: 'CC0',
     suggestedChannels: ['ch1'],
@@ -549,7 +549,7 @@ export const MODELS = {
 
   // ── Ch2 per-channel variants ───────────────────────────────────────────────
   ch2Watch: {
-    path: 'models/ch2_watch.glb',
+    path: 'models/chronograph_watch.glb',
     description: 'Detailed chronograph wristwatch — finance/luxury ch2',
     license: 'CC-BY',
     attribution: '© Darmstadt Graphics Group CC BY 4.0',
@@ -557,7 +557,7 @@ export const MODELS = {
     sizeMB: 7.1,
   },
   ch2Rolex: {
-    path: 'models/ch2_rolex.glb',
+    path: 'models/rolex.glb',
     description: 'Luxury watch — wealth signal, ch2',
     license: 'CC-BY',
     attribution: 'rolex — three.js examples',
@@ -565,7 +565,7 @@ export const MODELS = {
     sizeMB: 1.2,
   },
   ch2CarbonBike: {
-    path: 'models/ch2_carbon_bike.glb',
+    path: 'models/carbon_bike.glb',
     description: 'Carbon racing bicycle — performance/wealth, ch2',
     license: 'CC-BY',
     attribution: 'CarbonFrameBike — three.js examples',
@@ -573,7 +573,7 @@ export const MODELS = {
     sizeMB: 3.2,
   },
   ch2ToyCar: {
-    path: 'models/ch2_toy_car.glb',
+    path: 'models/toy_car.glb',
     description: 'Vibrant toy car — consumerism beat, ch2',
     license: 'CC-BY',
     attribution: 'ToyCar — KhronosGroup CC BY 4.0',
@@ -581,7 +581,7 @@ export const MODELS = {
     sizeMB: 5.1,
   },
   ch2CarConcept: {
-    path: 'models/ch2_car_concept.glb',
+    path: 'models/car_concept.glb',
     description: 'Concept car with material variants — future wealth, ch2',
     license: 'CC-BY',
     attribution: '© Darmstadt Graphics Group CC BY 4.0',
@@ -589,7 +589,7 @@ export const MODELS = {
     sizeMB: 11.2,
   },
   ch2Sunglasses: {
-    path: 'models/ch2_sunglasses.glb',
+    path: 'models/sunglasses.glb',
     description: 'Stylized sunglasses — luxury accessory, ch2',
     license: 'CC-BY',
     attribution: 'SunglassesKhronos — KhronosGroup CC BY 4.0',
@@ -597,7 +597,7 @@ export const MODELS = {
     sizeMB: 0.3,
   },
   ch2Shoe: {
-    path: 'models/ch2_shoe.glb',
+    path: 'models/shoe.glb',
     description: 'Designer shoe — luxury/fashion, ch2',
     license: 'CC-BY',
     attribution: 'shoe — three.js examples',
@@ -605,7 +605,7 @@ export const MODELS = {
     sizeMB: 7.4,
   },
   ch2VirtualCity: {
-    path: 'models/ch2_virtual_city.glb',
+    path: 'models/virtual_city.glb',
     description: 'Abstract 3D city block — scale/wealth context, ch2',
     license: 'CC-BY',
     attribution: 'VirtualCity — KhronosGroup CC BY 4.0',
@@ -613,7 +613,7 @@ export const MODELS = {
     sizeMB: 2.9,
   },
   ch2Gears: {
-    path: 'models/ch2_gears.glb',
+    path: 'models/gears.glb',
     description: 'Mechanical gears — economic systems, ch2',
     license: 'CC-BY',
     attribution: 'gears — three.js examples',
@@ -621,7 +621,7 @@ export const MODELS = {
     sizeMB: 0.07,
   },
   ch2Tokyo: {
-    path: 'models/ch2_tokyo.glb',
+    path: 'models/littlest_tokyo.glb',
     description: 'Miniature Tokyo street scene — global economy, ch2',
     license: 'CC-BY',
     attribution: 'LittlestTokyo — three.js examples',
@@ -631,7 +631,7 @@ export const MODELS = {
 
   // ── Ch3 per-channel variants ───────────────────────────────────────────────
   ch3SteampunkCam: {
-    path: 'models/ch3_steampunk_cam.glb',
+    path: 'models/steampunk_camera.glb',
     description: 'Ornate steampunk camera — surveillance/noir, ch3',
     license: 'CC-BY',
     attribution: 'steampunk_camera — three.js examples',
@@ -639,21 +639,21 @@ export const MODELS = {
     sizeMB: 3.7,
   },
   ch3Skull: {
-    path: 'models/ch3_skull.glb',
+    path: 'models/skull.glb',
     description: 'Human skull — mortality/danger, ch3',
     license: 'CC0',
     suggestedChannels: ['ch3'],
     sizeMB: 8.5,
   },
   ch3Lantern: {
-    path: 'models/ch3_lantern.glb',
+    path: 'models/lantern.glb',
     description: 'Old wooden lantern — mystery/time, ch3',
     license: 'CC0',
     suggestedChannels: ['ch3'],
     sizeMB: 9.1,
   },
   ch3BrokenWindow: {
-    path: 'models/ch3_broken_window.glb',
+    path: 'models/broken_window.glb',
     description: 'Shattered glass window — crisis reveal, ch3',
     license: 'CC-BY',
     attribution: '© Wayfair CC BY 4.0',
@@ -661,7 +661,7 @@ export const MODELS = {
     sizeMB: 1.0,
   },
   ch3Coals: {
-    path: 'models/ch3_coals.glb',
+    path: 'models/pot_coals.glb',
     description: 'Glowing coals — heat/tension, ch3',
     license: 'CC-BY',
     attribution: 'coals — three.js examples',
@@ -669,7 +669,7 @@ export const MODELS = {
     sizeMB: 4.4,
   },
   ch3Soldier: {
-    path: 'models/ch3_soldier.glb',
+    path: 'models/soldier.glb',
     description: 'Military soldier with animations — confrontation, ch3',
     license: 'CC-BY',
     attribution: 'Soldier — three.js examples',
@@ -677,7 +677,7 @@ export const MODELS = {
     sizeMB: 2.0,
   },
   ch3Bust: {
-    path: 'models/ch3_bust.glb',
+    path: 'models/tennyson_bust.glb',
     description: 'Historical bust — authority/power, ch3',
     license: 'CC-BY',
     attribution: 'tennyson-bust — three.js examples',
@@ -687,14 +687,14 @@ export const MODELS = {
 
   // ── Ch4 per-channel variants ───────────────────────────────────────────────
   ch4Skull: {
-    path: 'models/ch4_skull.glb',
+    path: 'models/skull.glb',
     description: 'Human skull — anatomy/mortality, ch4 neuroscience',
     license: 'CC0',
     suggestedChannels: ['ch4'],
     sizeMB: 8.5,
   },
   ch4MosquitoAmber: {
-    path: 'models/ch4_mosquito_amber.glb',
+    path: 'models/mosquito_amber.glb',
     description: 'Mosquito in amber — prehistoric preservation, ch4',
     license: 'CC-BY',
     attribution: 'MosquitoInAmber — KhronosGroup CC BY 4.0',
@@ -702,7 +702,7 @@ export const MODELS = {
     sizeMB: 23.1,
   },
   ch4Plant: {
-    path: 'models/ch4_plant.glb',
+    path: 'models/plant.glb',
     description: 'Potted plant with diffuse leaves — growth, ch4',
     license: 'CC-BY',
     attribution: 'DiffuseTransmissionPlant — KhronosGroup CC BY 4.0',
@@ -710,14 +710,14 @@ export const MODELS = {
     sizeMB: 5.4,
   },
   ch4Fish: {
-    path: 'models/ch4_fish.glb',
+    path: 'models/fish.glb',
     description: 'Realistic barramundi fish — brain/evolution, ch4',
     license: 'CC0',
     suggestedChannels: ['ch4'],
     sizeMB: 11.9,
   },
   ch4CrystalDragon: {
-    path: 'models/ch4_crystal_dragon.glb',
+    path: 'models/dragon.glb',
     description: 'Glass dragon — neural complexity/wonder, ch4',
     license: 'CC0',
     attribution: 'Stanford University Computer Graphics Laboratory',
@@ -725,14 +725,14 @@ export const MODELS = {
     sizeMB: 6.1,
   },
   ch4GlassVase: {
-    path: 'models/ch4_glass_vase.glb',
+    path: 'models/vase_flowers.glb',
     description: 'Glass vase with flowers — fragility/beauty, ch4',
     license: 'CC0',
     suggestedChannels: ['ch4'],
     sizeMB: 1.7,
   },
   ch4MetalSpheres: {
-    path: 'models/ch4_metal_spheres.glb',
+    path: 'models/metal_spheres.glb',
     description: 'PBR metal spheres — neural network metaphor, ch4',
     license: 'CC-BY',
     attribution: 'MetalRoughSpheres — KhronosGroup CC BY 4.0',
@@ -742,7 +742,7 @@ export const MODELS = {
 
   // ── Ch5 per-channel variants ───────────────────────────────────────────────
   ch5Candle: {
-    path: 'models/ch5_candle.glb',
+    path: 'models/candle_holder.glb',
     description: 'Glass hurricane candle holder — historical atmosphere, ch5',
     license: 'CC-BY',
     attribution: '© Wayfair LLC CC BY 4.0',
@@ -750,21 +750,21 @@ export const MODELS = {
     sizeMB: 2.5,
   },
   ch5Lantern: {
-    path: 'models/ch5_lantern.glb',
+    path: 'models/lantern.glb',
     description: 'Old wooden street lantern — period lighting, ch5',
     license: 'CC0',
     suggestedChannels: ['ch5'],
     sizeMB: 9.1,
   },
   ch5Corset: {
-    path: 'models/ch5_corset.glb',
+    path: 'models/corset.glb',
     description: 'Period fabric corset mannequin — historical fashion, ch5',
     license: 'CC0',
     suggestedChannels: ['ch5'],
     sizeMB: 12.8,
   },
   ch5MilkTruck: {
-    path: 'models/ch5_milk_truck.glb',
+    path: 'models/milk_truck.glb',
     description: 'Animated vintage milk truck — period vehicle, ch5',
     license: 'CC-BY',
     attribution: '© Cesium CC-BY 4.0',
@@ -772,7 +772,7 @@ export const MODELS = {
     sizeMB: 0.3,
   },
   ch5Soldier: {
-    path: 'models/ch5_soldier.glb',
+    path: 'models/soldier.glb',
     description: 'Military soldier — historical figure, ch5',
     license: 'CC-BY',
     attribution: 'Soldier — three.js examples',
@@ -780,7 +780,7 @@ export const MODELS = {
     sizeMB: 2.0,
   },
   ch5VeniceMask: {
-    path: 'models/ch5_venice_mask.glb',
+    path: 'models/venice_mask.glb',
     description: 'Venetian carnival mask — historical identity, ch5',
     license: 'CC-BY',
     attribution: 'venice_mask — three.js examples',
@@ -788,7 +788,7 @@ export const MODELS = {
     sizeMB: 4.0,
   },
   ch5Boombox: {
-    path: 'models/ch5_boombox.glb',
+    path: 'models/boombox.glb',
     description: 'Retro boombox — cultural artifact, ch5',
     license: 'CC0',
     suggestedChannels: ['ch5'],
@@ -797,7 +797,7 @@ export const MODELS = {
 
   // ── Ch6 per-channel variants ───────────────────────────────────────────────
   ch6IonDrive: {
-    path: 'models/ch6_ion_drive.glb',
+    path: 'models/ion_drive.glb',
     description: 'Sci-fi ion drive engine — propulsion beat, ch6',
     license: 'CC-BY',
     attribution: 'PrimaryIonDrive — three.js examples',
@@ -805,7 +805,7 @@ export const MODELS = {
     sizeMB: 5.5,
   },
   ch6ShipHallway: {
-    path: 'models/ch6_ship_hallway.glb',
+    path: 'models/spaceship_hallway.glb',
     description: 'Spacecraft corridor interior — immersive space, ch6',
     license: 'CC-BY',
     attribution: 'space_ship_hallway — three.js examples',
@@ -813,7 +813,7 @@ export const MODELS = {
     sizeMB: 2.7,
   },
   ch6MetalSpheres: {
-    path: 'models/ch6_metal_spheres.glb',
+    path: 'models/metal_spheres.glb',
     description: 'PBR metal spheres — material science beat, ch6',
     license: 'CC-BY',
     attribution: 'MetalRoughSpheres — KhronosGroup CC BY 4.0',
@@ -821,7 +821,7 @@ export const MODELS = {
     sizeMB: 10.7,
   },
   ch6Crystal: {
-    path: 'models/ch6_crystal.glb',
+    path: 'models/dragon.glb',
     description: 'Glass crystal dragon — cosmic wonder, ch6',
     license: 'CC0',
     attribution: 'Stanford University Computer Graphics Laboratory',
@@ -829,7 +829,7 @@ export const MODELS = {
     sizeMB: 6.1,
   },
   ch6Dispersion: {
-    path: 'models/ch6_dispersion.glb',
+    path: 'models/dragon.glb',
     description: 'Prismatic dispersion model — light/spectrum, ch6',
     license: 'CC0',
     attribution: 'Stanford University Computer Graphics Laboratory',
@@ -837,7 +837,7 @@ export const MODELS = {
     sizeMB: 6.1,
   },
   ch6GlassShatter: {
-    path: 'models/ch6_glass_shatter.glb',
+    path: 'models/broken_window.glb',
     description: 'Shattered glass — explosive reveal, ch6',
     license: 'CC-BY',
     attribution: '© Wayfair CC BY 4.0',
@@ -845,7 +845,7 @@ export const MODELS = {
     sizeMB: 1.0,
   },
   ch6ShaderBall: {
-    path: 'models/ch6_shader_ball.glb',
+    path: 'models/shader_ball.glb',
     description: 'Material showcase sphere — PBR reference, ch6',
     license: 'CC-BY',
     attribution: 'ShaderBall — three.js examples',

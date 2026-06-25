@@ -20,6 +20,8 @@ jobs:
     name: Generate → Render → Upload
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    env:
+      CH: ${{ github.event.inputs.channel }}
 
     steps:
       - uses: actions/checkout@v4
@@ -76,9 +78,24 @@ jobs:
           YT_CH6_REFRESH_TOKEN=${{ secrets.YT_CH6_REFRESH_TOKEN }}
           ENVEOF
 
+      - name: Validate CH
+        run: |
+          if [ -n "$CH" ]; then
+            case "$CH" in
+              ch1|ch2|ch3|ch4|ch5|ch6)
+                echo "Channel: $CH"
+                ;;
+              *)
+                echo "ERROR: CH='$CH' is not a valid channel — must be ch1-ch6 or empty (all)"
+                exit 1
+                ;;
+            esac
+          else
+            echo "Channel: ALL (scheduled run or no channel specified)"
+          fi
+
       - name: Generate content (Python pipeline)
         run: |
-          CH="${{ github.event.inputs.channel }}"
           if [ -z "$CH" ]; then
             python src/scripts/pipeline.py --all
           else
@@ -133,6 +150,14 @@ jobs:
             exit 1
           fi
 
+      - name: Download 3D models
+        run: |
+          if [ -z "$CH" ]; then
+            python scripts/download_models.py
+          else
+            python scripts/download_models.py --channel "$CH"
+          fi
+
       - name: Bundle Remotion
         run: npx remotion bundle
 
@@ -140,7 +165,6 @@ jobs:
         env:
           REMOTION_CHROME_EXECUTABLE: /usr/bin/chromium-browser
         run: |
-          CH="${{ github.event.inputs.channel }}"
           if [ -z "$CH" ]; then
             python src/scripts/render_all.py --all
           else
@@ -149,7 +173,6 @@ jobs:
 
       - name: Upload to YouTube
         run: |
-          CH="${{ github.event.inputs.channel }}"
           if [ -z "$CH" ]; then
             python src/scripts/upload_all.py --all
           else
