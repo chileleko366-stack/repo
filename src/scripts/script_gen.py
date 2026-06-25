@@ -107,6 +107,9 @@ PROVIDERS = [
 ]
 
 
+_last_good_provider: str | None = None
+
+
 def _call_provider(provider: dict, system: str, user: str) -> str:
     """Call one provider. Raises _SkipProvider on 429/403/404, RuntimeError on other failures."""
     api_key = os.getenv(provider["key_env"])
@@ -154,17 +157,24 @@ class _SkipProvider(Exception):
 
 def llm_complete(system: str, user: str) -> str:
     """
-    Try each provider in order. On 429, move to the next immediately.
+    Try each provider in order, promoting the last successful one to the front.
+    On 429, move to the next immediately.
     If all providers are rate-limited or missing keys, raises RuntimeError.
     """
+    global _last_good_provider
+    ordered = PROVIDERS[:]
+    if _last_good_provider:
+        ordered.sort(key=lambda p: 0 if p["name"] == _last_good_provider else 1)
+
     skipped = []
-    for provider in PROVIDERS:
+    for provider in ordered:
         key = os.getenv(provider["key_env"])
         if not key:
             skipped.append(f"{provider['name']} (no key)")
             continue
         try:
             result = _call_provider(provider, system, user)
+            _last_good_provider = provider["name"]
             if skipped:
                 print(f"[script_gen] used {provider['name']} (skipped: {', '.join(skipped)})")
             else:

@@ -29,6 +29,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
 
       - run: npm install
 
@@ -77,6 +78,28 @@ jobs:
           YT_CH6_CLIENT_SECRET=${{ secrets.YT_CH6_CLIENT_SECRET }}
           YT_CH6_REFRESH_TOKEN=${{ secrets.YT_CH6_REFRESH_TOKEN }}
           ENVEOF
+
+      - name: Cache rembg u2net model
+        uses: actions/cache@v4
+        with:
+          path: ~/.u2net
+          key: u2net-v1
+
+      - name: Pre-download u2net model if cache miss
+        run: |
+          python - <<'EOF'
+          import os, urllib.request, pathlib
+          model_dir = pathlib.Path.home() / ".u2net"
+          model_dir.mkdir(parents=True, exist_ok=True)
+          model_path = model_dir / "u2net.onnx"
+          if not model_path.exists():
+              url = "https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net.onnx"
+              print(f"Downloading u2net.onnx ({url})")
+              urllib.request.urlretrieve(url, model_path)
+              print(f"Saved to {model_path} ({model_path.stat().st_size // 1_048_576} MB)")
+          else:
+              print(f"u2net.onnx already cached at {model_path}")
+          EOF
 
       - name: Validate CH
         run: |

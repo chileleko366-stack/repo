@@ -31,6 +31,9 @@ _PROVIDERS = [
 ]
 
 
+_last_good_provider: str | None = None
+
+
 class _SkipProvider(Exception):
     def __init__(self, name, status):
         self.name = name
@@ -62,13 +65,19 @@ def _call_provider(provider: dict, system: str, user: str) -> str:
 
 
 def _llm_complete(system: str, user: str) -> str:
+    global _last_good_provider
+    ordered = _PROVIDERS[:]
+    if _last_good_provider:
+        ordered.sort(key=lambda p: 0 if p["name"] == _last_good_provider else 1)
+
     skipped = []
-    for provider in _PROVIDERS:
+    for provider in ordered:
         if not os.getenv(provider["key_env"]):
             skipped.append(f"{provider['name']} (no key)")
             continue
         try:
             result = _call_provider(provider, system, user)
+            _last_good_provider = provider["name"]
             if skipped:
                 print(f"[shot_brief] used {provider['name']} (skipped: {', '.join(skipped)})")
             return result
