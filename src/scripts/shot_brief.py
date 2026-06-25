@@ -31,6 +31,9 @@ _PROVIDERS = [
 ]
 
 
+_last_good_provider: str | None = None
+
+
 class _SkipProvider(Exception):
     def __init__(self, name, status):
         self.name = name
@@ -62,13 +65,19 @@ def _call_provider(provider: dict, system: str, user: str) -> str:
 
 
 def _llm_complete(system: str, user: str) -> str:
+    global _last_good_provider
+    ordered = _PROVIDERS[:]
+    if _last_good_provider:
+        ordered.sort(key=lambda p: 0 if p["name"] == _last_good_provider else 1)
+
     skipped = []
-    for provider in _PROVIDERS:
+    for provider in ordered:
         if not os.getenv(provider["key_env"]):
             skipped.append(f"{provider['name']} (no key)")
             continue
         try:
             result = _call_provider(provider, system, user)
+            _last_good_provider = provider["name"]
             if skipped:
                 print(f"[shot_brief] used {provider['name']} (skipped: {', '.join(skipped)})")
             return result
@@ -149,6 +158,14 @@ SAAS / MOTION-GRAPHIC PRIMITIVES (from AE motion lessons):
   "CardGrid"              — 4 floating cards in 2×2 CSS perspective grid, staggered spring entrance. Primary: "Title1:Value1,Title2:Value2,Title3:Value3,Title4:Value4".
   "HexCarousel"           — CSS 3D perspective carousel; 6 panels rotating on Y axis. Primary: "Title:Body" comma-separated pairs (6 max). For feature lists, option comparisons, product pillars.
   "StarTransition"        — radial star-burst rays from centre + glow pulse. Use for high-energy reveals, breakthroughs, or dramatic twist beats.
+  "BackgroundDotGrid"     — SVG repeating dot grid background. Use for analytics/data/planning beats on any channel.
+  "UIMockup"              — White SaaS UI card with separator bar, gradient CTA button, blinking cursor. Best for product demo beats.
+  "FlowConnector"         — Animated SVG lines connecting 2-4 labelled nodes. For workflow, neural pathway, timeline, system beats.
+  "LightSweep"            — Diagonal light scan over a GlassCard. For premium logo/product reveal beats.
+  "AvatarOrbit"           — Coloured avatar badges orbiting a centre with upright counter-rotation. For team/network/satellite beats.
+  "EffectVignette"        — Radial blur vignette overlay over GlassCard. Adds cinematic depth to atmospheric or dramatic beats.
+  "TextHorizontalSlide"   — Words slide in from right, staggered. Primary: comma-separated list of items/facts/attributes.
+  "Card3DFlip"            — Card flips in via 3D Y+X spring rotation. For document/report/invoice/stat reveals. Primary: "Title:Value".
 
 CHANNEL-SPECIFIC (channel-gated — only use on the specified channelId):
   "CelestialBody"      — ch6 ONLY. Rotating 3D sphere (planet/moon). Always use for celestial beats on ch6.
@@ -158,19 +175,79 @@ CHANNEL-SPECIFIC (channel-gated — only use on the specified channelId):
   "ClassifiedStamp"    — ch3 ONLY. Red CLASSIFIED stamp slams in. Use for opening/hook beats on ch3.
   "GlitchWord"         — ch3 ONLY. Single word glitches and stabilizes. Use for emphasis beats on ch3.
 
-PRIMITIVE SELECTION BY BEAT TYPE (follow these unless channelId overrides):
-- sectionKey="hook": prefer "GlassCard" or "TextKinetic" — big bold spring entry. Or "ClassifiedStamp" for ch3, "SaaSCard" for ch2.
-- sectionKey="context": "GlassCard", "Typewriter", or "LayoutFullscreenType"
-- sectionKey="beat_X" with visual.kind="stat" and percentage: "ProgressBar" or "ShapeCircularProgress" or "DataGauge"
-- sectionKey="beat_X" with visual.kind="stat" and large number: "LayoutGiantNumber" or "TextCounter" or "GlassCard"
-- sectionKey="beat_X" with visual.kind="person": resolvedAsset handles rendering — primitive is backup, use "GlassCard"
-- sectionKey="beat_X" with visual.kind="place": resolvedAsset handles rendering — use "GlassCard" or "BackgroundGeometric"
-- sectionKey="beat_X" with visual.kind="celestial": "CelestialBody" (ch6), "ShapeSpinningRings" or "BackgroundAurora" (others)
-- sectionKey="beat_X" with visual.kind="anatomy": "ThreeBrain" (ch4), else "AnimatedIcon" with brain-idea
-- sectionKey="beat_X" with visual.kind="chart": "CandlestickChart" (ch2), "BarChart" or "DataLineChart" (others)
-- sectionKey="beat_X" with visual.kind="typography" or "none": "TextKinetic", "Typewriter", or "WordCarousel"
-- sectionKey="twist": "Typewriter" or "TextMaskReveal" — the twist is a reveal, wipe or type it in
-- sectionKey="outro": "WordCarousel", "TextGradient", or "GlassCard"
+PRIMITIVE SELECTION BY BEAT TYPE — rotate through ALL primitives. Never repeat the same primitive twice in one video. GlassCard is a last resort, not a default.
+
+HOOK beats — channel-specific, high energy:
+  ch1: "TextKinetic" or "LayoutFullscreenType" (psychology impact opener)
+  ch2: "SaaSCard" or "CandlestickChart" (finance hook, white bg)
+  ch3: "ClassifiedStamp" (noir reveal)
+  ch4: "TextMaskReveal" or "Text3DFlip" (neuroscience dramatic entry)
+  ch5: "TextScramble" or "Typewriter" (history mystery)
+  ch6: "BackgroundAurora" or "ParticleShootingStars" (space energy)
+
+CONTEXT beats — always moving, never static:
+  "Typewriter", "LayoutFullscreenType", "TextMaskReveal", or "WordCarousel"
+  Do NOT use GlassCard for context — context needs motion.
+
+BEAT_0 (first content beat) — introduce the concept visually:
+  stat/number: "LayoutGiantNumber" or "DataGauge" or "TextCounter"
+  concept with 4 keywords: "OrbitalHub" (keywords orbit centre)
+  concept with 4 facts: "CardGrid" (floating cards grid)
+  concept/system (cause→effect, A→B→C flow): "FlowConnector"
+  person: resolvedAsset is fullscreen photo — use "TextKinetic" as overlay
+  place: resolvedAsset is fullscreen photo — use "BackgroundGeometric" as overlay
+
+BEAT_1 — always a data/chart primitive:
+  percentage: "ShapeCircularProgress" or "ProgressBar" or "DataGauge"
+  large number: "LayoutGiantNumber" or "TextCounter"
+  comparison: "BarChart" or "DataRanking" or "LayoutSplitContrast"
+  timeline: "DataTimeline"
+  ch2 finance: "CandlestickChart"
+
+BEAT_2 — variety beat, use something not yet used:
+  "HexCarousel" (for 3-6 feature items — primary as comma-separated "Title:Body" pairs)
+  "LayoutMultiColumn" (2-3 column comparison)
+  "DataStatsCards" (2-4 stat cards)
+  "TextGradient" or "TextWave" (rhythmic fact reveal)
+  "StarTransition" (energy burst for surprising fact)
+  "UIMockup" (product demo — white card with CTA button)
+  "BackgroundDotGrid" (atmosphere layer for data/planning beats)
+
+BEAT_3 — depth and atmosphere:
+  concept cluster: "OrbitalHub" or "CardGrid"
+  atmospheric: "BackgroundAurora" or "ShapeSpinningRings"
+  team/network/satellite: "AvatarOrbit"
+  logo/product reveal: "LightSweep"
+  cinematic depth: "EffectVignette" (wraps GlassCard with dark edge vignette)
+
+BEAT_4 / TWIST — document/report/stat reveal:
+  "Card3DFlip" (flips in like an invoice — Primary: "Title:Value")
+  "TextHorizontalSlide" (bullet list of items — Primary: comma-separated)
+  ch6: "ParticleShootingStars" + "CelestialBody"
+  ch4: "ThreeBrain"
+  person/place with resolvedAsset: "GlassCard" is acceptable here as overlay
+
+BEAT_4 — build to twist, high complexity:
+  "CardGrid" or "DataRanking" or "HexCarousel" (3-6 items)
+  ch2: "CandlestickChart" with stat typography
+  ch4: "ThreeBrain"
+  ch6: "CelestialBody"
+  ch3: "ScrambleReveal"
+
+TWIST beats — always a reveal primitive, never static:
+  "TextMaskReveal" (dramatic wipe), "StarTransition" (energy burst)
+  "TextGlitch" (shock/controversy), "Text3DFlip" (cinematic reveal)
+  ch3: "ScrambleReveal" or "GlitchWord"
+  NEVER use GlassCard for twist.
+
+OUTRO beats — resolution, always forward motion:
+  "WordCarousel" (cycling key concepts), "TextGradient" (vibrant close)
+  "OrbitalHub" (concept cluster closing), "SaaSCard" for ch2
+  NEVER repeat the hook primitive.
+
+STRICT RULE: Each primitive may only appear ONCE per video.
+If resolvedAsset is fullscreen (person/place), use a text/typography primitive as overlay.
+GlassCard is ONLY permitted on beat_3 or when resolvedAsset is present with no better option.
 
 TYPOGRAPHY RULES for the typography[] array:
 - "primary" role: the ONE key concept for this beat — the emphasis_keyword, a stat number, or the

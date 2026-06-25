@@ -63,7 +63,7 @@ def upload_channel(channel_id: str) -> None:
     print(f"[upload] {channel_id}: starting upload → {video_path.name}")
     sys.stdout.flush()
     video_id = upload_as_draft(str(video_path), channel_id, metadata)
-    print(f"[upload] ✓ {channel_id} — https://studio.youtube.com/video/{video_id}/edit")
+    print(f"[upload] ✓ {channel_id} — draft videoId: {video_id} (private, pending review)")
     sys.stdout.flush()
 
 
@@ -85,10 +85,6 @@ def main():
 
     failed = []
     for cid in targets:
-        output_path = Path("out") / cid / "short.mp4"
-        if not output_path.exists():
-            print(f"[upload] ⚠ {cid}: no rendered video found — skipping (pipeline failed for this channel)")
-            continue
         try:
             upload_channel(cid)
         except Exception as exc:

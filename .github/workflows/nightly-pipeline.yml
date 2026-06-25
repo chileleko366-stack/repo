@@ -20,6 +20,8 @@ jobs:
     name: Generate → Render → Upload
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    env:
+      CH: ${{ github.event.inputs.channel }}
 
     steps:
       - uses: actions/checkout@v4
@@ -38,17 +40,11 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - name: Cache rembg model
-        uses: actions/cache@v4
-        with:
-          path: ~/.u2net
-          key: rembg-u2net-v1
-
       - name: Install system deps for Remotion
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
-            ffmpeg libgbm-dev \
+            chromium-browser ffmpeg libgbm-dev \
             libatk1.0-0 libatk-bridge2.0-0 libcups2 \
             libxkbcommon0 libxdamage1 libpango-1.0-0 libcairo2
 
@@ -83,23 +79,46 @@ jobs:
           YT_CH6_REFRESH_TOKEN=${{ secrets.YT_CH6_REFRESH_TOKEN }}
           ENVEOF
 
-      - name: Cache 3D models
+      - name: Cache rembg u2net model
         uses: actions/cache@v4
-        id: models-cache
         with:
-          path: public/models
-          key: glb-models-${{ hashFiles('scripts/download_models.py') }}
-          restore-keys: |
-            glb-models-
+          path: ~/.u2net
+          key: u2net-v1
 
-      - name: Download 3D models
-        if: steps.models-cache.outputs.cache-hit != 'true'
-        run: python scripts/download_models.py
+      - name: Pre-download u2net model if cache miss
+        run: |
+          python - <<'EOF'
+          import os, urllib.request, pathlib
+          model_dir = pathlib.Path.home() / ".u2net"
+          model_dir.mkdir(parents=True, exist_ok=True)
+          model_path = model_dir / "u2net.onnx"
+          if not model_path.exists():
+              url = "https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net.onnx"
+              print(f"Downloading u2net.onnx ({url})")
+              urllib.request.urlretrieve(url, model_path)
+              print(f"Saved to {model_path} ({model_path.stat().st_size // 1_048_576} MB)")
+          else:
+              print(f"u2net.onnx already cached at {model_path}")
+          EOF
+
+      - name: Validate CH
+        run: |
+          if [ -n "$CH" ]; then
+            case "$CH" in
+              ch1|ch2|ch3|ch4|ch5|ch6)
+                echo "Channel: $CH"
+                ;;
+              *)
+                echo "ERROR: CH='$CH' is not a valid channel — must be ch1-ch6 or empty (all)"
+                exit 1
+                ;;
+            esac
+          else
+            echo "Channel: ALL (scheduled run or no channel specified)"
+          fi
 
       - name: Generate content (Python pipeline)
-        continue-on-error: true
         run: |
-          CH="${{ github.event.inputs.channel }}"
           if [ -z "$CH" ]; then
             python src/scripts/pipeline.py --all
           else
@@ -147,24 +166,20 @@ jobs:
                   echo '[]' > "$json"
                 fi
               done
-            else
-              echo "::notice::${ch} has no manifest (pipeline failed) — skipping audio check for this channel"
             fi
           done
           if [ "$MISSING_BEATS" -gt 0 ]; then
-            echo "::error::${MISSING_BEATS} beat audio file(s) are missing for channels that DID complete pipeline. Aborting upload."
+            echo "::error::${MISSING_BEATS} beat(s) have silent placeholder audio — TTS failed. Aborting upload."
             exit 1
           fi
 
       - name: Bundle Remotion
         run: npx remotion bundle
 
-      - name: Download Remotion browser (Chrome Headless Shell)
-        run: npx remotion browser ensure
-
       - name: Render videos
+        env:
+          REMOTION_CHROME_EXECUTABLE: /usr/bin/chromium-browser
         run: |
-          CH="${{ github.event.inputs.channel }}"
           if [ -z "$CH" ]; then
             python src/scripts/render_all.py --all
           else
@@ -173,7 +188,6 @@ jobs:
 
       - name: Upload to YouTube
         run: |
-          CH="${{ github.event.inputs.channel }}"
           if [ -z "$CH" ]; then
             python src/scripts/upload_all.py --all
           else

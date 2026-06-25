@@ -70,7 +70,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
       <AbsoluteFill style={{ background: bg }} />
 
       {/* Full-screen asset */}
-      {isFullscreen && (
+      {isFullscreen && !hasShotBrief && (
         <AssetLayer
           beat={beat}
           durationFrames={durationFrames}
@@ -79,7 +79,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
       )}
 
       {/* Gradient scrim on asset beats so text stays legible */}
-      {isFullscreen && (
+      {isFullscreen && !hasShotBrief && (
         <div
           style={{
             position: 'absolute',
@@ -98,17 +98,17 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
       {!isFullscreen && !hasShotBrief && (() => {
         const sk = beat.sectionKey ?? '';
         const beatNum = sk.startsWith('beat_') ? parseInt(sk.replace('beat_', ''), 10) : 0;
-        const BEAT_VARIANTS: SocialFigureVariant[] = ['xbot', 'michelle', 'kira'];
+        const BEAT_VARIANTS: SocialFigureVariant[] = ['figure', 'crowd', 'mirror'];
         const variant: SocialFigureVariant =
-          sk === 'hook' ? 'xbot' :
-          sk === 'context' ? 'michelle' :
-          sk === 'outro' ? 'kira' :
+          sk === 'hook' ? 'figure' :
+          sk === 'context' ? 'crowd' :
+          sk === 'outro' ? 'shadow' :
           BEAT_VARIANTS[beatNum % BEAT_VARIANTS.length];
         return <SocialFigure3D variant={variant} />;
       })()}
 
       {/* ShotBrief-driven layout: primitive at primaryAnchor position with depth effects */}
-      {hasShotBrief && !isFullscreen && (
+      {hasShotBrief && (
         <ShotBriefLayer
           beat={beat}
           accentColor={CFG.colors.accent1}

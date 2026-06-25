@@ -5,18 +5,11 @@ export type { IconName } from './AnimatedIcon';
 export { Typewriter } from './Typewriter';
 export { BarChart } from './BarChart';
 export type { BarData } from './BarChart';
-export { PieChart } from './PieChart';
-export type { PieSlice } from './PieChart';
-export { ChatBubbles } from './ChatBubbles';
-export type { ChatMessage } from './ChatBubbles';
 export { WordCarousel } from './WordCarousel';
-export { SocialFrame, SOCIAL_SAFE_ZONE } from './SocialFrame';
 export { GlassCard } from './GlassCard';
 export type { GlassCardProps } from './GlassCard';
 export { TypographicCard } from './TypographicCard';
 export { ProgressBar } from './ProgressBar';
-export { Histogram } from './Histogram';
-export type { HistogramBar } from './Histogram';
 // Text primitives
 export { TextKinetic } from './TextKinetic';
 export { TextScramble } from './TextScramble';
@@ -66,3 +59,15 @@ export { GradientBorder } from './GradientBorder';
 export { HexCarousel } from './HexCarousel';
 export type { CarouselPanel } from './HexCarousel';
 export { StarTransition } from './StarTransition';
+// Lesson 4 additions
+export { BackgroundDotGrid } from './BackgroundDotGrid';
+export { FlowConnector } from './FlowConnector';
+export type { FlowNode } from './FlowConnector';
+export { LightSweep } from './LightSweep';
+export { UIMockup } from './UIMockup';
+export { AvatarOrbit } from './AvatarOrbit';
+export type { AvatarBadge } from './AvatarOrbit';
+// Lesson 5 additions
+export { EffectVignette } from './EffectVignette';
+export { TextHorizontalSlide } from './TextHorizontalSlide';
+export { Card3DFlip } from './Card3DFlip';

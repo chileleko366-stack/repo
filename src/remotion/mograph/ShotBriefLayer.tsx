@@ -74,6 +74,14 @@ import {
   CardGrid,
   HexCarousel,
   StarTransition,
+  BackgroundDotGrid,
+  FlowConnector,
+  LightSweep,
+  UIMockup,
+  AvatarOrbit,
+  EffectVignette,
+  TextHorizontalSlide,
+  Card3DFlip,
 } from './primitives';
 import type { CarouselPanel } from './primitives/HexCarousel';
 import type { IconName } from './primitives/AnimatedIcon';
@@ -668,6 +676,143 @@ function PrimitiveDispatch({
     case 'StarTransition':
       return <StarTransition accentColor={accentColor} backgroundColor={bgColor} />;
 
+    // ── Lesson 4 primitives ──────────────────────────────────────────────────────
+
+    case 'BackgroundDotGrid':
+      return (
+        <BackgroundDotGrid
+          dotColor={accentColor + '55'}
+          backgroundColor={bgColor}
+        />
+      );
+
+    case 'UIMockup':
+      return (
+        <UIMockup
+          title={beat.emphasis_keyword?.toUpperCase() ?? primaryText ?? 'Workspace'}
+          subtitle={bodyTypo?.text ?? beat.narration.slice(0, 50)}
+          buttonLabel={sanitizeLabel(labelTypo?.text) ?? 'Explore'}
+          accentColor={accentColor}
+          backgroundColor={bgColor === '#ffffff' || bgColor.startsWith('#f') ? bgColor : '#f8f8fc'}
+          fontFamily={bodyFont}
+          accentFont={accentFont}
+        />
+      );
+
+    case 'FlowConnector': {
+      // Parse beat.visual.value as CSV labels (VisualTag has no items field)
+      const csvLabels = parseCsv(beat.visual.value ?? primaryText);
+      const nodes = csvLabels.length >= 2
+        ? csvLabels.map((lbl, i) => ({
+            label: lbl,
+            color: accentColor,
+            xPct: 15 + (i / Math.max(csvLabels.length - 1, 1)) * 70,
+            yPct: 50,
+          }))
+        : [
+            { label: 'Input',   color: accentColor, xPct: 15, yPct: 50 },
+            { label: 'Process', color: accentColor, xPct: 50, yPct: 50 },
+            { label: 'Output',  color: accentColor, xPct: 85, yPct: 50 },
+          ];
+      return (
+        <FlowConnector
+          nodes={nodes}
+          lineColor={accentColor + '55'}
+          accentColor={accentColor}
+          backgroundColor={bgColor}
+          fontFamily={bodyFont}
+        />
+      );
+    }
+
+    case 'LightSweep':
+      return (
+        <LightSweep sweepColor="rgba(255,255,255,0.5)" startFrame={0} duration={25}>
+          <GlassCard
+            primary={primaryText ?? beat.emphasis_keyword ?? ''}
+            label={sanitizeLabel(labelTypo?.text)}
+            body={bodyTypo?.text}
+            accentColor={accentColor}
+            backgroundColor={bgColor}
+            fontFamily={bodyFont}
+            accentFont={accentFont}
+          />
+        </LightSweep>
+      );
+
+    case 'AvatarOrbit': {
+      // Parse beat.visual.value as CSV labels (VisualTag has no items field)
+      const csvLabels = parseCsv(beat.visual.value ?? primaryText);
+      const AVATAR_COLORS = [accentColor, '#3b82f6', '#ef4444', '#f59e0b', '#10b981'];
+      const avatars = csvLabels.length >= 2
+        ? csvLabels.slice(0, 5).map((lbl, i) => ({
+            initial: lbl.charAt(0).toUpperCase(),
+            color: AVATAR_COLORS[i % AVATAR_COLORS.length],
+          }))
+        : [
+            { initial: 'A', color: accentColor },
+            { initial: 'B', color: '#3b82f6' },
+            { initial: 'C', color: '#ef4444' },
+            { initial: 'D', color: '#f59e0b' },
+          ];
+      return (
+        <AvatarOrbit
+          avatars={avatars}
+          centreLabel={beat.emphasis_keyword?.toUpperCase().slice(0, 6) ?? 'HUB'}
+          accentColor={accentColor}
+          backgroundColor={bgColor}
+          fontFamily={bodyFont}
+        />
+      );
+    }
+
+    // ── Lesson 5 primitives ──────────────────────────────────────────────────────
+
+    case 'EffectVignette':
+      return (
+        <EffectVignette strength={0.6}>
+          <GlassCard
+            primary={primaryText}
+            label={sanitizeLabel(labelTypo?.text)}
+            body={bodyTypo?.text}
+            accentColor={accentColor}
+            backgroundColor={bgColor}
+            fontFamily={bodyFont}
+            accentFont={accentFont}
+          />
+        </EffectVignette>
+      );
+
+    case 'TextHorizontalSlide':
+      return (
+        <TextHorizontalSlide
+          text={primaryText}
+          color={primaryTypo?.color ?? '#ffffff'}
+          accentColor={accentColor}
+          fontSize={primaryTypo?.sizePx ?? 72}
+          backgroundColor={bgColor}
+          fontFamily={bodyFont}
+        />
+      );
+
+    case 'Card3DFlip': {
+      const colonIdx = primaryText.indexOf(':');
+      const cardTitle = colonIdx > 0 ? primaryText.slice(0, colonIdx).trim() : (beat.emphasis_keyword ?? primaryText);
+      const cardValue = colonIdx > 0 ? primaryText.slice(colonIdx + 1).trim() : undefined;
+      return (
+        <Card3DFlip
+          title={cardTitle.toUpperCase()}
+          value={cardValue}
+          subtitle={bodyTypo?.text}
+          accentColor={accentColor}
+          backgroundColor={bgColor}
+          cardColor={bgColor === '#ffffff' || bgColor.startsWith('#f') ? bgColor : '#ffffff'}
+          fontFamily={bodyFont}
+          accentFont={accentFont}
+        />
+      );
+    }
+
     case 'TypographicCard':
     default:
       return (
@@ -756,7 +901,10 @@ export const ShotBriefLayer: React.FC<ShotBriefLayerProps> = ({
       />
     );
 
-  const { xPct, yPct, widthPct, heightPct } = brief.composition.primaryAnchor;
+  const isMapKind = beat.visual.kind === 'map' || beat.visual.kind === 'distance';
+  const { xPct, yPct, widthPct, heightPct } = isMapKind
+    ? { xPct: 50, yPct: 50, widthPct: 100, heightPct: 100 }
+    : brief.composition.primaryAnchor;
   const boxShadow = buildBoxShadow(brief);
 
   return (
