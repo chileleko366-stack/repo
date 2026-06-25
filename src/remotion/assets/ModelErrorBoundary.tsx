@@ -15,15 +15,19 @@ export class ModelErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error) {
-    console.warn('[ModelErrorBoundary] caught:', error.message);
+    console.warn('[ModelErrorBoundary] 3D model failed:', error.message);
   }
 
   render() {
     if (this.state.hasError) {
-      return this.props.fallback ?? <AbsoluteFill style={{ background: 'transparent' }} />;
+      return this.props.fallback ?? (
+        <AbsoluteFill style={{ background: 'transparent' }} />
+      );
     }
     return (
-      <React.Suspense fallback={this.props.fallback ?? <AbsoluteFill />}>
+      <React.Suspense
+        fallback={this.props.fallback ?? <AbsoluteFill style={{ background: 'transparent' }} />}
+      >
         {this.props.children}
       </React.Suspense>
     );

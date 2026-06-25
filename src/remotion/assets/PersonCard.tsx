@@ -49,21 +49,21 @@ export const PersonCard: React.FC<{
       >
         <div
           style={{
-            width: 200,
-            height: 200,
+            width: 300,
+            height: 300,
             borderRadius: '50%',
             background: 'rgba(255,255,255,0.12)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: 88,
+            fontSize: 130,
             fontWeight: 900,
             color: '#fff',
             opacity,
             transform: `scale(${scale})`,
           }}
         >
-          {asset.fallback ?? '?'}
+          <span style={{ letterSpacing: '-0.02em' }}>{asset.fallback ?? '?'}</span>
         </div>
       </AbsoluteFill>
     );

@@ -28,6 +28,26 @@ from PIL import Image
 ASSETS_DIR = Path("public/assets")
 UA = {"User-Agent": "DopamineStudios/1.0 (contact@dopaminestudios.com)"}
 
+# Astronomical objects Nominatim cannot geocode correctly.
+# Values are mean distances from Earth in km.
+_ASTRONOMICAL_DISTANCES_KM: dict[str, float] = {
+    "moon":                 384_400,
+    "the moon":             384_400,
+    "sun":                  149_600_000,
+    "the sun":              149_600_000,
+    "mercury":              91_700_000,
+    "venus":                41_400_000,
+    "mars":                 78_300_000,
+    "jupiter":              628_700_000,
+    "saturn":               1_277_000_000,
+    "uranus":               2_721_000_000,
+    "neptune":              4_351_000_000,
+    "pluto":                5_906_000_000,
+    "proxima centauri":     40_208_000_000_000,
+    "alpha centauri":       41_343_000_000_000,
+    "andromeda":            2.537e19,
+}
+
 
 # ── Wikipedia helpers ────────────────────────────────────────────────────
 
@@ -384,6 +404,34 @@ async def resolve_distance(
     unit: str,
     out_dir: Path,
 ) -> dict | None:
+    # Intercept astronomical targets before calling Nominatim (which geocodes them as cities)
+    from_key   = from_place.lower().strip()
+    to_key     = to_place.lower().strip()
+    from_astro = _ASTRONOMICAL_DISTANCES_KM.get(from_key)
+    to_astro   = _ASTRONOMICAL_DISTANCES_KM.get(to_key)
+
+    if from_astro is not None or to_astro is not None:
+        dist_km = float(to_astro if to_astro is not None else from_astro)  # type: ignore[arg-type]
+        if unit == "miles":
+            dist_label = f"{dist_km * 0.621371:,.0f} miles"
+        elif unit == "ly":
+            ly = dist_km / 9.461e12
+            dist_label = f"{ly:.2f} light-years"
+        elif dist_km >= 1_000_000:
+            dist_label = f"{dist_km / 1_000_000:,.1f} million km"
+        else:
+            dist_label = f"{dist_km:,.0f} km"
+        print(f"[assets] astronomical distance: {from_place} → {to_place} = {dist_label}")
+        return {
+            "map_image":      None,
+            "from_place":     from_place,
+            "from_lat":       0.0, "from_lon": 0.0, "from_px": [540, 480],
+            "to_place":       to_place,
+            "to_lat":         0.0, "to_lon":   0.0, "to_px":   [540, 480],
+            "distance_km":    dist_km,
+            "distance_label": dist_label,
+        }
+
     slug     = re.sub(r"[^a-z0-9]", "_", f"{from_place}_{to_place}".lower())
     img_path = out_dir / f"dist_{slug}.png"
 

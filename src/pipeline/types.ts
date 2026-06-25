@@ -99,7 +99,7 @@ export interface PlaceAsset {
 }
 
 export interface DistanceAsset {
-  map_image: string;
+  map_image: string | null;
   from_place: string;
   from_lat: number;
   from_lon: number;

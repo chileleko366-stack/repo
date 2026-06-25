@@ -61,6 +61,41 @@ export const DistanceMap: React.FC<{
   const showMarkers = lineLen > 4; // suppress when from === to (plain map beat)
   const showCounter = asset.distance_km > 0;
 
+  // Astronomical distances have no map image — render a full-frame counter only
+  if (!asset.map_image) {
+    return (
+      <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div
+            style={{
+              fontSize: 28,
+              color: 'rgba(255,255,255,0.6)',
+              fontFamily: 'monospace',
+              letterSpacing: '0.15em',
+              marginBottom: 16,
+            }}
+          >
+            {asset.from_place} → {asset.to_place}
+          </div>
+          <div
+            style={{
+              fontSize: 140,
+              fontWeight: 900,
+              color: '#ff4500',
+              lineHeight: 1,
+              fontFamily: 'monospace',
+            }}
+          >
+            {Math.round(countValue).toLocaleString()}
+          </div>
+          <div style={{ fontSize: 44, color: 'rgba(255,255,255,0.5)', marginTop: 8 }}>
+            {unit}
+          </div>
+        </div>
+      </AbsoluteFill>
+    );
+  }
+
   return (
     <AbsoluteFill>
       {/* ── Map image ───────────────────────────────────────────────────────── */}

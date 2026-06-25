@@ -82,6 +82,7 @@ import {
   EffectVignette,
   TextHorizontalSlide,
   Card3DFlip,
+  GradientBorder,
 } from './primitives';
 import type { CarouselPanel } from './primitives/HexCarousel';
 import type { IconName } from './primitives/AnimatedIcon';
@@ -812,6 +813,16 @@ function PrimitiveDispatch({
         />
       );
     }
+
+    case 'GradientBorder':
+      return (
+        <GradientBorder
+          primary={primaryText}
+          body={bodyTypo?.text}
+          accentColor={accentColor}
+          backgroundColor={bgColor}
+        />
+      );
 
     case 'TypographicCard':
     default:

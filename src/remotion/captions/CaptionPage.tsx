@@ -41,13 +41,13 @@ export const CaptionPage: React.FC<CaptionPageProps> = ({
           maxWidth: 900,
           textAlign: 'center',
           fontFamily: bodyFont,
-          fontSize: 44,
-          color: 'rgba(255,255,255,0.75)',
-          fontWeight: 600,
+          fontSize: 46,
+          color: '#ffffff',
+          fontWeight: 700,
           textTransform: 'uppercase',
           letterSpacing: '0.04em',
-          WebkitTextStroke: '4px rgba(0,0,0,0.85)',
-          paintOrder: 'stroke fill',
+          lineHeight: 1.25,
+          textShadow: '0 2px 12px rgba(0,0,0,1), 0 0 40px rgba(0,0,0,0.9)',
         }}
       >
         {page.tokens.map((token, i) => {
@@ -57,7 +57,7 @@ export const CaptionPage: React.FC<CaptionPageProps> = ({
               key={`${token.fromMs}-${i}`}
               style={{
                 whiteSpace: 'pre',
-                color: isActive ? '#ffffff' : 'rgba(255,255,255,0.6)',
+                color: isActive ? '#ffffff' : 'rgba(255,255,255,0.55)',
               }}
             >
               {token.text}
