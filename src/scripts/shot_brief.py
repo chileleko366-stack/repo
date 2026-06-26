@@ -167,6 +167,12 @@ SAAS / MOTION-GRAPHIC PRIMITIVES (from AE motion lessons):
   "TextHorizontalSlide"   — Words slide in from right, staggered. Primary: comma-separated list of items/facts/attributes.
   "Card3DFlip"            — Card flips in via 3D Y+X spring rotation. For document/report/invoice/stat reveals. Primary: "Title:Value".
   "GradientBorder"        — Rounded card with animated rotating gradient stroke border. Best for premium product/brand/feature reveals. Primary is the main text; body is the supporting line.
+  "ChatBubbles"           — Animated chat bubble conversation. For communication, social media, dialogue beats.
+  "Histogram"             — Vertical bar histogram with animated fill. For distribution, frequency, data density beats.
+  "PieChart"              — Animated SVG pie/donut chart. For proportion, share, composition beats.
+  "Scene3D"               — Procedural 3D wireframe icosahedron. For abstract, geometric, tech concept beats.
+  "SocialFrame"           — Social media profile stats (followers/likes). For viral, influence, network beats.
+  "StaggeredSequence"     — Numbered steps reveal one-by-one. For process, how-to, sequential beats.
 
 CHANNEL-SPECIFIC (channel-gated — only use on the specified channelId):
   "CelestialBody"      — ch6 ONLY. Rotating 3D sphere (planet/moon). Always use for celestial beats on ch6.

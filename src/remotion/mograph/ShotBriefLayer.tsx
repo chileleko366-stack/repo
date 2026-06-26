@@ -83,6 +83,12 @@ import {
   TextHorizontalSlide,
   Card3DFlip,
   GradientBorder,
+  ChatBubbles,
+  Histogram,
+  PieChart,
+  Scene3D,
+  SocialFrame,
+  StaggeredSequence,
 } from './primitives';
 import type { CarouselPanel } from './primitives/HexCarousel';
 import type { IconName } from './primitives/AnimatedIcon';
@@ -823,6 +829,24 @@ function PrimitiveDispatch({
           backgroundColor={bgColor}
         />
       );
+
+    case 'ChatBubbles':
+      return <ChatBubbles accentColor={accentColor} backgroundColor={bgColor} />;
+
+    case 'Histogram':
+      return <Histogram accentColor={accentColor} backgroundColor={bgColor} />;
+
+    case 'PieChart':
+      return <PieChart accentColor={accentColor} backgroundColor={bgColor} />;
+
+    case 'Scene3D':
+      return <Scene3D accentColor={accentColor} backgroundColor={bgColor} />;
+
+    case 'SocialFrame':
+      return <SocialFrame accentColor={accentColor} backgroundColor={bgColor} />;
+
+    case 'StaggeredSequence':
+      return <StaggeredSequence accentColor={accentColor} backgroundColor={bgColor} />;
 
     case 'TypographicCard':
     default:

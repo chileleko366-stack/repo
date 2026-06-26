@@ -1,4 +1,11 @@
 import './index.css';
+import '@fontsource/space-grotesk';
+import '@fontsource/anton';
+import '@fontsource/jetbrains-mono';
+import '@fontsource/special-elite';
+import '@fontsource/fraunces';
+import '@fontsource/eb-garamond';
+import '@fontsource/orbitron';
 import React from 'react';
 import { Composition } from 'remotion';
 import type { VideoManifest } from './pipeline/types';
