@@ -80,7 +80,7 @@ export const CaptionTrack: React.FC<CaptionTrackProps> = ({
   const commonProps = {
     captions: captionData,
     fontFamily: bodyFont,
-    fontSize: 50,
+    fontSize: 48,
     position: 'bottom' as const,
     maxWidth: 900,
     wordsPerLine: 5,

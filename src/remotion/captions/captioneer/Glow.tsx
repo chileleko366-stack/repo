@@ -58,7 +58,6 @@ export const Glow: React.FC<GlowProps> = ({
           alignItems: 'center',
           gap: '8px 14px',
           maxWidth: captionBoxMaxWidth(maxWidth),
-          padding: '16px 24px',
         }}
       >
         {segment.words.map((word, i) => {

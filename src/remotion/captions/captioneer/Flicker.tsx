@@ -56,7 +56,6 @@ export const Flicker: React.FC<FlickerProps> = ({
           alignItems: 'center',
           gap: '8px 12px',
           maxWidth: captionBoxMaxWidth(maxWidth),
-          padding: '16px 24px',
         }}
       >
         {segment.words.map((word, i) => {

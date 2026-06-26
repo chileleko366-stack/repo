@@ -59,7 +59,6 @@ export const WordHighlight: React.FC<WordHighlightProps> = ({
           alignItems: 'center',
           gap: 12,
           maxWidth: captionBoxMaxWidth(maxWidth),
-          padding: '16px 24px',
         }}
       >
         {lines.map((line, lineIdx) => (
