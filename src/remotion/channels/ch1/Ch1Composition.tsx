@@ -7,7 +7,6 @@
  *   ─ AssetLayer       (person/brand/place/map — full-screen)
  *   ─ Gradient scrim   (bottom 600px, asset beats only — legibility)
  *   ─ SocialFigure3D   (non-asset non-shotbrief beats — variant per section)
- *   ─ KineticTextLayer (emphasis keyword reveal + supporting words)
  *   ─ Beat audio       (<Audio> per beat voiceover)
  *   ─ HardCutFlash     (accent flash on frames 0-4 of each Sequence)
  * Global:
@@ -30,7 +29,6 @@ import { SfxLayer } from '../../sound/SfxLayer';
 import { Soundtrack } from '../../sound/Soundtrack';
 import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
 import type { TimedBeat } from '../../transitions/BeatCompositor';
-import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { HardCutFlash } from './HardCutFlash';
 import { SocialFigure3D } from './SocialFigure3D';
 import type { SocialFigureVariant } from './SocialFigure3D';
@@ -117,15 +115,6 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
           accentFont={CFG.accentFont}
         />
       )}
-
-      {/* Mograph kinetic text: emphasis keyword + supporting words */}
-      <KineticTextLayer
-        beat={beat}
-        accentColor={CFG.colors.accent1}
-        accentFont={CFG.accentFont}
-        bodyFont={CFG.bodyFont}
-        durationFrames={durationFrames}
-      />
 
       {/* Beat voiceover */}
       {audioPath ? (

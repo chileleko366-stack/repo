@@ -26,28 +26,27 @@ export interface TimedBeat extends ManifestBeat {
   staticHoldFrames: number;
 }
 
-const CROSSFADE_FRAMES = 8;   // breath — 6-10 frame soft blend
-const WIPE_FRAMES = 12;       // beat — 10-14 frame directional wipe
-const SLIDE_FRAMES = 16;      // cut — real scene break
+const CROSSFADE_FRAMES = 12;  // breath — smooth blend
+const WIPE_FRAMES = 18;       // beat — directional
+const SLIDE_FRAMES = 20;      // cut — hard but brief slide
 
-/** Maps pause type + visual-change status → transition kind */
+/** Maps pause type → transition kind. Every beat transition gets visual motion. */
 export function mapPauseToTransition(
   pause: PauseAfter,
-  visualChanging: boolean,
+  _visualChanging: boolean,
   beatIndex: number,
 ): TransitionKind {
-  if (!visualChanging) return 'cut';
   if (pause === 'breath') return 'crossfade';
   if (pause === 'beat') return 'wipe';
-  // 'cut': alternate between slide directions for variety
-  return beatIndex % 3 === 0 ? 'slide' : 'wipe';
+  // cut: punchy slide — not a raw hard cut, not a slideshow
+  return beatIndex % 2 === 0 ? 'slide' : 'wipe';
 }
 
 function transitionFrameCount(kind: TransitionKind): number {
   if (kind === 'crossfade') return CROSSFADE_FRAMES;
   if (kind === 'wipe') return WIPE_FRAMES;
   if (kind === 'slide') return SLIDE_FRAMES;
-  return 0;
+  return SLIDE_FRAMES; // 'cut' falls back to slide
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -57,10 +56,8 @@ function getTransitionPresentation(kind: TransitionKind, beatIndex: number): any
     const dirs = ['from-left', 'from-right', 'from-top', 'from-bottom'] as const;
     return wipe({ direction: dirs[beatIndex % dirs.length] });
   }
-  if (kind === 'slide') {
-    return slide({ direction: beatIndex % 2 === 0 ? 'from-right' : 'from-left' });
-  }
-  return fade();
+  // 'slide' and 'cut' both use a punchy slide
+  return slide({ direction: beatIndex % 2 === 0 ? 'from-right' : 'from-left' });
 }
 
 function getTransitionTiming(kind: TransitionKind) {
@@ -99,7 +96,7 @@ export const BeatCompositor: React.FC<BeatCompositorProps> = ({ timedBeats, rend
           <TransitionSeries.Sequence durationInFrames={beat.audioFrames}>
             {renderBeat(beat, i)}
           </TransitionSeries.Sequence>
-          {i < timedBeats.length - 1 && beat.transitionOut !== 'cut' && (
+          {i < timedBeats.length - 1 && (
             <TransitionSeries.Transition
               presentation={getTransitionPresentation(beat.transitionOut, i)}
               timing={getTransitionTiming(beat.transitionOut)}

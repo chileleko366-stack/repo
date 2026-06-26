@@ -32,7 +32,6 @@ import { SfxLayer } from '../../sound/SfxLayer';
 import { Soundtrack } from '../../sound/Soundtrack';
 import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
 import type { TimedBeat } from '../../transitions/BeatCompositor';
-import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { CandlestickChart } from './CandlestickChart';
 import { Ferrari3D } from './Ferrari3D';
 import { LuxuryObject3D } from './LuxuryObject3D';
@@ -183,15 +182,6 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
       {(beat.sectionKey === 'context' || (beat.sectionKey ?? '').startsWith('beat_')) && (
         <TickerTape durationFrames={durationFrames} accent={CFG.colors.accent1} />
       )}
-
-      {/* Mograph kinetic text: emphasis keyword + supporting words */}
-      <KineticTextLayer
-        beat={beat}
-        accentColor={CFG.colors.accent1}
-        accentFont={CFG.accentFont}
-        bodyFont={CFG.bodyFont}
-        durationFrames={durationFrames}
-      />
 
       {audioPath ? <Audio src={toStatic(audioPath)} volume={1} /> : null}
 

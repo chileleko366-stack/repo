@@ -28,7 +28,6 @@ import { SfxLayer } from '../../sound/SfxLayer';
 import { Soundtrack } from '../../sound/Soundtrack';
 import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
 import type { TimedBeat } from '../../transitions/BeatCompositor';
-import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { CelestialBody } from './CelestialBody';
 import { CosmicObject3D } from './CosmicObject3D';
 import type { CosmicVariant } from './CosmicObject3D';
@@ -215,15 +214,6 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
           <SpaceText text={beat.narration} emphasisWord={emphasis_keyword} />
         </div>
       )}
-
-      {/* Mograph kinetic text: emphasis keyword + supporting words */}
-      <KineticTextLayer
-        beat={beat}
-        accentColor={CFG.colors.accent1}
-        accentFont={CFG.accentFont}
-        bodyFont={CFG.bodyFont}
-        durationFrames={durationFrames}
-      />
 
       {audioPath ? <Audio src={toStatic(audioPath)} volume={1} /> : null}
 

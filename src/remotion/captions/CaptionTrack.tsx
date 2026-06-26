@@ -36,8 +36,8 @@ import {
 import type { TimedBeat } from '../transitions/BeatCompositor';
 import { CaptionPage } from './CaptionPage';
 
-// Word-by-word: one page per 400ms
-const COMBINE_WITHIN_MS = 400;
+const DEFAULT_COMBINE_MS = 400;
+const CH3_COMBINE_MS = 300;
 
 export interface WordBoundary {
   word: string;
@@ -65,6 +65,8 @@ export const CaptionTrack: React.FC<CaptionTrackProps> = ({
   bodyFont,
 }) => {
   const { fps } = useVideoConfig();
+
+  const combineWithinMs = channelId === 'ch3' ? CH3_COMBINE_MS : DEFAULT_COMBINE_MS;
 
   // Build flat Caption[] using cumulative audioFrames for accurate timing
   const allCaptions = useMemo<Caption[]>(() => {
@@ -97,9 +99,9 @@ export const CaptionTrack: React.FC<CaptionTrackProps> = ({
     () =>
       createTikTokStyleCaptions({
         captions: allCaptions,
-        combineTokensWithinMilliseconds: COMBINE_WITHIN_MS,
+        combineTokensWithinMilliseconds: combineWithinMs,
       }),
-    [allCaptions],
+    [allCaptions, combineWithinMs],
   );
 
   return (
@@ -109,7 +111,7 @@ export const CaptionTrack: React.FC<CaptionTrackProps> = ({
         const startFrame = Math.round((page.startMs / 1000) * fps);
         const endFrame = nextPage
           ? Math.round((nextPage.startMs / 1000) * fps)
-          : startFrame + Math.round((COMBINE_WITHIN_MS / 1000) * fps);
+          : startFrame + Math.round((combineWithinMs / 1000) * fps);
 
         const durationInFrames = Math.max(1, endFrame - startFrame);
 
@@ -125,6 +127,7 @@ export const CaptionTrack: React.FC<CaptionTrackProps> = ({
               accentColor={accentColor}
               accentFont={accentFont}
               bodyFont={bodyFont}
+              channelId={channelId}
             />
           </Sequence>
         );
@@ -140,7 +143,8 @@ const CaptionPageAnimated: React.FC<{
   accentColor: string;
   accentFont: string;
   bodyFont: string;
-}> = ({ page, accentColor, accentFont, bodyFont }) => {
+  channelId: string;
+}> = ({ page, accentColor, accentFont, bodyFont, channelId }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
@@ -158,6 +162,7 @@ const CaptionPageAnimated: React.FC<{
       accentColor={accentColor}
       accentFont={accentFont}
       bodyFont={bodyFont}
+      channelId={channelId}
     />
   );
 };
