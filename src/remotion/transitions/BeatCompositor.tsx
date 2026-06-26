@@ -26,21 +26,20 @@ export interface TimedBeat extends ManifestBeat {
   staticHoldFrames: number;
 }
 
-const CROSSFADE_FRAMES = 8;   // breath — 6-10 frame soft blend
-const WIPE_FRAMES = 12;       // beat — 10-14 frame directional wipe
-const SLIDE_FRAMES = 16;      // cut — real scene break
+const CROSSFADE_FRAMES = 14;  // breath — smooth blend
+const WIPE_FRAMES = 18;       // beat — directional wipe
+const SLIDE_FRAMES = 22;      // cut — real scene break
 
-/** Maps pause type + visual-change status → transition kind */
+/** Maps pause type → transition kind — every beat gets a real transition */
 export function mapPauseToTransition(
   pause: PauseAfter,
-  visualChanging: boolean,
+  _visualChanging: boolean,
   beatIndex: number,
 ): TransitionKind {
-  if (!visualChanging) return 'cut';
   if (pause === 'breath') return 'crossfade';
   if (pause === 'beat') return 'wipe';
-  // 'cut': alternate between slide directions for variety
-  return beatIndex % 3 === 0 ? 'slide' : 'wipe';
+  // 'cut': alternate slide/wipe for visual variety
+  return beatIndex % 2 === 0 ? 'slide' : 'wipe';
 }
 
 function transitionFrameCount(kind: TransitionKind): number {

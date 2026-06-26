@@ -1,19 +1,18 @@
 /**
  * Ch1Composition — Dopamine Loop channel (ch1).
  *
- * Renders all 9 sections from the manifest inside frame-accurate <Sequence>s.
+ * Renders all sections from the manifest inside speech-rhythm TransitionSeries.
  * Layout per beat:
  *   ─ Background fill (beat.bg_color || channel bgPrimary)
- *   ─ AssetLayer       (person/brand/place/map — full-screen)
- *   ─ Gradient scrim   (bottom 600px, asset beats only — legibility)
- *   ─ SocialFigure3D   (non-asset non-shotbrief beats — variant per section)
- *   ─ KineticTextLayer (emphasis keyword reveal + supporting words)
+ *   ─ AssetLayer       (person/brand/place/map — full-screen, only when no shotBrief)
+ *   ─ Gradient scrim   (bottom fade, asset beats only)
+ *   ─ ShotBriefLayer   (when shotBrief is present)
+ *   ─ SocialFigure3D   (non-asset non-shotbrief beats — procedural ThreeCanvas)
  *   ─ Beat audio       (<Audio> per beat voiceover)
- *   ─ HardCutFlash     (accent flash on frames 0-4 of each Sequence)
  * Global:
- *   ─ Soundtrack       (music bed, fade in/out)
+ *   ─ Soundtrack       (music bed)
  *   ─ SfxLayer         (SFX events from manifest.soundDesign)
- *   ─ CaptionTrack     (word-level TikTok captions)
+ *   ─ CaptionTrack     (word-level captioneer captions)
  */
 
 import '@fontsource/anton';
@@ -30,24 +29,21 @@ import { SfxLayer } from '../../sound/SfxLayer';
 import { Soundtrack } from '../../sound/Soundtrack';
 import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
 import type { TimedBeat } from '../../transitions/BeatCompositor';
-import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { HardCutFlash } from './HardCutFlash';
 import { SocialFigure3D } from './SocialFigure3D';
 import type { SocialFigureVariant } from './SocialFigure3D';
 
 const CFG = CHANNEL_CONFIGS.ch1;
 
-/** Strip the 'public/' prefix so staticFile() resolves correctly. */
 function toStatic(p: string) {
   return staticFile(p.replace(/^public\//, ''));
 }
 
-// ── Beat section ──────────────────────────────────────────────────────────────
-
 const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({ beat, durationFrames }) => {
-  const { visual, emphasis_keyword, resolvedAsset, bg_color, audioPath, shotBrief } = beat;
-  const kind     = visual.kind;
-  const bg       = bg_color || CFG.colors.bgPrimary;
+  const { visual, resolvedAsset, bg_color, audioPath, shotBrief } = beat;
+  const kind = visual.kind;
+  const bg   = bg_color || CFG.colors.bgPrimary;
+
   const hasAsset = (() => {
     if (!resolvedAsset) return false;
     const a = resolvedAsset as unknown as Record<string, unknown>;
@@ -57,19 +53,17 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
     return false;
   })();
 
-  // person/brand/place/map/distance take the full frame
   const isFullscreen =
     hasAsset && kind !== 'none' && kind !== 'stat' && kind !== 'anatomy' && kind !== 'celestial';
 
-  // When shotBrief is present: use its primaryAnchor for text position; skip hardcoded layout.
   const hasShotBrief = !!shotBrief;
 
   return (
     <AbsoluteFill>
-      {/* Base background */}
+      {/* 1. Background */}
       <AbsoluteFill style={{ background: bg }} />
 
-      {/* Full-screen asset */}
+      {/* 2. Asset — full screen, only when no shotBrief */}
       {isFullscreen && !hasShotBrief && (
         <AssetLayer
           beat={beat}
@@ -78,23 +72,29 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         />
       )}
 
-      {/* Gradient scrim on asset beats so text stays legible */}
+      {/* 3. Gradient scrim */}
       {isFullscreen && !hasShotBrief && (
         <div
           style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 680,
-            background:
-              'linear-gradient(to top, rgba(22,18,31,0.96) 0%, rgba(22,18,31,0.4) 60%, transparent 100%)',
+            position: 'absolute', bottom: 0, left: 0, right: 0, height: 680,
+            background: `linear-gradient(to top, ${CFG.colors.bgPrimary}f5 0%, ${CFG.colors.bgPrimary}66 55%, transparent 100%)`,
             pointerEvents: 'none',
           }}
         />
       )}
 
-      {/* 3D social figure for non-asset, non-shotbrief beats */}
+      {/* 4. ShotBrief-driven mograph */}
+      {hasShotBrief && (
+        <ShotBriefLayer
+          beat={beat}
+          accentColor={CFG.colors.accent1}
+          bgColor={bg}
+          bodyFont={CFG.bodyFont}
+          accentFont={CFG.accentFont}
+        />
+      )}
+
+      {/* 5. Channel fallback — procedural ThreeCanvas social figure */}
       {!isFullscreen && !hasShotBrief && (() => {
         const sk = beat.sectionKey ?? '';
         const beatNum = sk.startsWith('beat_') ? parseInt(sk.replace('beat_', ''), 10) : 0;
@@ -107,81 +107,42 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         return <SocialFigure3D variant={variant} />;
       })()}
 
-      {/* ShotBrief-driven layout: primitive at primaryAnchor position with depth effects */}
-      {hasShotBrief && (
-        <ShotBriefLayer
-          beat={beat}
-          accentColor={CFG.colors.accent1}
-          bgColor={bg}
-          bodyFont={CFG.bodyFont}
-          accentFont={CFG.accentFont}
-        />
-      )}
+      {/* 6. Beat audio */}
+      {audioPath ? <Audio src={toStatic(audioPath)} volume={1} /> : null}
 
-      {/* Mograph kinetic text: emphasis keyword + supporting words */}
-      <KineticTextLayer
-        beat={beat}
-        accentColor={CFG.colors.accent1}
-        accentFont={CFG.accentFont}
-        bodyFont={CFG.bodyFont}
-        durationFrames={durationFrames}
-      />
-
-      {/* Beat voiceover */}
-      {audioPath ? (
-        <Audio src={toStatic(audioPath)} volume={1} />
-      ) : null}
-
-      {/* Hard-cut accent flash */}
+      {/* Flash */}
       <HardCutFlash color="#d400ff" peakOpacity={0.45} />
     </AbsoluteFill>
   );
 };
 
-// ── Root composition ──────────────────────────────────────────────────────────
-
-export const Ch1Composition: React.FC<{ manifest: VideoManifest }> = ({
-  manifest,
-}) => {
+export const Ch1Composition: React.FC<{ manifest: VideoManifest }> = ({ manifest }) => {
   const { beats, soundDesign, fps, script } = manifest;
 
   const wordBoundaries = useWordBoundaries(beats);
 
-  // Build timing data for BeatCompositor from TTS audio durations + script pause markers.
   const audioDurationsMs: Record<string, number> = {};
   const pauseAfterMap: Record<string, 'breath' | 'beat' | 'cut'> = {};
   beats.forEach((b) => {
     if (b.audio?.durationMs) audioDurationsMs[b.beatId] = b.audio.durationMs;
   });
   (script?.beats ?? []).forEach((sb, i) => {
-    const beatId = `beat_${i}`;
-    pauseAfterMap[beatId] = (sb as { pause_after?: 'breath' | 'beat' | 'cut' }).pause_after ?? 'cut';
+    pauseAfterMap[`beat_${i}`] = (sb as { pause_after?: 'breath' | 'beat' | 'cut' }).pause_after ?? 'cut';
   });
 
   const timedBeats: TimedBeat[] = buildTimedBeats(beats, fps ?? 30, audioDurationsMs, pauseAfterMap);
 
   return (
-    <AbsoluteFill
-      style={{
-        background: CFG.colors.bgPrimary,
-        fontFamily: CFG.bodyFont,
-      }}
-    >
-      {/* Music bed */}
+    <AbsoluteFill style={{ background: CFG.colors.bgPrimary, fontFamily: CFG.bodyFont }}>
       <Soundtrack channelId="ch1" musicVolume={0.15} />
 
-      {/* BeatCompositor: TransitionSeries-based pacing with speech-rhythm transitions */}
       <BeatCompositor
         timedBeats={timedBeats}
-        renderBeat={(beat, _i) => (
-          <BeatSection beat={beat} durationFrames={beat.audioFrames} />
-        )}
+        renderBeat={(beat) => <BeatSection beat={beat} durationFrames={beat.audioFrames} />}
       />
 
-      {/* Frame-synced SFX */}
       <SfxLayer soundDesign={soundDesign ?? []} />
 
-      {/* Word-level captions */}
       {wordBoundaries && (
         <CaptionTrack
           wordBoundariesByBeat={wordBoundaries}

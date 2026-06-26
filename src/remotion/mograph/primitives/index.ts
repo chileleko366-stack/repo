@@ -71,3 +71,10 @@ export type { AvatarBadge } from './AvatarOrbit';
 export { EffectVignette } from './EffectVignette';
 export { TextHorizontalSlide } from './TextHorizontalSlide';
 export { Card3DFlip } from './Card3DFlip';
+// New primitives
+export { ChatBubbles } from './ChatBubbles';
+export { Histogram } from './Histogram';
+export { PieChart } from './PieChart';
+export { Scene3D } from './Scene3D';
+export { SocialFrame } from './SocialFrame';
+export { StaggeredSequence } from './StaggeredSequence';

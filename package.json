@@ -52,7 +52,8 @@
     "dev": "remotion studio",
     "build": "remotion bundle",
     "upgrade": "remotion upgrade",
-    "lint": "eslint src && tsc"
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit"
   },
   "sideEffects": [
     "*.css"
