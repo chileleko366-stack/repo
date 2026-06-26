@@ -257,7 +257,7 @@ SCRIPT_SCHEMA = '''
   "context": "<10-14 words — one sentence establishing the specific stakes with a real number.>",
   "beats": [
     {
-      "narration": "<8-15 words, one complete spoken thought — do NOT split a sentence across beats>",
+      "narration": "<BEAT 1 of 5: 8-15 words, one complete spoken thought — do NOT split a sentence across beats>",
       "pause_after": "<breath|beat|cut> — MUST be exactly one of those three words. breath: flows immediately into next; beat: clear pause; cut: hard scene break",
       "visual": {
         "kind": "<person|brand|place|distance|map|anatomy|celestial|stat|chart|morph|typography|none>",
@@ -273,6 +273,38 @@ SCRIPT_SCHEMA = '''
         "stat_value": "<if stat: numeric value as number>"
       },
       "emphasis_keyword": "<one word, most important in beat, no asterisks>",
+      "morph_from_previous": false,
+      "bg_color": "<solid hex colour>"
+    },
+    {
+      "narration": "<BEAT 2 of 5: 8-15 words, one complete spoken thought>",
+      "pause_after": "<breath|beat|cut>",
+      "visual": { "kind": "<kind>", "value": "<value>" },
+      "emphasis_keyword": "<one word>",
+      "morph_from_previous": false,
+      "bg_color": "<solid hex colour>"
+    },
+    {
+      "narration": "<BEAT 3 of 5: 8-15 words, one complete spoken thought>",
+      "pause_after": "<breath|beat|cut>",
+      "visual": { "kind": "<kind>", "value": "<value>" },
+      "emphasis_keyword": "<one word>",
+      "morph_from_previous": false,
+      "bg_color": "<solid hex colour>"
+    },
+    {
+      "narration": "<BEAT 4 of 5: 8-15 words, one complete spoken thought>",
+      "pause_after": "<breath|beat|cut>",
+      "visual": { "kind": "<kind>", "value": "<value>" },
+      "emphasis_keyword": "<one word>",
+      "morph_from_previous": false,
+      "bg_color": "<solid hex colour>"
+    },
+    {
+      "narration": "<BEAT 5 of 5: 8-15 words, one complete spoken thought>",
+      "pause_after": "<breath|beat|cut>",
+      "visual": { "kind": "<kind>", "value": "<value>" },
+      "emphasis_keyword": "<one word>",
       "morph_from_previous": false,
       "bg_color": "<solid hex colour>"
     }
@@ -621,7 +653,7 @@ class ValidationError(Exception):
 
 # ── Main entry point ──────────────────────────────────────────────────────────
 
-def generate_script(topic: str, channel_id: str, brief: ResearchBrief, max_retries: int = 5) -> dict:
+def generate_script(topic: str, channel_id: str, brief: ResearchBrief, max_retries: int = 8) -> dict:
     system = build_system_prompt(channel_id, topic, brief)
     base_user = build_user_prompt(topic, brief)
     user = base_user
@@ -656,7 +688,16 @@ def generate_script(topic: str, channel_id: str, brief: ResearchBrief, max_retri
         if errors:
             print(f"[script_gen] validation failed on attempt {attempt}: {errors}")
             error_lines = "\n".join(f"- {e}" for e in errors)
-            user = base_user + f"\n\nFIX THESE ERRORS IN YOUR NEXT RESPONSE:\n{error_lines}"
+            beat_count_error = any("need exactly 5 beats" in e for e in errors)
+            if beat_count_error:
+                user = (
+                    base_user
+                    + f"\n\nCRITICAL ERROR: The beats array MUST contain EXACTLY 5 objects. "
+                    + f"No more, no fewer. Count them: beat 1, beat 2, beat 3, beat 4, beat 5.\n"
+                    + f"FIX THESE ERRORS:\n{error_lines}"
+                )
+            else:
+                user = base_user + f"\n\nFIX THESE ERRORS IN YOUR NEXT RESPONSE:\n{error_lines}"
             continue
         # Continuity check is advisory — log issues but never block on them
         continuity_warnings = validate_continuity(script)
