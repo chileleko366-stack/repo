@@ -13,6 +13,8 @@
     "noUnusedLocals": false,
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
+    "typeRoots": ["./node_modules/@types"],
+    "types": ["react", "react-dom", "three", "web"],
     "paths": {
       "@/pipeline/*": ["./src/pipeline/*"],
       "@/remotion/*": ["./src/remotion/*"],
