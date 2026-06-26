@@ -1,12 +1,12 @@
 /**
  * Ch4Composition — The Grey Matter (neuroscience).
- * Fraunces body / Anton accent / #12121e bg / #e94560 accent / #4cc9f0 accent2.
+ * Fraunces body / Anton accent / #12121e bg / #e94560 accent1 / #4cc9f0 accent2.
  */
 
 import '@fontsource/fraunces';
 import '@fontsource/anton';
 import React from 'react';
-import { AbsoluteFill, Audio, staticFile } from 'remotion';
+import { AbsoluteFill, Audio, staticFile, useCurrentFrame } from 'remotion';
 import type { ManifestBeat, VideoManifest } from '../../../pipeline/types';
 import { CHANNEL_CONFIGS } from '../../../pipeline/channelConfigs';
 import { AssetLayer } from '../../assets/AssetLayer';
@@ -17,10 +17,6 @@ import { SfxLayer } from '../../sound/SfxLayer';
 import { Soundtrack } from '../../sound/Soundtrack';
 import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
 import type { TimedBeat } from '../../transitions/BeatCompositor';
-import { HardCutFlash } from './HardCutFlash';
-import { NeuroObject3D } from './NeuroObject3D';
-import type { NeuroVariant } from './NeuroObject3D';
-import { ThreeBrain } from './ThreeBrain';
 
 const CFG = CHANNEL_CONFIGS.ch4;
 
@@ -30,28 +26,29 @@ function toStatic(p: string) {
 
 const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({ beat, durationFrames }) => {
   const { visual, resolvedAsset, bg_color, audioPath, shotBrief } = beat;
-  const kind      = visual.kind;
-  const bg        = bg_color || CFG.colors.bgPrimary;
+  const kind = visual.kind;
+  const bg = bg_color || CFG.colors.bgPrimary;
+  const frame = useCurrentFrame();
+
   const hasAsset = (() => {
     if (!resolvedAsset) return false;
     const a = resolvedAsset as unknown as Record<string, unknown>;
-    if ('path' in a) return a.path != null;
+    if ('path' in a) return (a.path as string | null) != null;
     if ('svgString' in a) return true;
     if ('map_image' in a) return true;
     return false;
   })();
-  const isAnatomy = kind === 'anatomy';
-  const hasShotBrief = !!shotBrief;
 
   const isFullscreen =
-    hasAsset && !isAnatomy && kind !== 'none' && kind !== 'stat' && kind !== 'celestial';
+    hasAsset && kind !== 'none' && kind !== 'stat' && kind !== 'anatomy' && kind !== 'celestial';
+
+  const hasShotBrief = !!shotBrief;
+  const floatY = Math.sin(frame * 0.035) * 8;
 
   return (
     <AbsoluteFill>
-      {/* 1. Background */}
       <AbsoluteFill style={{ background: bg }} />
 
-      {/* 2. Asset — full screen, only when no shotBrief */}
       {isFullscreen && !hasShotBrief && (
         <AssetLayer
           beat={beat}
@@ -60,21 +57,14 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         />
       )}
 
-      {/* Anatomy: 3-D brain (procedural ThreeCanvas) */}
-      {isAnatomy && <ThreeBrain durationFrames={durationFrames} />}
-
-      {/* 3. Gradient scrim */}
-      {(isFullscreen || isAnatomy) && !hasShotBrief && (
-        <div
-          style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0, height: 680,
-            background: `linear-gradient(to top, ${CFG.colors.bgPrimary}f5 0%, ${CFG.colors.bgPrimary}66 55%, transparent 100%)`,
-            pointerEvents: 'none',
-          }}
-        />
+      {isFullscreen && !hasShotBrief && (
+        <div style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0, height: 720,
+          background: `linear-gradient(to top, ${CFG.colors.bgPrimary}f8 0%, ${CFG.colors.bgPrimary}88 50%, transparent 100%)`,
+          pointerEvents: 'none',
+        }} />
       )}
 
-      {/* 4. ShotBrief-driven mograph */}
       {hasShotBrief && (
         <ShotBriefLayer
           beat={beat}
@@ -82,26 +72,21 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
           bgColor={bg}
           bodyFont={CFG.bodyFont}
           accentFont={CFG.accentFont}
-          suppressPrimitive={isAnatomy}
         />
       )}
 
-      {/* 5. Channel fallback visual — procedural ThreeCanvas neuro objects */}
-      {!isAnatomy && !isFullscreen && !hasShotBrief && (() => {
-        const sk = beat.sectionKey ?? '';
-        const beatNum = sk.startsWith('beat_') ? parseInt(sk.replace('beat_', ''), 10) : 0;
-        const BEAT_VARIANTS: NeuroVariant[] = ['neuron', 'synapse', 'cortex', 'signal', 'neuron'];
-        const variant: NeuroVariant =
-          sk === 'hook' ? 'neuron' :
-          sk === 'context' ? 'cortex' :
-          BEAT_VARIANTS[beatNum % BEAT_VARIANTS.length];
-        return <NeuroObject3D variant={variant} />;
-      })()}
+      {!isFullscreen && !hasShotBrief && (
+        <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{
+            width: 480, height: 480, borderRadius: '50%',
+            background: `radial-gradient(circle at 38% 33%, ${CFG.colors.accent2}33 0%, ${CFG.colors.accent1}22 45%, transparent 70%)`,
+            boxShadow: `0 0 80px ${CFG.colors.accent1}44`,
+            transform: `translateY(${floatY}px)`,
+          }} />
+        </AbsoluteFill>
+      )}
 
-      {/* 6. Beat audio */}
       {audioPath ? <Audio src={toStatic(audioPath)} volume={1} /> : null}
-
-      <HardCutFlash color={CFG.colors.accent2} peakOpacity={0.35} />
     </AbsoluteFill>
   );
 };
@@ -121,14 +106,11 @@ export const Ch4Composition: React.FC<{ manifest: VideoManifest }> = ({ manifest
   return (
     <AbsoluteFill style={{ background: CFG.colors.bgPrimary, fontFamily: CFG.bodyFont }}>
       <Soundtrack channelId="ch4" musicVolume={0.15} />
-
       <BeatCompositor
         timedBeats={timedBeats}
         renderBeat={(beat) => <BeatSection beat={beat} durationFrames={beat.audioFrames} />}
       />
-
       <SfxLayer soundDesign={soundDesign ?? []} />
-
       {wordBoundaries && (
         <CaptionTrack
           wordBoundariesByBeat={wordBoundaries}

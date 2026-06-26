@@ -1,80 +1,46 @@
 import React from 'react';
-import { useCurrentFrame, useVideoConfig, spring, interpolate } from 'remotion';
+import { interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 
-interface CursorClickProps {
-  accentColor?: string;
-  backgroundColor?: string;
-  label?: string;
-}
+interface Props { accentColor: string; targetX?: number; targetY?: number; }
 
-export const CursorClick: React.FC<CursorClickProps> = ({
-  accentColor = '#4f46e5',
-  backgroundColor = '#ffffff',
-  label,
-}) => {
+export const CursorClick: React.FC<Props> = ({ accentColor, targetX = 80, targetY = -60 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const t = frame / fps;
 
-  const totalDuration = 1.8;
-  const progress = Math.min(t / totalDuration, 1);
-  const p = progress;
+  // Phase 1: arrive (0–30)
+  const arriveS = spring({ frame, fps, config: { damping: 18, stiffness: 200 } });
+  const arrX = interpolate(arriveS, [0, 1], [200 + targetX, targetX]);
+  const arrY = interpolate(arriveS, [0, 1], [600 + targetY, targetY]);
 
-  // Quadratic bezier path
-  const x0 = 200, y0 = 400;
-  const x1 = 600, y1 = 200;
-  const x2 = 680, y2 = 880;
+  // Phase 2: press (30–40) / release (40–50)
+  const pressScale = interpolate(frame, [30, 40], [1.0, 0.82], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const releaseS = spring({ frame: Math.max(0, frame - 40), fps, config: { damping: 14, stiffness: 400 } });
+  const releaseScale = interpolate(releaseS, [0, 1], [0.82, 1.0]);
+  const cursorScale = frame < 40 ? pressScale : releaseScale;
 
-  const cx = (1 - p) * (1 - p) * x0 + 2 * (1 - p) * p * x1 + p * p * x2;
-  const cy = (1 - p) * (1 - p) * y0 + 2 * (1 - p) * p * y1 + p * p * y2;
+  // Phase 4: exit (50–70)
+  const exitX = interpolate(frame, [50, 70], [0, -300], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const exitY = interpolate(frame, [50, 70], [0, 400], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const exitOpacity = interpolate(frame, [55, 70], [1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
 
-  const clickFrame = Math.max(0, frame - Math.round(totalDuration * fps));
-  const clickScale = spring({
-    frame: clickFrame, fps,
-    config: { damping: 10, stiffness: 200, mass: 0.5 },
-    from: 1, to: 1.4,
-  });
-  const clickOpacity = clickFrame > 0
-    ? interpolate(clickFrame, [0, Math.round(fps * 0.5)], [1, 0], { extrapolateRight: 'clamp' })
-    : 0;
+  const cx = arrX + exitX;
+  const cy = arrY + exitY;
 
   return (
-    <div style={{ width: '100%', height: '100%', backgroundColor, position: 'relative', overflow: 'hidden' }}>
-      {label && (
-        <div style={{
-          position: 'absolute',
-          top: '15%',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          fontSize: 52,
-          fontWeight: 700,
-          color: '#111827',
-          textAlign: 'center',
-          width: '80%',
-        }}>
-          {label}
-        </div>
-      )}
-      <svg width="1080" height="1920" viewBox="0 0 1080 1920" style={{ position: 'absolute', inset: 0 }}>
-        <path
-          d={`M ${x0} ${y0} Q ${x1} ${y1} ${x2} ${y2}`}
-          fill="none" stroke={accentColor} strokeWidth={3}
-          strokeOpacity={0.2} strokeDasharray="10 8"
-        />
-        {clickOpacity > 0 && (
-          <circle
-            cx={cx} cy={cy} r={40 * clickScale}
-            fill="none" stroke={accentColor}
-            strokeWidth={3} opacity={clickOpacity}
-          />
-        )}
-        <g transform={`translate(${cx}, ${cy})`}>
-          <polygon
-            points="0,0 0,40 10,30 18,48 24,45 16,27 30,27"
-            fill="#111827" stroke="#ffffff" strokeWidth={2}
-          />
-        </g>
-      </svg>
+    <div style={{
+      position: 'absolute', inset: 0,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      pointerEvents: 'none',
+    }}>
+      <div style={{
+        transform: `translate(${cx}px, ${cy}px) scale(${cursorScale})`,
+        opacity: exitOpacity,
+        transformOrigin: 'top left',
+      }}>
+        <svg width="48" height="56" viewBox="0 0 48 56" fill="none">
+          <path d="M4 4L4 44L16 32L24 48L30 45L22 29L40 29L4 4Z" fill="white" stroke="#000" strokeWidth="2" strokeLinejoin="round" />
+        </svg>
+      </div>
     </div>
   );
 };

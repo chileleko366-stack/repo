@@ -1,20 +1,33 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame } from 'remotion';
+import { useCurrentFrame } from 'remotion';
 
-export const EffectFilmGrain: React.FC<{ opacity?: number }> = ({ opacity = 0.05 }) => {
+interface Props { opacity?: number; }
+
+export const EffectFilmGrain: React.FC<Props> = ({ opacity = 0.06 }) => {
   const frame = useCurrentFrame();
-  const seed = Math.floor(frame / 2);
+  const baseFreq = 0.65 + Math.sin(frame * 0.01) * 0.005;
 
   return (
-    <AbsoluteFill style={{ pointerEvents: 'none', opacity }}>
-      <svg viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg"
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
-        <filter id="efg-grain">
-          <feTurbulence type="fractalNoise" baseFrequency="0.80" numOctaves={4} seed={seed} stitchTiles="stitch" />
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 20 }}>
+      <svg width="0" height="0" style={{ position: 'absolute' }}>
+        <filter id={`grain-${frame % 4}`}>
+          <feTurbulence
+            type="fractalNoise"
+            baseFrequency={baseFreq}
+            numOctaves={3}
+            stitchTiles="stitch"
+          />
           <feColorMatrix type="saturate" values="0" />
+          <feBlend in="SourceGraphic" mode="overlay" />
         </filter>
-        <rect x={0} y={0} width={1080} height={1920} filter="url(#efg-grain)" fill="white" />
       </svg>
-    </AbsoluteFill>
+      <div style={{
+        position: 'absolute', inset: 0,
+        filter: `url(#grain-${frame % 4})`,
+        opacity,
+        mixBlendMode: 'overlay',
+        backgroundColor: 'transparent',
+      }} />
+    </div>
   );
 };

@@ -5,7 +5,7 @@
 
 import '@fontsource/orbitron';
 import React from 'react';
-import { AbsoluteFill, Audio, staticFile } from 'remotion';
+import { AbsoluteFill, Audio, staticFile, useCurrentFrame } from 'remotion';
 import type { ManifestBeat, VideoManifest } from '../../../pipeline/types';
 import { CHANNEL_CONFIGS } from '../../../pipeline/channelConfigs';
 import { AssetLayer } from '../../assets/AssetLayer';
@@ -16,11 +16,6 @@ import { SfxLayer } from '../../sound/SfxLayer';
 import { Soundtrack } from '../../sound/Soundtrack';
 import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
 import type { TimedBeat } from '../../transitions/BeatCompositor';
-import { CelestialBody } from './CelestialBody';
-import { CosmicObject3D } from './CosmicObject3D';
-import type { CosmicVariant } from './CosmicObject3D';
-import { HardCutFlash } from './HardCutFlash';
-import { Starfield } from './Starfield';
 
 const CFG = CHANNEL_CONFIGS.ch6;
 
@@ -30,33 +25,29 @@ function toStatic(p: string) {
 
 const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({ beat, durationFrames }) => {
   const { visual, resolvedAsset, bg_color, audioPath, shotBrief } = beat;
-  const kind        = visual.kind;
-  const bg          = bg_color || CFG.colors.bgPrimary;
+  const kind = visual.kind;
+  const bg = bg_color || CFG.colors.bgPrimary;
+  const frame = useCurrentFrame();
+
   const hasAsset = (() => {
     if (!resolvedAsset) return false;
     const a = resolvedAsset as unknown as Record<string, unknown>;
-    if ('path' in a) return a.path != null;
+    if ('path' in a) return (a.path as string | null) != null;
     if ('svgString' in a) return true;
     if ('map_image' in a) return true;
     return false;
   })();
-  const isCelestial  = kind === 'celestial';
-  const hasShotBrief = !!shotBrief;
 
   const isFullscreen =
-    hasAsset && !isCelestial && kind !== 'none' && kind !== 'stat' && kind !== 'anatomy';
+    hasAsset && kind !== 'none' && kind !== 'stat' && kind !== 'anatomy' && kind !== 'celestial';
 
-  const needsScrim = isFullscreen || isCelestial;
+  const hasShotBrief = !!shotBrief;
+  const floatY = Math.sin(frame * 0.035) * 8;
 
   return (
     <AbsoluteFill>
-      {/* 1. Background */}
       <AbsoluteFill style={{ background: bg }} />
 
-      {/* Stars always present (parallax layer beneath everything) */}
-      <Starfield />
-
-      {/* 2. Asset — full screen, only when no shotBrief */}
       {isFullscreen && !hasShotBrief && (
         <AssetLayer
           beat={beat}
@@ -65,27 +56,15 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         />
       )}
 
-      {/* Celestial 3-D sphere */}
-      {isCelestial && (
-        <CelestialBody
-          bodyName={beat.visual.value ?? 'Jupiter'}
-          durationInFrames={durationFrames}
-        />
+      {isFullscreen && !hasShotBrief && (
+        <div style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0, height: 720,
+          background: `linear-gradient(to top, ${CFG.colors.bgPrimary}f8 0%, ${CFG.colors.bgPrimary}88 50%, transparent 100%)`,
+          pointerEvents: 'none',
+        }} />
       )}
 
-      {/* 3. Gradient scrim */}
-      {needsScrim && !hasShotBrief && (
-        <div
-          style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0, height: 700,
-            background: 'linear-gradient(to top, rgba(5,0,16,0.97) 0%, rgba(5,0,16,0.4) 65%, transparent 100%)',
-            pointerEvents: 'none',
-          }}
-        />
-      )}
-
-      {/* 4. ShotBrief-driven layout — skip on celestial (planet owns the frame) */}
-      {hasShotBrief && !isCelestial && (
+      {hasShotBrief && (
         <ShotBriefLayer
           beat={beat}
           accentColor={CFG.colors.accent1}
@@ -95,22 +74,18 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         />
       )}
 
-      {/* 5. Channel fallback — cosmic 3-D objects for non-asset, non-celestial beats */}
-      {!isCelestial && !isFullscreen && !hasShotBrief && (() => {
-        const sk = beat.sectionKey ?? '';
-        const beatNum = sk.startsWith('beat_') ? parseInt(sk.replace('beat_', ''), 10) : 0;
-        const BEAT_VARIANTS: CosmicVariant[] = ['planet', 'nebula', 'satellite', 'blackhole', 'asteroid'];
-        const variant: CosmicVariant =
-          sk === 'hook' ? 'star' :
-          sk === 'context' ? 'wormhole' :
-          BEAT_VARIANTS[beatNum % BEAT_VARIANTS.length];
-        return <CosmicObject3D variant={variant} />;
-      })()}
+      {!isFullscreen && !hasShotBrief && (
+        <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{
+            width: 480, height: 480, borderRadius: '50%',
+            background: `radial-gradient(circle at 38% 33%, ${CFG.colors.accent2}33 0%, ${CFG.colors.accent1}22 45%, transparent 70%)`,
+            boxShadow: `0 0 80px ${CFG.colors.accent1}44`,
+            transform: `translateY(${floatY}px)`,
+          }} />
+        </AbsoluteFill>
+      )}
 
-      {/* 6. Beat audio */}
       {audioPath ? <Audio src={toStatic(audioPath)} volume={1} /> : null}
-
-      <HardCutFlash color={CFG.colors.accent1} peakOpacity={0.4} />
     </AbsoluteFill>
   );
 };
@@ -130,14 +105,11 @@ export const Ch6Composition: React.FC<{ manifest: VideoManifest }> = ({ manifest
   return (
     <AbsoluteFill style={{ background: CFG.colors.bgPrimary, fontFamily: CFG.bodyFont }}>
       <Soundtrack channelId="ch6" musicVolume={0.20} />
-
       <BeatCompositor
         timedBeats={timedBeats}
         renderBeat={(beat) => <BeatSection beat={beat} durationFrames={beat.audioFrames} />}
       />
-
       <SfxLayer soundDesign={soundDesign ?? []} />
-
       {wordBoundaries && (
         <CaptionTrack
           wordBoundariesByBeat={wordBoundaries}

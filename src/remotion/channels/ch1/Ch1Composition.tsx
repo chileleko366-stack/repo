@@ -1,24 +1,12 @@
 /**
- * Ch1Composition — Dopamine Loop channel (ch1).
- *
- * Renders all sections from the manifest inside speech-rhythm TransitionSeries.
- * Layout per beat:
- *   ─ Background fill (beat.bg_color || channel bgPrimary)
- *   ─ AssetLayer       (person/brand/place/map — full-screen, only when no shotBrief)
- *   ─ Gradient scrim   (bottom fade, asset beats only)
- *   ─ ShotBriefLayer   (when shotBrief is present)
- *   ─ SocialFigure3D   (non-asset non-shotbrief beats — procedural ThreeCanvas)
- *   ─ Beat audio       (<Audio> per beat voiceover)
- * Global:
- *   ─ Soundtrack       (music bed)
- *   ─ SfxLayer         (SFX events from manifest.soundDesign)
- *   ─ CaptionTrack     (word-level captioneer captions)
+ * Ch1Composition — Dopamine Loop channel.
+ * Anton accent / Space Grotesk body / #0d0d0d bg / #d400ff accent1.
  */
 
 import '@fontsource/anton';
 import '@fontsource/space-grotesk';
 import React from 'react';
-import { AbsoluteFill, Audio, staticFile } from 'remotion';
+import { AbsoluteFill, Audio, staticFile, useCurrentFrame } from 'remotion';
 import type { ManifestBeat, VideoManifest } from '../../../pipeline/types';
 import { CHANNEL_CONFIGS } from '../../../pipeline/channelConfigs';
 import { AssetLayer } from '../../assets/AssetLayer';
@@ -29,9 +17,6 @@ import { SfxLayer } from '../../sound/SfxLayer';
 import { Soundtrack } from '../../sound/Soundtrack';
 import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
 import type { TimedBeat } from '../../transitions/BeatCompositor';
-import { HardCutFlash } from './HardCutFlash';
-import { SocialFigure3D } from './SocialFigure3D';
-import type { SocialFigureVariant } from './SocialFigure3D';
 
 const CFG = CHANNEL_CONFIGS.ch1;
 
@@ -42,12 +27,13 @@ function toStatic(p: string) {
 const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({ beat, durationFrames }) => {
   const { visual, resolvedAsset, bg_color, audioPath, shotBrief } = beat;
   const kind = visual.kind;
-  const bg   = bg_color || CFG.colors.bgPrimary;
+  const bg = bg_color || CFG.colors.bgPrimary;
+  const frame = useCurrentFrame();
 
   const hasAsset = (() => {
     if (!resolvedAsset) return false;
     const a = resolvedAsset as unknown as Record<string, unknown>;
-    if ('path' in a) return a.path != null;
+    if ('path' in a) return (a.path as string | null) != null;
     if ('svgString' in a) return true;
     if ('map_image' in a) return true;
     return false;
@@ -57,13 +43,14 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
     hasAsset && kind !== 'none' && kind !== 'stat' && kind !== 'anatomy' && kind !== 'celestial';
 
   const hasShotBrief = !!shotBrief;
+  const floatY = Math.sin(frame * 0.035) * 8;
 
   return (
     <AbsoluteFill>
-      {/* 1. Background */}
+      {/* 1 — Background */}
       <AbsoluteFill style={{ background: bg }} />
 
-      {/* 2. Asset — full screen, only when no shotBrief */}
+      {/* 2 — Asset */}
       {isFullscreen && !hasShotBrief && (
         <AssetLayer
           beat={beat}
@@ -72,18 +59,16 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         />
       )}
 
-      {/* 3. Gradient scrim */}
+      {/* 3 — Gradient scrim */}
       {isFullscreen && !hasShotBrief && (
-        <div
-          style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0, height: 680,
-            background: `linear-gradient(to top, ${CFG.colors.bgPrimary}f5 0%, ${CFG.colors.bgPrimary}66 55%, transparent 100%)`,
-            pointerEvents: 'none',
-          }}
-        />
+        <div style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0, height: 720,
+          background: `linear-gradient(to top, ${CFG.colors.bgPrimary}f8 0%, ${CFG.colors.bgPrimary}88 50%, transparent 100%)`,
+          pointerEvents: 'none',
+        }} />
       )}
 
-      {/* 4. ShotBrief-driven mograph */}
+      {/* 4 — ShotBrief mograph */}
       {hasShotBrief && (
         <ShotBriefLayer
           beat={beat}
@@ -94,55 +79,44 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         />
       )}
 
-      {/* 5. Channel fallback — procedural ThreeCanvas social figure */}
-      {!isFullscreen && !hasShotBrief && (() => {
-        const sk = beat.sectionKey ?? '';
-        const beatNum = sk.startsWith('beat_') ? parseInt(sk.replace('beat_', ''), 10) : 0;
-        const BEAT_VARIANTS: SocialFigureVariant[] = ['figure', 'crowd', 'mirror'];
-        const variant: SocialFigureVariant =
-          sk === 'hook' ? 'figure' :
-          sk === 'context' ? 'crowd' :
-          sk === 'outro' ? 'shadow' :
-          BEAT_VARIANTS[beatNum % BEAT_VARIANTS.length];
-        return <SocialFigure3D variant={variant} />;
-      })()}
+      {/* 5 — CSS fallback */}
+      {!isFullscreen && !hasShotBrief && (
+        <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{
+            width: 480, height: 480, borderRadius: '50%',
+            background: `radial-gradient(circle at 38% 33%, ${CFG.colors.accent2}33 0%, ${CFG.colors.accent1}22 45%, transparent 70%)`,
+            boxShadow: `0 0 80px ${CFG.colors.accent1}44`,
+            transform: `translateY(${floatY}px)`,
+          }} />
+        </AbsoluteFill>
+      )}
 
-      {/* 6. Beat audio */}
+      {/* 6 — Beat audio */}
       {audioPath ? <Audio src={toStatic(audioPath)} volume={1} /> : null}
-
-      {/* Flash */}
-      <HardCutFlash color="#d400ff" peakOpacity={0.45} />
     </AbsoluteFill>
   );
 };
 
 export const Ch1Composition: React.FC<{ manifest: VideoManifest }> = ({ manifest }) => {
   const { beats, soundDesign, fps, script } = manifest;
-
   const wordBoundaries = useWordBoundaries(beats);
 
   const audioDurationsMs: Record<string, number> = {};
   const pauseAfterMap: Record<string, 'breath' | 'beat' | 'cut'> = {};
-  beats.forEach((b) => {
-    if (b.audio?.durationMs) audioDurationsMs[b.beatId] = b.audio.durationMs;
-  });
+  beats.forEach((b) => { if (b.audio?.durationMs) audioDurationsMs[b.beatId] = b.audio.durationMs; });
   (script?.beats ?? []).forEach((sb, i) => {
     pauseAfterMap[`beat_${i}`] = (sb as { pause_after?: 'breath' | 'beat' | 'cut' }).pause_after ?? 'cut';
   });
-
   const timedBeats: TimedBeat[] = buildTimedBeats(beats, fps ?? 30, audioDurationsMs, pauseAfterMap);
 
   return (
     <AbsoluteFill style={{ background: CFG.colors.bgPrimary, fontFamily: CFG.bodyFont }}>
       <Soundtrack channelId="ch1" musicVolume={0.15} />
-
       <BeatCompositor
         timedBeats={timedBeats}
         renderBeat={(beat) => <BeatSection beat={beat} durationFrames={beat.audioFrames} />}
       />
-
       <SfxLayer soundDesign={soundDesign ?? []} />
-
       {wordBoundaries && (
         <CaptionTrack
           wordBoundariesByBeat={wordBoundaries}
