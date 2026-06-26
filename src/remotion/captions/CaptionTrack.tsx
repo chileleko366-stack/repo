@@ -1,43 +1,18 @@
-/**
- * CaptionTrack — full-video caption overlay driven by word-boundary JSON.
- *
- * Usage:
- *   <CaptionTrack
- *     wordBoundariesByBeat={...}
- *     beats={timedBeats}
- *     channelId="ch1"
- *   />
- *
- * Rules (hardcoded, no exceptions):
- * - Captions ALWAYS shown (captionsVisible is always true from manifest_builder)
- * - Timing derived from cumulative audioFrames (actual TTS duration), not static startFrame
- * - One page per ~400ms of narration (word-by-word)
- * - Active word: spring scale 1.0→1.18, accent colour, accent font
- * - Page entrance: spring translateY +20→0, damping 14, stiffness 240
- *
- * Word boundaries JSON format (public/audio/{beatId}_words.json):
- *   [ { word, startMs, durationMs, endMs }, ... ]
- *
- * This component converts word-boundaries → Caption[] → TikTok pages → Sequences.
- */
-
 import React, { useMemo } from 'react';
-import {
-  AbsoluteFill,
-  Sequence,
-  spring,
-  useCurrentFrame,
-  useVideoConfig,
-} from 'remotion';
-import {
-  createTikTokStyleCaptions,
-  type Caption,
-} from '@remotion/captions';
+import { AbsoluteFill, useVideoConfig } from 'remotion';
+import { type Caption } from '@remotion/captions';
 import type { TimedBeat } from '../transitions/BeatCompositor';
-import { CaptionPage } from './CaptionPage';
-
-const DEFAULT_COMBINE_MS = 400;
-const CH3_COMBINE_MS = 300;
+import { captionsToData } from './captioneer/utils';
+import { CHANNEL_CAPTION_STYLE, CHANNEL_CAPTION_PROPS } from './captioneer/channelStyles';
+import { WordHighlight } from './captioneer/WordHighlight';
+import { Karaoke } from './captioneer/Karaoke';
+import { Glow } from './captioneer/Glow';
+import { Bounce } from './captioneer/Bounce';
+import { Typewriter } from './captioneer/Typewriter';
+import { Flicker } from './captioneer/Flicker';
+import { Highlighter } from './captioneer/Highlighter';
+import { Scale } from './captioneer/Scale';
+import { Wave } from './captioneer/Wave';
 
 export interface WordBoundary {
   word: string;
@@ -47,7 +22,6 @@ export interface WordBoundary {
 }
 
 export interface CaptionTrackProps {
-  /** beatId → word boundaries array */
   wordBoundariesByBeat: Record<string, WordBoundary[]>;
   beats: TimedBeat[];
   channelId: string;
@@ -61,14 +35,10 @@ export const CaptionTrack: React.FC<CaptionTrackProps> = ({
   beats,
   channelId,
   accentColor,
-  accentFont,
   bodyFont,
 }) => {
   const { fps } = useVideoConfig();
 
-  const combineWithinMs = channelId === 'ch3' ? CH3_COMBINE_MS : DEFAULT_COMBINE_MS;
-
-  // Build flat Caption[] using cumulative audioFrames for accurate timing
   const allCaptions = useMemo<Caption[]>(() => {
     const out: Caption[] = [];
     let cumulativeFrames = 0;
@@ -95,74 +65,47 @@ export const CaptionTrack: React.FC<CaptionTrackProps> = ({
     return out;
   }, [wordBoundariesByBeat, beats, fps]);
 
-  const { pages } = useMemo(
-    () =>
-      createTikTokStyleCaptions({
-        captions: allCaptions,
-        combineTokensWithinMilliseconds: combineWithinMs,
-      }),
-    [allCaptions, combineWithinMs],
+  const totalMs = (beats.reduce((s, b) => s + b.audioFrames, 0) / fps) * 1000;
+
+  const captionData = useMemo(
+    () => captionsToData(allCaptions, totalMs),
+    [allCaptions, totalMs],
   );
+
+  if (!captionData || captionData.segments.length === 0) return null;
+
+  const style = CHANNEL_CAPTION_STYLE[channelId] ?? 'WordHighlight';
+  const extraProps = CHANNEL_CAPTION_PROPS[channelId] ?? {};
+
+  const commonProps = {
+    captions: captionData,
+    fontFamily: bodyFont,
+    fontSize: 50,
+    position: 'bottom' as const,
+    maxWidth: 900,
+    wordsPerLine: 5,
+    useSmartWrap: true,
+    ...extraProps,
+  };
+
+  const component = (() => {
+    switch (style) {
+      case 'WordHighlight': return <WordHighlight {...commonProps} highlightColor={accentColor} />;
+      case 'Karaoke':      return <Karaoke {...commonProps} fillColor={accentColor} />;
+      case 'Glow':         return <Glow {...commonProps} glowColor={accentColor} />;
+      case 'Bounce':       return <Bounce {...commonProps} bounceColor={accentColor} />;
+      case 'Typewriter':   return <Typewriter {...commonProps} cursorColor={accentColor} />;
+      case 'Flicker':      return <Flicker {...commonProps} flickerColor={accentColor} />;
+      case 'Highlighter':  return <Highlighter {...commonProps} highlightColor={accentColor} />;
+      case 'Scale':        return <Scale {...commonProps} scaleColor={accentColor} />;
+      case 'Wave':         return <Wave {...commonProps} waveColor={accentColor} />;
+      default:             return <WordHighlight {...commonProps} highlightColor={accentColor} />;
+    }
+  })();
 
   return (
     <AbsoluteFill style={{ pointerEvents: 'none' }}>
-      {pages.map((page, index) => {
-        const nextPage = pages[index + 1] ?? null;
-        const startFrame = Math.round((page.startMs / 1000) * fps);
-        const endFrame = nextPage
-          ? Math.round((nextPage.startMs / 1000) * fps)
-          : startFrame + Math.round((combineWithinMs / 1000) * fps);
-
-        const durationInFrames = Math.max(1, endFrame - startFrame);
-
-        return (
-          <Sequence
-            key={index}
-            from={startFrame}
-            durationInFrames={durationInFrames}
-            layout="none"
-          >
-            <CaptionPageAnimated
-              page={page}
-              accentColor={accentColor}
-              accentFont={accentFont}
-              bodyFont={bodyFont}
-              channelId={channelId}
-            />
-          </Sequence>
-        );
-      })}
+      {component}
     </AbsoluteFill>
-  );
-};
-
-// ── Animated page wrapper (spring entrance) ───────────────────────────────────
-
-const CaptionPageAnimated: React.FC<{
-  page: ReturnType<typeof createTikTokStyleCaptions>['pages'][number];
-  accentColor: string;
-  accentFont: string;
-  bodyFont: string;
-  channelId: string;
-}> = ({ page, accentColor, accentFont, bodyFont, channelId }) => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-
-  const enterProgress = spring({
-    frame,
-    fps,
-    config: { damping: 14, stiffness: 240, mass: 0.8 },
-    durationInFrames: 6,
-  });
-
-  return (
-    <CaptionPage
-      page={page}
-      enterProgress={enterProgress}
-      accentColor={accentColor}
-      accentFont={accentFont}
-      bodyFont={bodyFont}
-      channelId={channelId}
-    />
   );
 };
