@@ -41,7 +41,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
-            chromium-browser ffmpeg libgbm-dev \
+            ffmpeg libgbm-dev \
             libatk1.0-0 libatk-bridge2.0-0 libcups2 \
             libxkbcommon0 libxdamage1 libpango-1.0-0 libcairo2
 
@@ -50,9 +50,7 @@ jobs:
           cat > .env << 'ENVEOF'
           GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}
           SAMBANOVA_API_KEY=${{ secrets.SAMBANOVA_API_KEY }}
-          XAI_API_KEY=${{ secrets.XAI_API_KEY }}
           GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
-          CEREBRAS_API_KEY=${{ secrets.CEREBRAS_API_KEY }}
           NVIDIA_API_KEY=${{ secrets.NVIDIA_API_KEY }}
           MISTRAL_API_KEY=${{ secrets.MISTRAL_API_KEY }}
           ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
@@ -77,6 +75,7 @@ jobs:
           ENVEOF
 
       - name: Generate content (Python pipeline)
+        continue-on-error: true
         run: |
           CH="${{ github.event.inputs.channel }}"
           if [ -z "$CH" ]; then
@@ -133,12 +132,26 @@ jobs:
             exit 1
           fi
 
+      - name: Cache 3D models
+        uses: actions/cache@v4
+        id: models-cache
+        with:
+          path: public/models
+          key: glb-models-${{ hashFiles('scripts/download_models.py') }}
+          restore-keys: |
+            glb-models-
+
+      - name: Download 3D models
+        if: steps.models-cache.outputs.cache-hit != 'true'
+        run: python scripts/download_models.py
+
       - name: Bundle Remotion
         run: npx remotion bundle
 
+      - name: Download Remotion browser
+        run: npx remotion browser ensure
+
       - name: Render videos
-        env:
-          REMOTION_CHROME_EXECUTABLE: /usr/bin/chromium-browser
         run: |
           CH="${{ github.event.inputs.channel }}"
           if [ -z "$CH" ]; then

@@ -5,20 +5,11 @@ export type { IconName } from './AnimatedIcon';
 export { Typewriter } from './Typewriter';
 export { BarChart } from './BarChart';
 export type { BarData } from './BarChart';
-export { PieChart } from './PieChart';
-export type { PieSlice } from './PieChart';
-export { ChatBubbles } from './ChatBubbles';
-export type { ChatMessage } from './ChatBubbles';
 export { WordCarousel } from './WordCarousel';
-export { StaggeredSequence } from './StaggeredSequence';
-export { SocialFrame, SOCIAL_SAFE_ZONE } from './SocialFrame';
-export { Scene3D, frameRotation, frameBob } from './Scene3D';
 export { GlassCard } from './GlassCard';
 export type { GlassCardProps } from './GlassCard';
 export { TypographicCard } from './TypographicCard';
 export { ProgressBar } from './ProgressBar';
-export { Histogram } from './Histogram';
-export type { HistogramBar } from './Histogram';
 // Text primitives
 export { TextKinetic } from './TextKinetic';
 export { TextScramble } from './TextScramble';
@@ -51,15 +42,9 @@ export { ShapeSpinningRings } from './ShapeSpinningRings';
 // Particle primitives
 export { ParticleShootingStars } from './ParticleShootingStars';
 export { ParticleSparks } from './ParticleSparks';
-// Cinematic primitives
-export { CinematicDocumentary } from './CinematicDocumentary';
-export { CinematicNoir } from './CinematicNoir';
-export { CinematicSciFi } from './CinematicSciFi';
 // Background primitives
 export { BackgroundAurora } from './BackgroundAurora';
 export { BackgroundGeometric } from './BackgroundGeometric';
 // Effect overlays
 export { EffectFilmGrain } from './EffectFilmGrain';
-export { EffectLightLeak } from './EffectLightLeak';
-export { EffectVHS } from './EffectVHS';
 export { EffectGlow } from './EffectGlow';

@@ -23,9 +23,7 @@ import requests
 _PROVIDERS = [
     {"name": "groq",     "url": "https://api.groq.com/openai/v1/chat/completions",                              "key_env": "GROQ_API_KEY",      "model": "llama-3.3-70b-versatile"},
     {"name": "sambanova","url": "https://api.sambanova.ai/v1/chat/completions",                                  "key_env": "SAMBANOVA_API_KEY",  "model": "Meta-Llama-3.3-70B-Instruct"},
-    {"name": "xai",      "url": "https://api.x.ai/v1/chat/completions",                                         "key_env": "XAI_API_KEY",        "model": "grok-3-mini"},
     {"name": "gemini",   "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",      "key_env": "GEMINI_API_KEY",     "model": "gemini-2.0-flash"},
-    {"name": "cerebras", "url": "https://api.cerebras.ai/v1/chat/completions",                                   "key_env": "CEREBRAS_API_KEY",   "model": "llama3.1-8b"},
     {"name": "nvidia",   "url": "https://integrate.api.nvidia.com/v1/chat/completions",                          "key_env": "NVIDIA_API_KEY",     "model": "meta/llama-3.3-70b-instruct"},
     {"name": "mistral",  "url": "https://api.mistral.ai/v1/chat/completions",                                    "key_env": "MISTRAL_API_KEY",    "model": "mistral-small-latest"},
 ]
@@ -137,14 +135,13 @@ SHAPE / PARTICLE PRIMITIVES (for visual energy):
   "ParticleSparks"        — energy sparks burst from center. Use for high-energy reveals, breakthroughs.
   "AnimatedIcon"          — Lottie icon. visual.value must be one of: chart-up|chart-down|brain-idea|lock-security|globe-world|alert-warning|checkmark-success|clock-time.
 
-CINEMATIC PRIMITIVES (for documentary/narrative style):
-  "CinematicDocumentary"  — letterbox bars + Ken Burns + lower-third text overlay. Primary is the title text.
-  "CinematicNoir"         — high contrast scanlines + vignette overlay. For dark, serious, historical beats.
-  "CinematicSciFi"        — HUD grid + scan line + corner brackets. For technology, future, space beats.
-
 BACKGROUND / ATMOSPHERIC (use when beat needs an ambient visual layer):
   "BackgroundAurora"      — animated aurora color waves with blur. For space, science, wonder beats.
   "BackgroundGeometric"   — floating geometric shapes (circles, squares, triangles). For abstract concept beats.
+
+EFFECT OVERLAYS (layer over other content for mood):
+  "EffectFilmGrain"       — film grain texture overlay. ch5 history channel only — adds aged documentary feel.
+  "EffectGlow"            — radial ambient glow bloom behind an element. Use on icon or stat reveals.
 
 CHANNEL-SPECIFIC (channel-gated — only use on the specified channelId):
   "CelestialBody"      — ch6 ONLY. Rotating 3D sphere (planet/moon). Always use for celestial beats on ch6.

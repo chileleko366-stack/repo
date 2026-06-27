@@ -63,14 +63,9 @@ import {
   ShapeSpinningRings,
   ParticleShootingStars,
   ParticleSparks,
-  CinematicDocumentary,
-  CinematicNoir,
-  CinematicSciFi,
   BackgroundAurora,
   BackgroundGeometric,
   EffectFilmGrain,
-  EffectLightLeak,
-  EffectVHS,
   EffectGlow,
 } from './primitives';
 import type { IconName } from './primitives/AnimatedIcon';
@@ -579,24 +574,6 @@ function PrimitiveDispatch({
     case 'ParticleSparks':
       return <ParticleSparks accentColor={accentColor} backgroundColor={bgColor} />;
 
-    // ── Cinematic primitives ─────────────────────────────────────────────────
-
-    case 'CinematicDocumentary':
-      return (
-        <CinematicDocumentary
-          title={primaryText}
-          subtitle={sanitizeLabel(labelTypo?.text) ?? beat.visual.value}
-          accentColor={accentColor}
-          backgroundColor={bgColor}
-        />
-      );
-
-    case 'CinematicNoir':
-      return <CinematicNoir accentColor={accentColor} backgroundColor={bgColor} />;
-
-    case 'CinematicSciFi':
-      return <CinematicSciFi accentColor={accentColor} backgroundColor={bgColor} />;
-
     // ── Background primitives ────────────────────────────────────────────────
 
     case 'BackgroundAurora':
@@ -609,12 +586,6 @@ function PrimitiveDispatch({
 
     case 'EffectFilmGrain':
       return <EffectFilmGrain opacity={0.06} />;
-
-    case 'EffectLightLeak':
-      return <EffectLightLeak warmColor={accentColor} />;
-
-    case 'EffectVHS':
-      return <EffectVHS />;
 
     case 'EffectGlow':
       return <EffectGlow accentColor={accentColor} />;

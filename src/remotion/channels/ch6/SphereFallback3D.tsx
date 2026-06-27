@@ -8,6 +8,7 @@
 import React from 'react';
 import { useGLTF } from '@react-three/drei';
 import { ThreeCanvas } from '@remotion/three';
+import { ModelErrorBoundary } from '../../assets/ModelErrorBoundary';
 import { useCurrentFrame, useVideoConfig } from 'remotion';
 import { modelPath } from '../../assets/ModelLibrary';
 
@@ -32,20 +33,22 @@ const SphereModel: React.FC = () => {
 };
 
 export const SphereFallback3D: React.FC = () => (
-  <ThreeCanvas
-    width={1080}
-    height={1920}
-    style={{ position: 'absolute', inset: 0 }}
-    gl={{
-      failIfMajorPerformanceCaveat: false,
-      preserveDrawingBuffer: true,
-      powerPreference: 'low-power' as WebGLPowerPreference,
-      antialias: true,
-    }}
-    camera={{ position: [0, 0, 5], fov: 50 }}
-  >
-    <SphereModel />
-  </ThreeCanvas>
+  <ModelErrorBoundary accentColor="#818cf8">
+    <ThreeCanvas
+      width={1080}
+      height={1920}
+      style={{ position: 'absolute', inset: 0 }}
+      gl={{
+        failIfMajorPerformanceCaveat: false,
+        preserveDrawingBuffer: true,
+        powerPreference: 'low-power' as WebGLPowerPreference,
+        antialias: true,
+      }}
+      camera={{ position: [0, 0, 5], fov: 50 }}
+    >
+      <SphereModel />
+    </ThreeCanvas>
+  </ModelErrorBoundary>
 );
 
 useGLTF.preload(modelPath('sphereClean'));
