@@ -1,0 +1,84 @@
+name: Dopamine Studios — Twice-Daily Pipeline
+
+on:
+  schedule:
+    - cron: '0 4 * * *'    # 06:00 SAST
+    - cron: '0 16 * * *'   # 18:00 SAST
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: 'Channel ID (blank = all)'
+        required: false
+        default: ''
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - run: npm install
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - run: pip install -r requirements.txt
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            ffmpeg libgbm-dev libatk1.0-0 libatk-bridge2.0-0 \
+            libcups2 libxkbcommon0 libxdamage1 libpango-1.0-0 libcairo2
+
+      - name: Write .env
+        run: echo "${{ secrets.ENV_FILE }}" > .env
+
+      - name: Run pipeline
+        run: |
+          if [ -z "${{ github.event.inputs.channel }}" ]; then
+            python src/scripts/pipeline.py --all
+          else
+            python src/scripts/pipeline.py --channel "${{ github.event.inputs.channel }}"
+          fi
+        continue-on-error: true
+
+      - name: Download Remotion browser
+        run: npx remotion browser ensure
+
+      - name: Cache GLB models
+        id: models-cache
+        uses: actions/cache@v4
+        with:
+          path: public/models
+          key: glb-models-${{ hashFiles('scripts/download_models.py') }}
+          restore-keys: glb-models-
+
+      - name: Download 3D models
+        if: steps.models-cache.outputs.cache-hit != 'true'
+        run: python scripts/download_models.py
+
+      - name: Bundle
+        run: npx remotion bundle
+
+      - name: Render
+        run: python src/scripts/render_all.py --all
+
+      - name: Upload
+        run: python src/scripts/upload_all.py --all
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: renders-${{ github.run_number }}
+          path: out/
+          retention-days: 3
