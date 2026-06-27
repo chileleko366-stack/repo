@@ -1,7 +1,0 @@
-# GLB model files are downloaded by scripts/download_models.py
-# Do NOT commit these — they are large binary files
-*.glb
-
-# Keep the gitkeep and readme
-!.gitkeep
-!README.md
