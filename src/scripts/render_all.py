@@ -15,6 +15,7 @@ renders its own composition (Ch1…Ch6), registered in src/Root.tsx.
 import argparse
 import glob
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -75,22 +76,43 @@ def render_channel(channel_id: str) -> None:
     with open(props_path, "w") as f:
         json.dump({"manifest": manifest_data}, f)
 
+    # Ensure Chromium path is forwarded to the subprocess.
+    chrome_exe = os.environ.get("REMOTION_CHROME_EXECUTABLE", "chromium-browser")
+    env = {**os.environ, "REMOTION_CHROME_EXECUTABLE": chrome_exe}
+
+    # Remotion 4.x CLI: composition-id and output are positional args.
+    # parsedCli._ contains only positional args — --composition= flags are
+    # stripped before reaching getCompName() and are silently ignored.
     cmd = [
         "npx", "remotion", "render",
-        comp_id,
-        str(output_path),
+        comp_id,              # positional: composition ID
+        str(output_path),     # positional: output file
         f"--props={props_path}",
-        "--gl=swangle",
+        # --no-sandbox: required for headless CI (no user namespace isolation)
+        # --enable-unsafe-swiftshader: required for WebGL software rendering on GPU-less CI runners.
+        #   Chrome deprecated automatic SwiftShader fallback — must opt in explicitly.
+        #   This is safe for our use case (trusted content rendered in CI).
+        # --disable-dev-shm-usage: prevents /dev/shm OOM crashes on CI runners with small tmpfs
+        # --disable-gpu-sandbox: required alongside swiftshader on some Linux runner configurations
+        "--chromium-flags=--no-sandbox --enable-unsafe-swiftshader --disable-dev-shm-usage --disable-gpu-sandbox",
         "--log=verbose",
+        # Increase timeout from Remotion's default 30s to 90s per frame.
+        # SwiftShader software rendering initialises slower than hardware — first ThreeCanvas
+        # frame can take 15-25s on a cold CI runner. 90s gives safe headroom.
         "--timeout=90000",
-        "--concurrency=2",
     ]
 
     print(f"[render] {channel_id}: npx remotion render "
           f"{comp_id} → {output_path}")
     sys.stdout.flush()
 
-    result = subprocess.run(cmd)
+    # Let stderr flow directly to the terminal so Remotion errors appear live
+    # in CI output right after the channel header line, not buried under
+    # subsequent channels' audio-mixing progress.
+    result = subprocess.run(
+        cmd,
+        env=env,
+    )
 
     if result.returncode != 0:
         raise RuntimeError(

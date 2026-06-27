@@ -75,10 +75,22 @@ PROVIDERS = [
         "model": "Meta-Llama-3.3-70B-Instruct",
     },
     {
+        "name": "xai",
+        "url": "https://api.x.ai/v1/chat/completions",
+        "key_env": "XAI_API_KEY",
+        "model": "grok-3-mini",
+    },
+    {
         "name": "gemini",
         "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
         "key_env": "GEMINI_API_KEY",
         "model": "gemini-2.0-flash",
+    },
+    {
+        "name": "cerebras",
+        "url": "https://api.cerebras.ai/v1/chat/completions",
+        "key_env": "CEREBRAS_API_KEY",
+        "model": "llama3.1-8b",
     },
     {
         "name": "nvidia",
@@ -464,15 +476,8 @@ def validate_script(script: dict, brief: ResearchBrief) -> list[str]:
                 "hook is too generic — needs a specific number, proper noun, question, or contrast. "
                 "Example: 'Your brain lies to you 47 times a day.' not 'Your brain does something surprising.'"
             )
-    context_text = script.get("context", "")
-    if not context_text:
+    if not script.get("context"):
         errors.append("missing context")
-    else:
-        context_words = len(str(context_text).split())
-        if context_words < 4:
-            errors.append(f"context too short ({context_words} words, min 4)")
-        if context_words > 14:
-            errors.append(f"context too long ({context_words} words, max 14) — context is a 3-second beat")
     beats = script.get("beats", [])
     if len(beats) != 5:
         errors.append(f"need exactly 5 beats, got {len(beats)}")
@@ -606,7 +611,7 @@ class ValidationError(Exception):
 
 # ── Main entry point ──────────────────────────────────────────────────────────
 
-def generate_script(topic: str, channel_id: str, brief: ResearchBrief, max_retries: int = 8) -> dict:
+def generate_script(topic: str, channel_id: str, brief: ResearchBrief, max_retries: int = 5) -> dict:
     system = build_system_prompt(channel_id, topic, brief)
     base_user = build_user_prompt(topic, brief)
     user = base_user

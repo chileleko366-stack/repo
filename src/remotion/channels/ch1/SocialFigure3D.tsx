@@ -10,7 +10,6 @@
 import React, { useRef, useEffect } from 'react';
 import { useGLTF, useAnimations } from '@react-three/drei';
 import { ThreeCanvas } from '@remotion/three';
-import { ModelErrorBoundary } from '../../assets/ModelErrorBoundary';
 import { useCurrentFrame, useVideoConfig } from 'remotion';
 import { modelPath } from '../../assets/ModelLibrary';
 import type { Group } from 'three';
@@ -109,22 +108,20 @@ export const SocialFigure3D: React.FC<{ variant?: SocialFigureVariant }> = ({
 }) => {
   const cfg = CONFIGS[variant];
   return (
-    <ModelErrorBoundary accentColor="#d400ff">
-      <ThreeCanvas
-        width={1080}
-        height={1920}
-        style={{ position: 'absolute', inset: 0 }}
-        gl={{
-          failIfMajorPerformanceCaveat: false,
-          preserveDrawingBuffer: true,
-          powerPreference: 'low-power' as WebGLPowerPreference,
-          antialias: true,
-        }}
-        camera={{ position: cfg.camera.position, fov: cfg.camera.fov }}
-      >
-        <FigureModel variant={variant} />
-      </ThreeCanvas>
-    </ModelErrorBoundary>
+    <ThreeCanvas
+      width={1080}
+      height={1920}
+      style={{ position: 'absolute', inset: 0 }}
+      gl={{
+        failIfMajorPerformanceCaveat: false,
+        preserveDrawingBuffer: true,
+        powerPreference: 'low-power' as WebGLPowerPreference,
+        antialias: true,
+      }}
+      camera={{ position: cfg.camera.position, fov: cfg.camera.fov }}
+    >
+      <FigureModel variant={variant} />
+    </ThreeCanvas>
   );
 };
 

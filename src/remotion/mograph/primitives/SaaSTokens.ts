@@ -39,5 +39,3 @@ export const SAAS_BASE = {
     minHeadline: 48,
   },
 } as const;
-
-export const CARD_RADIUS = 24;

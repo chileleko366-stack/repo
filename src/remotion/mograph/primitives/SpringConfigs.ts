@@ -28,9 +28,3 @@ export const SPRINGS = {
   base:   { stiffness: 400, damping: 36 },
   gentle: { stiffness: 300, damping: 28 },
 } as const;
-
-// Named aliases used by lesson-derived primitives
-export const SPRING_SNAPPY = SPRING_CONFIGS.snappy;
-export const SPRING_GENTLE = SPRING_CONFIGS.smooth;
-export const SPRING_BOUNCE = SPRING_CONFIGS.bouncy;
-export const SPRING_WORD   = SPRING_CONFIGS.text;

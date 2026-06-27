@@ -8,14 +8,10 @@ import { TransitionSeries, linearTiming, springTiming } from '@remotion/transiti
 import { fade } from '@remotion/transitions/fade';
 import { slide } from '@remotion/transitions/slide';
 import { wipe } from '@remotion/transitions/wipe';
-import { iris } from '@remotion/transitions/iris';
-import { crossZoom } from '@remotion/transitions/cross-zoom';
-import { dreamyZoom } from '@remotion/transitions/dreamy-zoom';
-import { linearBlur } from '@remotion/transitions/linear-blur';
 import type { ManifestBeat } from '../../../src/pipeline/types';
 
 export type PauseAfter = 'breath' | 'beat' | 'cut';
-export type TransitionKind = 'cut' | 'crossfade' | 'wipe' | 'slide' | 'iris' | 'crossZoom' | 'dreamyZoom' | 'linearBlur';
+export type TransitionKind = 'cut' | 'crossfade' | 'wipe' | 'slide';
 
 export interface TimedBeat extends ManifestBeat {
   /** Actual TTS audio duration in frames */
@@ -33,23 +29,16 @@ export interface TimedBeat extends ManifestBeat {
 const CROSSFADE_FRAMES = 8;   // breath — 6-10 frame soft blend
 const WIPE_FRAMES = 12;       // beat — 10-14 frame directional wipe
 const SLIDE_FRAMES = 16;      // cut — real scene break
-const IRIS_FRAMES = 20;       // hook — iris open/close
-const CROSS_ZOOM_FRAMES = 18; // beat — cross zoom punch
-const DREAMY_ZOOM_FRAMES = 24; // outro — dreamy blur zoom
-const LINEAR_BLUR_FRAMES = 10; // breath — motion blur blend
 
 /** Maps pause type + visual-change status → transition kind */
 export function mapPauseToTransition(
   pause: PauseAfter,
   visualChanging: boolean,
   beatIndex: number,
-  sectionKey?: string,
 ): TransitionKind {
   if (!visualChanging) return 'cut';
-  if (sectionKey === 'hook') return 'iris';
-  if (sectionKey === 'outro') return 'dreamyZoom';
-  if (pause === 'breath') return 'linearBlur';
-  if (pause === 'beat') return 'crossZoom';
+  if (pause === 'breath') return 'crossfade';
+  if (pause === 'beat') return 'wipe';
   // 'cut': alternate between slide directions for variety
   return beatIndex % 3 === 0 ? 'slide' : 'wipe';
 }
@@ -58,20 +47,12 @@ function transitionFrameCount(kind: TransitionKind): number {
   if (kind === 'crossfade') return CROSSFADE_FRAMES;
   if (kind === 'wipe') return WIPE_FRAMES;
   if (kind === 'slide') return SLIDE_FRAMES;
-  if (kind === 'iris') return IRIS_FRAMES;
-  if (kind === 'crossZoom') return CROSS_ZOOM_FRAMES;
-  if (kind === 'dreamyZoom') return DREAMY_ZOOM_FRAMES;
-  if (kind === 'linearBlur') return LINEAR_BLUR_FRAMES;
   return 0;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getTransitionPresentation(kind: TransitionKind, beatIndex: number): any {
   if (kind === 'crossfade') return fade();
-  if (kind === 'iris') return iris({ width: 1080, height: 1920 });
-  if (kind === 'crossZoom') return crossZoom({ strength: 0.5 });
-  if (kind === 'dreamyZoom') return dreamyZoom({});
-  if (kind === 'linearBlur') return linearBlur({ intensity: 12 });
   if (kind === 'wipe') {
     const dirs = ['from-left', 'from-right', 'from-top', 'from-bottom'] as const;
     return wipe({ direction: dirs[beatIndex % dirs.length] });
@@ -84,7 +65,7 @@ function getTransitionPresentation(kind: TransitionKind, beatIndex: number): any
 
 function getTransitionTiming(kind: TransitionKind) {
   const frames = transitionFrameCount(kind);
-  if (kind === 'crossfade' || kind === 'linearBlur') {
+  if (kind === 'crossfade') {
     return springTiming({ config: { damping: 200 }, durationInFrames: frames });
   }
   return linearTiming({ durationInFrames: frames });
@@ -152,7 +133,7 @@ export function buildTimedBeats(
     const prevKind = i > 0 ? beats[i - 1]?.visual.kind : undefined;
     const visualChanging = beat.visual.kind !== prevKind;
 
-    const transitionOut = mapPauseToTransition(pauseAfter, visualChanging, i, beat.sectionKey);
+    const transitionOut = mapPauseToTransition(pauseAfter, visualChanging, i);
 
     return {
       ...beat,
