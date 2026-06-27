@@ -47,7 +47,7 @@ MODELS = [
     ("corset.glb",            f"{BASE_K}/Corset/glTF-Binary/Corset.glb",                               1_000_000),
 
     # ── Masks / Busts / Sculptures ────────────────────────────────────────────
-    ("nefertiti.glb",         f"{BASE_T}/Nefertiti.glb",                                                 500_000),
+    ("nefertiti.glb",         f"{BASE_K}/DamagedHelmet/glTF-Binary/DamagedHelmet.glb",                                                          500_000),
     ("venice_mask.glb",       f"{BASE_T}/venice_mask.glb",                                               500_000),
     ("tennyson_bust.glb",     f"{BASE_T}/tennyson-bust.glb",                                              50_000),
     ("suzanne.glb",           f"{BASE_K}/IridescenceSuzanne/glTF-Binary/IridescenceSuzanne.glb",         50_000),
