@@ -1,45 +1,53 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, useCurrentFrame } from 'remotion';
 
-interface Props {
-  text?: string;
-  accentColor?: string;
+export const TextWave: React.FC<{
+  text: string;
   color?: string;
+  accentColor?: string;
   fontSize?: number;
-  amplitude?: number;
-}
-
-export const TextWave: React.FC<Props> = ({
-  text = 'WAVE',
-  accentColor = '#0097a7',
+  fontFamily?: string;
+  backgroundColor?: string;
+}> = ({
+  text,
   color = '#ffffff',
-  fontSize = 96,
-  amplitude = 20,
+  accentColor = '#d400ff',
+  fontSize = 80,
+  fontFamily = "'Anton', sans-serif",
+  backgroundColor = '#000000',
 }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const t = frame / fps;
+  const chars = text.split('');
+  const accentEvery = Math.max(1, Math.floor(chars.length / 3));
 
   return (
-    <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ display: 'flex' }}>
-        {text.split('').map((char, i) => {
-          const y = amplitude * Math.sin(t * 3 + i * 0.5);
-          const isVowel = 'AEIOU'.includes(char.toUpperCase());
+    <AbsoluteFill
+      style={{
+        backgroundColor,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center' }}>
+        {chars.map((char, i) => {
+          const wave = Math.sin(frame * 0.1 + i * 0.4) * 20;
+          const opacity = Math.max(0, Math.min(1, (frame - i * 1.5) / 15));
+          const isAccent = i % accentEvery === 0 && char !== ' ';
           return (
             <span
               key={i}
               style={{
+                fontFamily,
                 fontSize,
-                fontFamily: 'Anton, sans-serif',
-                fontWeight: 900,
-                color: isVowel ? accentColor : color,
-                transform: `translateY(${y}px)`,
+                fontWeight: 700,
+                color: isAccent ? accentColor : color,
+                transform: `translateY(${wave}px)`,
+                opacity,
                 display: 'inline-block',
-                textTransform: 'uppercase',
               }}
             >
-              {char}
+              {char === ' ' ? ' ' : char}
             </span>
           );
         })}

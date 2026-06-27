@@ -1,48 +1,53 @@
+/**
+ * Ferrari3D — animated sports car for ch2 FinanceFiction hook beats.
+ * Uses ferrari.glb (three.js example) via ModelLibrary registry.
+ * Download: python scripts/download_models.py
+ */
+
 import React from 'react';
+import { useGLTF } from '@react-three/drei';
 import { ThreeCanvas } from '@remotion/three';
 import { useCurrentFrame, useVideoConfig } from 'remotion';
-import { ModelErrorBoundary } from '../../assets/ModelErrorBoundary';
+import { modelPath } from '../../assets/ModelLibrary';
 
-interface Props {
-  accentColor?: string;
-}
-
-const CarMesh: React.FC<{ accentColor: string }> = ({ accentColor }) => (
-  <group>
-    <mesh position={[0, 0.3, 0]}>
-      <boxGeometry args={[3.2, 0.6, 1.4]} />
-      <meshStandardMaterial color={accentColor} metalness={0.8} roughness={0.2} />
-    </mesh>
-    <mesh position={[0, 0.7, 0]}>
-      <boxGeometry args={[1.8, 0.5, 1.3]} />
-      <meshStandardMaterial color={accentColor} metalness={0.8} roughness={0.2} />
-    </mesh>
-    {[-1.1, 1.1].map((x, i) =>
-      [-0.55, 0.55].map((z, j) => (
-        <mesh key={`${i}-${j}`} position={[x, 0.0, z]}>
-          <cylinderGeometry args={[0.3, 0.3, 0.2, 16]} />
-          <meshStandardMaterial color="#222222" />
-        </mesh>
-      ))
-    )}
-  </group>
-);
-
-export const Ferrari3D: React.FC<Props> = ({ accentColor = '#00ff88' }) => {
+const FerrariModel: React.FC<{ durationFrames: number }> = ({ durationFrames: _d }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const rotation = (frame / fps) * 0.5;
+  const t = frame / fps;
+
+  const { scene } = useGLTF(modelPath('ferrari'));
+
+  const rotY = t * 0.35;
 
   return (
-    <ModelErrorBoundary accentColor={accentColor}>
-      <ThreeCanvas width={1080} height={1920}>
-        <ambientLight intensity={0.4} />
-        <pointLight position={[5, 8, 5]} intensity={1.5} color="#ffffff" />
-        <pointLight position={[-5, 2, -3]} intensity={0.8} color={accentColor} />
-        <group rotation={[0.2, rotation, 0]} position={[0, 0, 0]}>
-          <CarMesh accentColor={accentColor} />
-        </group>
-      </ThreeCanvas>
-    </ModelErrorBoundary>
+    <>
+      <ambientLight intensity={0.4} />
+      <directionalLight position={[4, 8, 4]} intensity={3.0} color="#ffffff" />
+      <pointLight position={[-4, 2, 3]} intensity={1.5} color="#00ff88" />
+      <pointLight position={[3, -1, 3]} intensity={1.0} color="#00f0ff" />
+      <spotLight position={[0, 8, 2]} angle={0.5} penumbra={0.4} intensity={2.0} color="#ffffff" />
+      <group rotation={[0.08, rotY, 0]} scale={[1.4, 1.4, 1.4]} position={[0, -0.6, 0]}>
+        <primitive object={scene} />
+      </group>
+    </>
   );
 };
+
+export const Ferrari3D: React.FC<{ durationFrames?: number }> = ({ durationFrames = 240 }) => (
+  <ThreeCanvas
+    width={1080}
+    height={1920}
+    style={{ position: 'absolute', inset: 0 }}
+    gl={{
+      failIfMajorPerformanceCaveat: false,
+      preserveDrawingBuffer: true,
+      powerPreference: 'low-power' as WebGLPowerPreference,
+      antialias: true,
+    }}
+    camera={{ position: [0, 1.2, 4.5], fov: 50 }}
+  >
+    <FerrariModel durationFrames={durationFrames} />
+  </ThreeCanvas>
+);
+
+useGLTF.preload(modelPath('ferrari'));

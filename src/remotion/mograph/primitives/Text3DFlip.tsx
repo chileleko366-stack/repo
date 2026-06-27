@@ -1,38 +1,50 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame, spring, useVideoConfig, interpolate } from 'remotion';
-import { SPRING_BOUNCE } from './SpringConfigs';
+import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 
-interface Props {
-  text?: string;
-  accentColor?: string;
+export const Text3DFlip: React.FC<{
+  text: string;
   color?: string;
+  accentColor?: string;
   fontSize?: number;
-}
-
-export const Text3DFlip: React.FC<Props> = ({
-  text = 'FLIP',
-  accentColor = '#d400ff',
+  fontFamily?: string;
+  backgroundColor?: string;
+}> = ({
+  text,
   color = '#ffffff',
-  fontSize = 96,
+  accentColor = '#d400ff',
+  fontSize = 100,
+  fontFamily = "'Anton', sans-serif",
+  backgroundColor = '#000000',
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const progress = spring({ frame, fps, config: SPRING_BOUNCE });
+  const progress = spring({ frame, fps, config: { damping: 28, stiffness: 260 }, durationInFrames: 40 });
   const rotateX = interpolate(progress, [0, 1], [-90, 0]);
+  const opacity = interpolate(progress, [0, 0.5, 1], [0, 1, 1]);
 
   return (
-    <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', perspective: 1200 }}>
+    <AbsoluteFill
+      style={{
+        backgroundColor,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        perspective: 1200,
+        opacity,
+      }}
+    >
       <div
         style={{
+          fontFamily,
           fontSize,
-          fontFamily: 'Anton, sans-serif',
-          fontWeight: 900,
+          fontWeight: 700,
           color,
+          textAlign: 'center',
+          letterSpacing: '-0.02em',
           textTransform: 'uppercase',
           transform: `rotateX(${rotateX}deg)`,
-          transformOrigin: 'center bottom',
-          textShadow: `0 8px 32px ${accentColor}66`,
-          letterSpacing: '0.04em',
+          textShadow: `0 4px 24px ${accentColor}66`,
+          padding: '0 60px',
         }}
       >
         {text}

@@ -1,50 +1,59 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame, spring, useVideoConfig, interpolate } from 'remotion';
-import { SPRING_BOUNCE } from './SpringConfigs';
+import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 
-interface Props {
-  value?: string;
+export const LayoutGiantNumber: React.FC<{
+  number: string | number;
   label?: string;
-  sublabel?: string;
   accentColor?: string;
-  color?: string;
-}
-
-export const LayoutGiantNumber: React.FC<Props> = ({
-  value = '4.6B',
-  label = 'YEARS',
-  sublabel = 'age of the solar system',
-  accentColor = '#ff4500',
-  color = '#ffffff',
+  backgroundColor?: string;
+  fontFamily?: string;
+}> = ({
+  number,
+  label = '',
+  accentColor = '#d400ff',
+  backgroundColor = '#000000',
+  fontFamily = "'Anton', sans-serif",
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const progress = spring({ frame, fps, config: SPRING_BOUNCE });
-  const scale = interpolate(progress, [0, 1], [0.3, 1]);
-  const opacity = interpolate(progress, [0, 0.5, 1], [0, 0, 1]);
+  const progress = spring({ frame, fps, config: { damping: 24, stiffness: 260 }, durationInFrames: 40 });
+  const scale = interpolate(progress, [0, 1], [0.7, 1]);
+  const opacity = interpolate(progress, [0, 0.4, 1], [0, 1, 1]);
+
+  const numStr = typeof number === 'number'
+    ? new Intl.NumberFormat('en-US').format(number)
+    : String(number);
+
+  const fontSize = numStr.length <= 4 ? 320 : numStr.length <= 7 ? 220 : numStr.length <= 10 ? 160 : 120;
 
   return (
-    <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', flexDirection: 'column', padding: 60, gap: 16 }}>
-      <div
-        style={{
-          fontSize: 200,
-          fontFamily: 'Anton, sans-serif',
-          fontWeight: 900,
-          color: accentColor,
-          transform: `scale(${scale})`,
-          textShadow: `0 0 80px ${accentColor}66`,
-          lineHeight: 0.9,
-          letterSpacing: '-0.02em',
-        }}
-      >
-        {value}
+    <AbsoluteFill style={{ backgroundColor, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity }}>
+      <div style={{
+        fontFamily,
+        fontSize,
+        fontWeight: 700,
+        color: accentColor,
+        lineHeight: 0.9,
+        letterSpacing: '-0.06em',
+        textShadow: `0 0 80px ${accentColor}66`,
+        transform: `scale(${scale})`,
+        textAlign: 'center',
+        padding: '0 40px',
+      }}>
+        {numStr}
       </div>
-      <div style={{ fontSize: 48, fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '0.12em', opacity }}>
-        {label}
-      </div>
-      {sublabel && (
-        <div style={{ fontSize: 28, fontFamily: 'Space Grotesk, sans-serif', color: 'rgba(255,255,255,0.5)', opacity }}>
-          {sublabel}
+      {label && (
+        <div style={{
+          fontFamily: "'Space Grotesk', sans-serif",
+          fontSize: 52,
+          fontWeight: 600,
+          color: 'rgba(255,255,255,0.75)',
+          marginTop: 24,
+          textTransform: 'uppercase',
+          letterSpacing: '0.1em',
+          opacity: interpolate(progress, [0, 0.6, 1], [0, 0, 1]),
+        }}>
+          {label}
         </div>
       )}
     </AbsoluteFill>

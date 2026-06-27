@@ -1,52 +1,53 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate } from 'remotion';
+import { AbsoluteFill, useCurrentFrame } from 'remotion';
 
-interface Props {
+const RINGS = [
+  { r: 300, speed: 0.8, width: 3, op: 1.0 },
+  { r: 240, speed: -1.2, width: 4, op: 0.7 },
+  { r: 180, speed: 1.6, width: 5, op: 0.5 },
+  { r: 120, speed: -2.0, width: 6, op: 0.8 },
+  { r: 60, speed: 2.5, width: 8, op: 1.0 },
+];
+
+export const ShapeSpinningRings: React.FC<{
   accentColor?: string;
-  count?: number;
-  baseRadius?: number;
   backgroundColor?: string;
-}
-
-export const ShapeSpinningRings: React.FC<Props> = ({
+}> = ({
   accentColor = '#d400ff',
-  count = 4,
-  baseRadius = 120,
   backgroundColor = 'transparent',
 }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const t = frame / fps;
-  const cx = 540;
-  const cy = 960;
+  const opacity = Math.min(frame / 30, 0.9);
 
   return (
-    <AbsoluteFill style={{ backgroundColor }}>
-      <svg width="1080" height="1920" viewBox="0 0 1080 1920" style={{ position: 'absolute', inset: 0 }}>
-        {Array.from({ length: count }).map((_, i) => {
-          const r = baseRadius + i * 80;
-          const circumference = 2 * Math.PI * r;
-          const dashOffset = circumference - (circumference * (0.4 + i * 0.12));
-          const rotation = t * (30 + i * 15) * (i % 2 === 0 ? 1 : -1);
-          const opacity = 0.6 - i * 0.1;
-
+    <AbsoluteFill
+      style={{
+        backgroundColor: backgroundColor === 'transparent' ? undefined : backgroundColor,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        opacity,
+      }}
+    >
+      <svg width={700} height={700} viewBox="0 0 700 700">
+        {RINGS.map((ring, i) => {
+          const angle = (frame * ring.speed) % 360;
+          const dashLen = ring.r * 2 * Math.PI;
           return (
-            <circle
+            <ellipse
               key={i}
-              cx={cx}
-              cy={cy}
-              r={r}
-              fill="none"
+              cx={350} cy={350}
+              rx={ring.r} ry={ring.r * 0.5}
               stroke={accentColor}
-              strokeWidth={2 + i * 0.5}
-              strokeDasharray={circumference}
-              strokeDashoffset={dashOffset}
-              opacity={opacity}
-              transform={`rotate(${rotation}, ${cx}, ${cy})`}
-              strokeLinecap="round"
+              strokeWidth={ring.width}
+              strokeOpacity={ring.op * 0.6}
+              strokeDasharray={`${dashLen * 0.6} ${dashLen * 0.15}`}
+              fill="none"
+              transform={`rotate(${angle} 350 350)`}
             />
           );
         })}
+        <circle cx={350} cy={350} r={24} fill={accentColor} opacity={0.8} />
       </svg>
     </AbsoluteFill>
   );

@@ -1,47 +1,58 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate } from 'remotion';
+import { AbsoluteFill, useCurrentFrame } from 'remotion';
 
-const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%';
+const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&';
 
-interface Props {
-  text?: string;
-  accentColor?: string;
-  fontSize?: number;
-  revealDuration?: number;
+function seededChar(seed: number): string {
+  return CHARS[Math.abs(seed) % CHARS.length];
 }
 
-export const TextScramble: React.FC<Props> = ({
-  text = 'CLASSIFIED',
-  accentColor = '#00ff88',
+export const TextScramble: React.FC<{
+  text: string;
+  color?: string;
+  fontSize?: number;
+  fontFamily?: string;
+  backgroundColor?: string;
+}> = ({
+  text,
+  color = '#00ff88',
   fontSize = 80,
-  revealDuration = 30,
+  fontFamily = "'JetBrains Mono', monospace",
+  backgroundColor = '#000000',
 }) => {
   const frame = useCurrentFrame();
+  const totalFrames = 60;
+  const progress = Math.min(frame / totalFrames, 1);
 
-  const revealed = Math.floor((frame / revealDuration) * text.length);
-
-  const displayed = text
-    .split('')
-    .map((char, i) => {
-      if (i < revealed) return char;
-      const seed = frame * 7 + i * 13;
-      return CHARS[seed % CHARS.length];
-    })
-    .join('');
+  const rendered = text.split('').map((char, i) => {
+    if (char === ' ') return char;
+    const charProgress = Math.max(0, (progress - (i / text.length) * 0.6) / 0.4);
+    if (charProgress >= 1) return char;
+    return seededChar(Math.floor(frame * 2 + i * 7) + i * 13);
+  }).join('');
 
   return (
-    <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center' }}>
+    <AbsoluteFill
+      style={{
+        backgroundColor,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '0 60px',
+      }}
+    >
       <div
         style={{
+          fontFamily,
           fontSize,
-          fontFamily: 'JetBrains Mono, monospace',
           fontWeight: 700,
-          letterSpacing: '0.08em',
-          color: accentColor,
-          textShadow: `0 0 20px ${accentColor}88`,
+          color,
+          textAlign: 'center',
+          letterSpacing: '0.05em',
+          opacity: Math.min(frame / 10, 1),
         }}
       >
-        {displayed}
+        {rendered}
       </div>
     </AbsoluteFill>
   );

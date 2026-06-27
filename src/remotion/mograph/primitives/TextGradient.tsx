@@ -1,36 +1,43 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate } from 'remotion';
+import { AbsoluteFill, useCurrentFrame } from 'remotion';
 
-interface Props {
-  text?: string;
-  color1?: string;
-  color2?: string;
+export const TextGradient: React.FC<{
+  text: string;
+  gradientColors?: string[];
   fontSize?: number;
   fontFamily?: string;
-}
-
-export const TextGradient: React.FC<Props> = ({
-  text = 'AMAZING',
-  color1 = '#d400ff',
-  color2 = '#00f0ff',
-  fontSize = 96,
-  fontFamily = 'Anton, sans-serif',
+  backgroundColor?: string;
+}> = ({
+  text,
+  gradientColors = ['#d400ff', '#ff6b00', '#00ff88'],
+  fontSize = 100,
+  fontFamily = "'Anton', sans-serif",
+  backgroundColor = '#000000',
 }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const angle = interpolate(frame / fps, [0, 5], [0, 360], { extrapolateRight: 'wrap' }) % 360;
+  const sweep = (frame * 2) % 360;
+  const opacity = Math.min(frame / 20, 1);
 
   return (
-    <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', padding: 48 }}>
+    <AbsoluteFill
+      style={{
+        backgroundColor,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '0 60px',
+        opacity,
+      }}
+    >
       <div
         style={{
-          fontSize,
           fontFamily,
-          fontWeight: 900,
-          textTransform: 'uppercase',
-          letterSpacing: '0.04em',
+          fontSize,
+          fontWeight: 700,
           textAlign: 'center',
-          background: `linear-gradient(${angle}deg, ${color1}, ${color2}, ${color1})`,
+          letterSpacing: '-0.02em',
+          textTransform: 'uppercase',
+          background: `linear-gradient(${sweep}deg, ${gradientColors.join(', ')})`,
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
           backgroundClip: 'text',

@@ -1,44 +1,57 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate, spring } from 'remotion';
-import { SPRING_GENTLE } from './SpringConfigs';
+import { AbsoluteFill, useCurrentFrame } from 'remotion';
 
-interface Props {
-  from?: number;
-  to?: number;
+export const TextCounter: React.FC<{
+  target: number;
   prefix?: string;
   suffix?: string;
   accentColor?: string;
   fontSize?: number;
-  duration?: number;
-}
-
-export const TextCounter: React.FC<Props> = ({
-  from = 0,
-  to = 100,
+  formatWithCommas?: boolean;
+  backgroundColor?: string;
+  fontFamily?: string;
+}> = ({
+  target,
   prefix = '',
   suffix = '',
-  accentColor = '#00ff88',
-  fontSize = 120,
-  duration = 60,
+  accentColor = '#d400ff',
+  fontSize = 140,
+  formatWithCommas = true,
+  backgroundColor = '#000000',
+  fontFamily = "'Anton', sans-serif",
 }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const progress = spring({ frame, fps, config: SPRING_GENTLE, durationInFrames: duration });
-  const value = interpolate(progress, [0, 1], [from, to]);
-  const display = Number.isInteger(to) ? Math.round(value).toLocaleString() : value.toFixed(1);
+  const DURATION = 90;
+  const t = Math.min(frame / DURATION, 1);
+  const eased = 1 - Math.pow(1 - t, 3);
+  const current = Math.round(eased * target);
+  const formatted = formatWithCommas
+    ? new Intl.NumberFormat('en-US').format(current)
+    : String(current);
 
   return (
-    <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+    <AbsoluteFill
+      style={{
+        backgroundColor,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        opacity: Math.min(frame / 15, 1),
+      }}
+    >
       <div
         style={{
+          fontFamily,
           fontSize,
-          fontFamily: 'JetBrains Mono, monospace',
-          fontWeight: 900,
+          fontWeight: 700,
           color: accentColor,
-          textShadow: `0 0 40px ${accentColor}88`,
+          lineHeight: 1,
+          textShadow: `0 0 40px ${accentColor}66`,
+          letterSpacing: '-0.04em',
         }}
       >
-        {prefix}{display}{suffix}
+        {prefix}{formatted}{suffix}
       </div>
     </AbsoluteFill>
   );

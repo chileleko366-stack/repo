@@ -1,33 +1,68 @@
+import type { ShotBrief } from './shotBrief';
+
 export type ChannelId = 'ch1' | 'ch2' | 'ch3' | 'ch4' | 'ch5' | 'ch6';
 
 export type BeatKind =
-  | 'person' | 'brand' | 'place' | 'distance' | 'map'
-  | 'anatomy' | 'celestial' | 'stat' | 'chart' | 'typography' | 'none';
+  | 'person'
+  | 'brand'
+  | 'product'
+  | 'app'
+  | 'place'
+  | 'distance'
+  | 'map'
+  | 'anatomy'
+  | 'celestial'
+  | 'stat'
+  | 'chart'
+  | 'morph'
+  | 'typography'
+  | 'none';
 
-export type SectionKey =
-  | 'hook' | 'context' | 'beat_0' | 'beat_1' | 'beat_2'
-  | 'beat_3' | 'beat_4' | 'twist' | 'outro';
-
-export type PauseAfter = 'breath' | 'beat' | 'cut';
-
-export type EntranceMotion =
-  | 'spring_up' | 'spring_down' | 'spring_left' | 'spring_right'
-  | 'fade' | 'scale' | 'none';
-
-export type IdleMotion = 'float' | 'pulse' | 'rotate' | 'none';
-export type ExitMotion = 'fade' | 'scale_out' | 'slide_up' | 'none';
+export type NumberType = 'year' | 'currency' | 'count' | 'distance';
 
 export interface VisualTag {
   kind: BeatKind;
   value?: string;
+  // distance
   from?: string;
   to?: string;
   unit?: string;
+  // map
   place?: string;
   zoom?: number;
-  stat_value?: number;
+  label?: string;
+  // stat
   prefix?: string;
   suffix?: string;
+  stat_value?: number;
+  numberType?: NumberType;
+  query?: string;
+}
+
+export interface Beat {
+  narration: string;
+  visual: VisualTag;
+  emphasis_keyword: string;
+  morph_from?: string | null;
+  bg_color: string;
+}
+
+export interface OutroVisual extends VisualTag {}
+
+export interface Outro {
+  narration: string;
+  visual: OutroVisual;
+  cta: string;
+}
+
+export interface Script {
+  topic: string;
+  channel_id: ChannelId;
+  hook: string;
+  context: string;
+  beats: Beat[];
+  twist: string;
+  outro: Outro;
 }
 
 export interface WordBoundary {
@@ -37,109 +72,132 @@ export interface WordBoundary {
   endMs: number;
 }
 
-export interface ResolvedAsset {
-  type: BeatKind;
-  url: string;
-  localPath: string;
-  width?: number;
-  height?: number;
-  attribution?: string;
-}
-
-export interface ShotDepth {
-  zIndex: number;
-  dropShadows: Array<{
-    offsetX: number;
-    offsetY: number;
-    blurPx: number;
-    color: string;
-    opacity: number;
-  }>;
-}
-
-export interface ShotGlow {
-  color: string;
-  radius: number;
-  opacity: number;
-}
-
-export interface ShotMotion {
-  entrance: EntranceMotion;
-  idle: IdleMotion;
-  exit: ExitMotion;
-}
-
-export interface ShotBrief {
-  primitive: string;
-  position: {
-    x: number;
-    y: number;
-    anchorX: 'left' | 'center' | 'right';
-    anchorY: 'top' | 'center' | 'bottom';
-  };
-  scale: number;
-  depth: ShotDepth;
-  glow?: ShotGlow;
-  motion: ShotMotion;
-  props?: Record<string, unknown>;
-}
-
-export interface SfxEvent {
-  sfxKey: string;
-  frame: number;
-  volume: number;
-}
-
-export interface Beat {
+export interface BeatAudio {
   beatId: string;
-  sectionKey: SectionKey;
-  narration: string;
-  visual: VisualTag;
-  emphasis_keyword: string;
-  pause_after: PauseAfter;
-  bg_color: string;
+  audioPath: string;
+  wordBoundariesPath: string;
+  wordBoundaries: WordBoundary[];
+  durationMs: number;
+}
+
+export interface PersonAsset {
+  path: string | null;
+  fallback?: string;
+  credit: string | null;
+}
+
+export interface BrandAsset {
+  svgString: string;
+  hex: string;
+  title: string;
+  type: 'svg';
+}
+
+export interface PlaceAsset {
+  path: string;
+  credit: string;
+}
+
+export interface DistanceAsset {
+  map_image: string;
+  from_place: string;
+  from_lat: number;
+  from_lon: number;
+  from_px: [number, number];
+  to_place: string;
+  to_lat: number;
+  to_lon: number;
+  to_px: [number, number];
+  distance_km: number;
+  distance_label: string;
+}
+
+export interface SoundEvent {
+  id: string;
+  name: string;
   startFrame: number;
   durationFrames: number;
-  audioPath?: string;
-  wordBoundariesPath?: string;
-  wordBoundaries?: WordBoundary[];
-  durationMs?: number;
-  resolvedAsset?: ResolvedAsset | null;
-  shotBrief?: ShotBrief;
-  sfxEvents?: SfxEvent[];
+  volume?: number;
+}
+
+export type SectionKey =
+  | 'hook' | 'context'
+  | 'beat_0' | 'beat_1' | 'beat_2' | 'beat_3' | 'beat_4'
+  | 'twist' | 'outro';
+
+export const FPS = 60;
+export const VIDEO_FRAMES = 2100; // 35s @ 60fps
+export const SECTION_FRAMES: Record<SectionKey, [number, number]> = {
+  hook:    [0,    180],
+  context: [180,  180],
+  beat_0:  [360,  240],
+  beat_1:  [600,  240],
+  beat_2:  [840,  240],
+  beat_3:  [1080, 240],
+  beat_4:  [1320, 240],
+  twist:   [1560, 180],
+  outro:   [1740, 360],
+};
+
+/** Convert milliseconds to frames at a given fps. */
+export function msToFrames(ms: number, fps: number): number {
+  return Math.round((ms / 1000) * fps);
 }
 
 export interface VideoManifest {
   channelId: ChannelId;
   topic: string;
-  fps: 60;
-  totalFrames: 2100;
-  durationSec: 35.0;
-  beats: Beat[];
-  generatedAt: string;
+  fps: typeof FPS;
+  totalFrames: typeof VIDEO_FRAMES;
+  totalSeconds: 35;
+  script: Script;
+  beats: ManifestBeat[];
+  soundDesign: SoundEvent[];
+  resolvedAssets: Record<string, PersonAsset | BrandAsset | PlaceAsset | DistanceAsset>;
+  ctaText: string;
 }
 
-export interface ChannelColors {
-  bgPrimary: string;
-  accent1: string;
-  accent2: string;
-  text: string;
-  textMuted: string;
+export interface ManifestBeat {
+  beatIndex: number;
+  beatId: string;
+  sectionKey: SectionKey;
+  startFrame: number;
+  durationFrames: number;
+  narration: string;
+  visual: VisualTag;
+  emphasis_keyword: string;
+  morph_from: string | null;
+  bg_color: string;
+  captionsVisible: boolean;
+  audioPath: string;
+  wordBoundariesPath: string;
+  // Populated after TTS stage:
+  audio?: BeatAudio;
+  // Populated after asset resolver stage:
+  resolvedAsset?: PersonAsset | BrandAsset | PlaceAsset | DistanceAsset | null;
+  // Populated after shot brief compiler stage:
+  shotBrief?: ShotBrief | null;
 }
 
 export interface ChannelConfig {
   id: ChannelId;
   name: string;
   genre: string;
-  accentColor: string;
-  bgColor: string;
-  fontHeading: string;
-  fontBody: string;
   voice: string;
   voiceRate: string;
   voicePitch: string;
+  bodyFont: string;
+  accentFont: string;
+  colors: {
+    bgPrimary: string;
+    accent1: string;
+    accent2: string;
+    text: string;
+    textMuted: string;
+  };
   scriptTone: string;
+  beatTypes: string[];
   musicMood: string;
   sfxProfile: string;
-  colors: ChannelColors;
+  uploadSchedule: string;
 }

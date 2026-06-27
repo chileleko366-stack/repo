@@ -1,65 +1,66 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame, spring, useVideoConfig, interpolate } from 'remotion';
-import { SPRING_GENTLE } from './SpringConfigs';
+import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 
-interface Props {
-  value?: number;
+export const DataGauge: React.FC<{
+  value: number;
+  max?: number;
   label?: string;
   accentColor?: string;
-  suffix?: string;
-}
-
-export const DataGauge: React.FC<Props> = ({
-  value = 78,
-  label = 'Efficiency',
-  accentColor = '#0097a7',
-  suffix = '%',
+  backgroundColor?: string;
+}> = ({
+  value,
+  max = 100,
+  label = '',
+  accentColor = '#d400ff',
+  backgroundColor = '#000000',
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const progress = spring({ frame, fps, config: SPRING_GENTLE, durationInFrames: 60 });
-  const displayValue = interpolate(progress, [0, 1], [0, value]);
+  const progress = spring({ frame, fps, config: { damping: 30, stiffness: 150 }, durationInFrames: 80 });
+  const pct = Math.min(value / max, 1);
+  const angle = interpolate(progress, [0, 1], [0, pct * 180]);
 
-  const r = 200;
-  const cx = 400, cy = 380;
-  const startAngle = -210;
-  const sweepAngle = 240 * (value / 100);
-  const total = 240;
-  const circumference = (total / 360) * 2 * Math.PI * r;
-  const drawn = (sweepAngle / 360) * 2 * Math.PI * r;
+  const R = 200, CX = 300, CY = 300;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const ax = (a: number) => CX + R * Math.cos(toRad(a));
+  const ay = (a: number) => CY + R * Math.sin(toRad(a));
 
-  const polarToXY = (angle: number, radius: number) => ({
-    x: cx + radius * Math.cos((angle * Math.PI) / 180),
-    y: cy + radius * Math.sin((angle * Math.PI) / 180),
-  });
+  const endAngle = 180 + angle;
+  const largeArc = angle > 180 ? 1 : 0;
+
+  const trackPath = `M ${ax(180)} ${ay(180)} A ${R} ${R} 0 1 1 ${ax(0)} ${ay(0)}`;
+  const fillPath = angle > 0
+    ? `M ${ax(180)} ${ay(180)} A ${R} ${R} 0 ${largeArc} 1 ${ax(endAngle)} ${ay(endAngle)}`
+    : '';
+
+  const displayValue = Math.round(interpolate(progress, [0, 1], [0, value]));
 
   return (
-    <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center' }}>
-      <svg width="800" height="700" viewBox="0 0 800 700">
-        {/* Track */}
-        <path
-          d={`M ${polarToXY(-210, r).x} ${polarToXY(-210, r).y} A ${r} ${r} 0 1 1 ${polarToXY(30, r).x} ${polarToXY(30, r).y}`}
-          fill="none"
-          stroke={`${accentColor}22`}
-          strokeWidth="24"
-          strokeLinecap="round"
-        />
-        {/* Arc */}
-        <path
-          d={`M ${polarToXY(-210, r).x} ${polarToXY(-210, r).y} A ${r} ${r} 0 1 1 ${polarToXY(30, r).x} ${polarToXY(30, r).y}`}
-          fill="none"
-          stroke={accentColor}
-          strokeWidth="24"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={circumference - drawn * progress}
-        />
-        <text x={cx} y={cy + 20} textAnchor="middle" fill={accentColor} fontSize="88" fontFamily="Anton, sans-serif" fontWeight="900">
-          {Math.round(displayValue)}{suffix}
+    <AbsoluteFill
+      style={{
+        backgroundColor,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        opacity: Math.min(frame / 20, 1),
+      }}
+    >
+      <svg width={600} height={340} viewBox="0 0 600 340">
+        <path d={trackPath} stroke={`${accentColor}33`} strokeWidth={24} fill="none" strokeLinecap="round" />
+        {fillPath && (
+          <path d={fillPath} stroke={accentColor} strokeWidth={24} fill="none" strokeLinecap="round" />
+        )}
+        <text x={CX} y={CY + 30} textAnchor="middle"
+          fontFamily="'Anton', sans-serif" fontSize={80} fontWeight="700" fill={accentColor}>
+          {displayValue}
         </text>
-        <text x={cx} y={cy + 70} textAnchor="middle" fill="rgba(255,255,255,0.6)" fontSize="28" fontFamily="Space Grotesk, sans-serif">
-          {label}
-        </text>
+        {label && (
+          <text x={CX} y={CY + 80} textAnchor="middle"
+            fontFamily="'Space Grotesk', sans-serif" fontSize={32} fill="rgba(255,255,255,0.7)">
+            {label}
+          </text>
+        )}
       </svg>
     </AbsoluteFill>
   );

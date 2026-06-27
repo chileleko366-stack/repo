@@ -1,71 +1,163 @@
-import React from 'react';
-import { AbsoluteFill, useCurrentFrame, spring, useVideoConfig, interpolate } from 'remotion';
-import { SPRING_GENTLE } from './SpringConfigs';
+// Ported from:
+// /tmp/refs/saas-engine/src/skills/charts.md — bar chart section with staggered springs + y-axis labels
+// /tmp/refs/saas-engine/src/examples/code/histogram.ts — stagger/spring reference implementation
 
-interface Bar {
-  label?: string;
-  value?: number;
+import React from 'react';
+import { AbsoluteFill, spring, useCurrentFrame, useVideoConfig } from 'remotion';
+import { SPRING_CONFIGS } from './SpringConfigs';
+
+const STAGGER_DELAY = 10;
+const MAX_BAR_HEIGHT = 480;
+const BAR_WIDTH = 120;
+
+export interface BarData {
+  label: string;
+  value: number;
   color?: string;
 }
 
-interface Props {
-  bars?: Bar[];
+interface BarChartProps {
+  data: BarData[];
   accentColor?: string;
+  labelColor?: string;
   backgroundColor?: string;
-  maxValue?: number;
+  fontFamily?: string;
+  title?: string;
 }
 
-const DEFAULT_BARS: Bar[] = [
-  { label: 'A', value: 80, color: '#d400ff' },
-  { label: 'B', value: 55, color: '#00f0ff' },
-  { label: 'C', value: 92, color: '#00ff88' },
-  { label: 'D', value: 40, color: '#ff6b35' },
-];
+const Y_AXIS_STEPS = [0, 25, 50, 75, 100];
 
-export const BarChart: React.FC<Props> = ({
-  bars = DEFAULT_BARS,
+export const BarChart: React.FC<BarChartProps> = ({
+  data,
   accentColor = '#d400ff',
+  labelColor = '#ffffff',
   backgroundColor = 'transparent',
-  maxValue = 100,
+  fontFamily = "'Space Grotesk', sans-serif",
+  title,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const maxH = 600;
+  const maxValue = Math.max(...data.map((d) => d.value), 1);
 
   return (
-    <AbsoluteFill style={{ backgroundColor, alignItems: 'center', justifyContent: 'center', padding: 80 }}>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 32, height: maxH + 60 }}>
-        {bars.map((bar, i) => {
-          const delay = i * 6;
-          const progress = spring({ frame: frame - delay, fps, config: SPRING_GENTLE });
-          const h = interpolate(progress, [0, 1], [0, (bar.value ?? 0) / maxValue * maxH]);
-          const color = bar.color ?? accentColor;
+    <AbsoluteFill
+      style={{
+        backgroundColor,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 60,
+      }}
+    >
+      {title && (
+        <div
+          style={{
+            color: labelColor,
+            fontSize: 36,
+            fontFamily,
+            fontWeight: 700,
+            marginBottom: 32,
+            letterSpacing: '-0.01em',
+          }}
+        >
+          {title}
+        </div>
+      )}
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6 }}>
+        {/* Y-axis */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            height: MAX_BAR_HEIGHT,
+            marginRight: 12,
+          }}
+        >
+          {[...Y_AXIS_STEPS].reverse().map((step) => (
+            <span
+              key={step}
+              style={{
+                fontSize: 20,
+                color: 'rgba(255,255,255,0.4)',
+                fontFamily,
+                lineHeight: 1,
+              }}
+            >
+              {step}
+            </span>
+          ))}
+        </div>
 
-          return (
-            <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-              <div
-                style={{
-                  width: 100,
-                  height: h,
-                  background: `linear-gradient(to top, ${color}, ${color}88)`,
-                  borderRadius: '8px 8px 0 0',
-                  boxShadow: `0 0 20px ${color}44`,
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  justifyContent: 'center',
-                  paddingTop: 8,
-                }}
-              >
-                <span style={{ fontSize: 18, fontFamily: 'JetBrains Mono, monospace', color: '#ffffff', fontWeight: 700 }}>
-                  {bar.value}
-                </span>
+        {/* Bars */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-end',
+            gap: 20,
+            height: MAX_BAR_HEIGHT,
+            borderLeft: '1px solid rgba(255,255,255,0.15)',
+          }}
+        >
+          {data.map((item, i) => {
+            const delay = i * STAGGER_DELAY;
+            const progress = spring({
+              frame: frame - delay,
+              fps,
+              config: SPRING_CONFIGS.snappy,
+            });
+            const barColor = item.color ?? accentColor;
+            const normalizedHeight = (item.value / maxValue) * MAX_BAR_HEIGHT;
+            const height = Math.max(1, normalizedHeight * progress);
+
+            return (
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div
+                  style={{
+                    position: 'relative',
+                    width: BAR_WIDTH,
+                    height,
+                    backgroundColor: barColor,
+                    borderRadius: '10px 10px 0 0',
+                    filter: `drop-shadow(0 0 12px ${barColor}60)`,
+                  }}
+                >
+                  {height > 40 && (
+                    <span
+                      style={{
+                        position: 'absolute',
+                        top: 10,
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        color: '#fff',
+                        fontSize: 22,
+                        fontWeight: 700,
+                        fontFamily,
+                        opacity: progress,
+                      }}
+                    >
+                      {Math.round(item.value * progress).toLocaleString()}
+                    </span>
+                  )}
+                </div>
+                <div
+                  style={{
+                    color: labelColor,
+                    fontSize: 22,
+                    marginTop: 10,
+                    fontFamily,
+                    opacity: 0.8,
+                    textAlign: 'center',
+                    maxWidth: BAR_WIDTH + 20,
+                  }}
+                >
+                  {item.label}
+                </div>
               </div>
-              <span style={{ fontSize: 22, fontFamily: 'Space Grotesk, sans-serif', color: 'rgba(255,255,255,0.7)' }}>
-                {bar.label}
-              </span>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </AbsoluteFill>
   );

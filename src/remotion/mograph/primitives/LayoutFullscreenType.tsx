@@ -1,53 +1,54 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame, spring, useVideoConfig, interpolate } from 'remotion';
-import { SPRING_SNAPPY } from './SpringConfigs';
+import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 
-interface Props {
-  lines?: string[];
+export const LayoutFullscreenType: React.FC<{
+  text: string;
+  accentWord?: string;
   accentColor?: string;
-  color?: string;
+  backgroundColor?: string;
   fontFamily?: string;
-  fontSize?: number;
-}
-
-export const LayoutFullscreenType: React.FC<Props> = ({
-  lines = ['EVERY', 'SECOND', 'COUNTS'],
+}> = ({
+  text,
+  accentWord = '',
   accentColor = '#d400ff',
-  color = '#ffffff',
-  fontFamily = 'Anton, sans-serif',
-  fontSize = 120,
+  backgroundColor = '#000000',
+  fontFamily = "'Anton', sans-serif",
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const words = text.split(' ');
 
   return (
-    <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', flexDirection: 'column', padding: 60, gap: 0 }}>
-      {lines.map((line, i) => {
-        const delay = i * 8;
-        const progress = spring({ frame: frame - delay, fps, config: SPRING_SNAPPY });
-        const y = interpolate(progress, [0, 1], [60, 0]);
-        const opacity = interpolate(progress, [0, 0.4, 1], [0, 0, 1]);
-        const isAccent = i % 2 === 1;
+    <AbsoluteFill style={{ backgroundColor, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 60px' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 16 }}>
+        {words.map((word, i) => {
+          const delay = i * 5;
+          const p = spring({ frame: frame - delay, fps, config: { damping: 26, stiffness: 300 }, durationInFrames: 28 });
+          const scale = interpolate(p, [0, 1], [0.6, 1]);
+          const opacity = interpolate(p, [0, 0.4, 1], [0, 1, 1]);
+          const isAccent = accentWord && word.toLowerCase().includes(accentWord.toLowerCase());
 
-        return (
-          <div
-            key={i}
-            style={{
-              fontSize,
-              fontFamily,
-              fontWeight: 900,
-              color: isAccent ? accentColor : color,
-              textTransform: 'uppercase',
-              letterSpacing: '0.04em',
-              lineHeight: 1,
-              transform: `translateY(${y}px)`,
-              opacity,
-            }}
-          >
-            {line}
-          </div>
-        );
-      })}
+          return (
+            <span
+              key={i}
+              style={{
+                fontFamily,
+                fontSize: 100,
+                fontWeight: 700,
+                color: isAccent ? accentColor : '#ffffff',
+                textTransform: 'uppercase',
+                letterSpacing: '-0.02em',
+                transform: `scale(${scale})`,
+                opacity,
+                display: 'inline-block',
+                textShadow: isAccent ? `0 0 40px ${accentColor}88` : undefined,
+              }}
+            >
+              {word}
+            </span>
+          );
+        })}
+      </div>
     </AbsoluteFill>
   );
 };

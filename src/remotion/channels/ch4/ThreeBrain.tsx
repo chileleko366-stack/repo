@@ -1,43 +1,79 @@
+/**
+ * ThreeBrain — real 3D brain anatomy for ch4 The Grey Matter.
+ * Uses BrainStem.glb from public/models/ via ModelLibrary registry.
+ * Download: python scripts/download_models.py
+ */
+
 import React from 'react';
+import { useGLTF } from '@react-three/drei';
 import { ThreeCanvas } from '@remotion/three';
-import { useCurrentFrame, useVideoConfig } from 'remotion';
-import { ModelErrorBoundary } from '../../assets/ModelErrorBoundary';
+import { interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
+import * as THREE from 'three';
+import { modelPath } from '../../assets/ModelLibrary';
 
-interface Props {
-  accentColor?: string;
-}
+// Preload so first frame doesn't stall
+useGLTF.preload(modelPath('brain'));
 
-const BrainMesh: React.FC<{ accentColor: string; frame: number; fps: number }> = ({ accentColor, frame, fps }) => {
-  const pulse = 1 + 0.04 * Math.sin((frame / fps) * Math.PI * 2);
-  return (
-    <group scale={[pulse, pulse, pulse]}>
-      <mesh>
-        <sphereGeometry args={[1.3, 32, 32]} />
-        <meshStandardMaterial color={accentColor} wireframe opacity={0.4} transparent />
-      </mesh>
-      <mesh>
-        <sphereGeometry args={[1.0, 16, 16]} />
-        <meshStandardMaterial color={accentColor} metalness={0.3} roughness={0.7} />
-      </mesh>
-    </group>
-  );
-};
-
-export const ThreeBrain: React.FC<Props> = ({ accentColor = '#0097a7' }) => {
+const BrainModel: React.FC<{ durationFrames: number }> = ({ durationFrames }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const rotation = (frame / fps) * 0.5;
+  const t = frame / fps;
+
+  const { scene } = useGLTF(modelPath('brain'));
+
+  // Slow orbit
+  const rotY = t * 0.28;
+
+  // Dolly zoom — pull viewer in over the beat
+  const progress = durationFrames > 0 ? frame / durationFrames : 0;
+  const _cameraZ = interpolate(progress, [0, 1], [7, 5], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
+  // Apply ch4 cyan tint — traverse once per scene identity
+  React.useMemo(() => {
+    scene.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        const mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+        if (mat && mat instanceof THREE.MeshStandardMaterial) {
+          mat.color.set('#d4f5f7');
+          mat.roughness = 0.55;
+          mat.metalness = 0.08;
+        }
+      }
+    });
+  }, [scene]);
 
   return (
-    <ModelErrorBoundary accentColor={accentColor}>
-      <ThreeCanvas width={1080} height={1920}>
-        <ambientLight intensity={0.5} />
-        <pointLight position={[5, 5, 5]} intensity={1.2} color={accentColor} />
-        <pointLight position={[-3, -3, 3]} intensity={0.5} color="#5e35b1" />
-        <group rotation={[0.2, rotation, 0]}>
-          <BrainMesh accentColor={accentColor} frame={frame} fps={fps} />
-        </group>
-      </ThreeCanvas>
-    </ModelErrorBoundary>
+    <>
+      <directionalLight position={[0, 8, 4]} intensity={3.0} color="#e0f8ff" />
+      <pointLight position={[0, -5, 2]} intensity={1.6} color="#0097a7" />
+      <pointLight position={[-4, 2, 3]} intensity={1.0} color="#4dd0e1" />
+      <ambientLight intensity={0.45} />
+      <group rotation={[0.1, rotY, 0]} scale={[0.9, 0.9, 0.9]}>
+        <primitive object={scene} />
+      </group>
+    </>
   );
 };
+
+export const ThreeBrain: React.FC<{ durationFrames?: number }> = ({
+  durationFrames = 240,
+}) => (
+  <ThreeCanvas
+    width={1080}
+    height={1920}
+    style={{ position: 'absolute', inset: 0 }}
+    gl={{
+      failIfMajorPerformanceCaveat: false,
+      preserveDrawingBuffer: true,
+      powerPreference: 'low-power' as WebGLPowerPreference,
+      antialias: true,
+    }}
+    camera={{ position: [0, 0.5, 6.5], fov: 42 }}
+  >
+    <BrainModel durationFrames={durationFrames} />
+  </ThreeCanvas>
+);

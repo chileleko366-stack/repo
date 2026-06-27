@@ -1,53 +1,47 @@
-import { useEffect, useState } from 'react';
-import { Beat, WordBoundary } from '../../pipeline/types';
+/**
+ * Hook to load word-boundary JSON files for all beats in a manifest.
+ * Uses useDelayRender to hold Remotion's render until all JSON is fetched.
+ *
+ * Returns null until all files are loaded, then returns the populated map.
+ */
 
-export interface FlatWordBoundary extends WordBoundary {
-  beatId: string;
-  beatStartMs: number;
-  globalStartMs: number;
-  globalEndMs: number;
-}
+import { useCallback, useEffect, useState } from 'react';
+import { cancelRender, continueRender, delayRender, staticFile } from 'remotion';
+import type { ManifestBeat } from '../../pipeline/types';
+import type { WordBoundary } from './CaptionTrack';
 
-export function useWordBoundaries(beats: Beat[]): FlatWordBoundary[] {
-  const [flat, setFlat] = useState<FlatWordBoundary[]>([]);
+export function useWordBoundaries(
+  beats: ManifestBeat[],
+): Record<string, WordBoundary[]> | null {
+  const [handle] = useState(() => delayRender('word-boundaries'));
+  const [boundaries, setBoundaries] = useState<Record<string, WordBoundary[]> | null>(null);
+
+  const captionBeats = beats.filter((b) => b.captionsVisible);
+
+  const load = useCallback(async () => {
+    try {
+      const entries = await Promise.all(
+        captionBeats.map(async (beat) => {
+          const path = staticFile(beat.wordBoundariesPath.replace(/^public\//, ''));
+          const res = await fetch(path);
+          if (!res.ok) {
+            // If the file doesn't exist yet (pre-TTS), return empty array
+            return [beat.beatId, []] as [string, WordBoundary[]];
+          }
+          const data = (await res.json()) as WordBoundary[];
+          return [beat.beatId, data] as [string, WordBoundary[]];
+        }),
+      );
+      setBoundaries(Object.fromEntries(entries));
+      continueRender(handle);
+    } catch (e) {
+      cancelRender(e);
+    }
+  }, [handle, captionBeats.map((b) => b.beatId).join(',')]);
 
   useEffect(() => {
-    const result: FlatWordBoundary[] = [];
-    let cursor = 0;
+    load();
+  }, [load]);
 
-    for (const beat of beats) {
-      const words = beat.wordBoundaries ?? [];
-      const beatStartMs = cursor;
-
-      for (let i = 0; i < words.length; i++) {
-        const w = words[i];
-        // First word of each new beat gets a leading space guard
-        const prefix = i === 0 && result.length > 0 ? ' ' : '';
-        result.push({
-          ...w,
-          word: prefix + w.word,
-          beatId: beat.beatId,
-          beatStartMs,
-          globalStartMs: beatStartMs + w.startMs,
-          globalEndMs: beatStartMs + w.endMs,
-        });
-      }
-
-      cursor += beat.durationMs ?? (beat.durationFrames / 60) * 1000;
-    }
-
-    setFlat(result);
-  }, [beats]);
-
-  return flat;
-}
-
-export function getActiveWords(flat: FlatWordBoundary[], currentMs: number): FlatWordBoundary[] {
-  let idx = -1;
-  for (let i = flat.length - 1; i >= 0; i--) {
-    if (flat[i].globalStartMs <= currentMs) { idx = i; break; }
-  }
-  if (idx < 0) return [];
-  const start = Math.max(0, idx - 2);
-  return flat.slice(start, idx + 1);
+  return boundaries;
 }

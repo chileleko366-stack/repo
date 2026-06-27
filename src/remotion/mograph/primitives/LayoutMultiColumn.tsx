@@ -1,59 +1,48 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame, spring, useVideoConfig, interpolate } from 'remotion';
-import { SPRING_GENTLE } from './SpringConfigs';
+import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 
-interface Column {
-  heading?: string;
-  body?: string;
-  color?: string;
-}
+export interface ColumnData { title: string; body: string; }
 
-interface Props {
-  columns?: Column[];
+export const LayoutMultiColumn: React.FC<{
+  columns: ColumnData[];
   accentColor?: string;
   backgroundColor?: string;
-}
-
-const DEFAULT_COLS: Column[] = [
-  { heading: 'BEFORE', body: 'Scientists thought memory was fixed after age 25.', color: '#ff4444' },
-  { heading: 'AFTER', body: 'Neuroplasticity proves the brain rewires at any age.', color: '#00ff88' },
-];
-
-export const LayoutMultiColumn: React.FC<Props> = ({
-  columns = DEFAULT_COLS,
-  accentColor = '#0097a7',
-  backgroundColor = 'transparent',
+  fontFamily?: string;
+}> = ({
+  columns,
+  accentColor = '#d400ff',
+  backgroundColor = '#0a0a0a',
+  fontFamily = "'Space Grotesk', sans-serif",
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const cols = Math.min(columns.length, 3);
 
   return (
-    <AbsoluteFill style={{ backgroundColor, alignItems: 'center', justifyContent: 'center', padding: 60 }}>
-      <div style={{ display: 'flex', gap: 24, width: '100%' }}>
-        {columns.map((col, i) => {
+    <AbsoluteFill style={{ backgroundColor, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 60px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 40, width: '100%' }}>
+        {columns.slice(0, 3).map((col, i) => {
           const delay = i * 12;
-          const progress = spring({ frame: frame - delay, fps, config: SPRING_GENTLE });
-          const y = interpolate(progress, [0, 1], [40, 0]);
-          const opacity = interpolate(progress, [0, 0.4, 1], [0, 0, 1]);
-          const color = col.color ?? accentColor;
+          const p = spring({ frame: frame - delay, fps, config: { damping: 30, stiffness: 280 }, durationInFrames: 38 });
+          const ty = interpolate(p, [0, 1], [50, 0]);
+          const opacity = interpolate(p, [0, 0.4, 1], [0, 1, 1]);
 
           return (
             <div
               key={i}
               style={{
-                flex: 1,
-                background: `${color}11`,
-                border: `2px solid ${color}44`,
-                borderRadius: 20,
-                padding: 36,
-                transform: `translateY(${y}px)`,
+                transform: `translateY(${ty}px)`,
                 opacity,
+                background: 'rgba(255,255,255,0.04)',
+                borderTop: `3px solid ${accentColor}`,
+                borderRadius: '0 0 16px 16px',
+                padding: '32px 28px',
               }}
             >
-              <div style={{ fontSize: 24, fontFamily: 'Space Grotesk, sans-serif', color, textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 700, marginBottom: 20 }}>
-                {col.heading}
+              <div style={{ fontFamily: "'Anton', sans-serif", fontSize: 44, fontWeight: 700, color: accentColor, marginBottom: 16, letterSpacing: '-0.01em' }}>
+                {col.title}
               </div>
-              <div style={{ fontSize: 28, fontFamily: 'Space Grotesk, sans-serif', color: '#ffffff', lineHeight: 1.5 }}>
+              <div style={{ fontFamily, fontSize: 34, color: 'rgba(255,255,255,0.8)', lineHeight: 1.4 }}>
                 {col.body}
               </div>
             </div>

@@ -1,15 +1,27 @@
-#!/usr/bin/env python3
-"""Render all channel compositions with Remotion."""
-from __future__ import annotations
+"""
+Render stage — drives `npx remotion render` for each channel's manifest.
+
+Usage:
+  python src/scripts/render_all.py --channel ch1
+  python src/scripts/render_all.py --all
+
+Reads  : out/{channel_id}/manifest.json
+Writes : out/{channel_id}/short.mp4
+
+The Remotion composition ID is looked up from CHANNEL_COMPS. Each channel
+renders its own composition (Ch1…Ch6), registered in src/Root.tsx.
+"""
 
 import argparse
+import glob
+import json
+import os
 import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).parent.parent.parent
-
-CHANNEL_COMPOSITIONS = {
+# Map channel IDs → Remotion composition IDs registered in src/Root.tsx.
+CHANNEL_COMPS = {
     "ch1": "Ch1",
     "ch2": "Ch2",
     "ch3": "Ch3",
@@ -19,49 +31,119 @@ CHANNEL_COMPOSITIONS = {
 }
 
 
-def render_channel(channel_id: str) -> bool:
-    ch_num = channel_id[2]
-    comp = CHANNEL_COMPOSITIONS[channel_id]
-    out_path = ROOT / "out" / channel_id / "short.mp4"
-    out_path.parent.mkdir(parents=True, exist_ok=True)
+def _comp_id(channel_id: str) -> str:
+    """Composition ID for a channel, deriving Ch<N> as a fallback."""
+    return CHANNEL_COMPS.get(channel_id, channel_id.capitalize())
 
+
+def load_all_channel_ids() -> list:
+    """Returns channel IDs in alphabetical config-file order."""
+    paths = sorted(glob.glob("configs/channels/*.json"))
+    if not paths:
+        raise FileNotFoundError("No channel configs found in configs/channels/*.json")
+    ids = []
+    for p in paths:
+        with open(p) as f:
+            cfg = json.load(f)
+        ids.append(cfg["id"])
+    return ids
+
+
+def render_channel(channel_id: str) -> None:
+    """
+    Renders one channel's short.
+    Raises RuntimeError (with stderr) if the Remotion process exits non-zero.
+    """
+    manifest_path = Path("out") / channel_id / "manifest.json"
+    output_path   = Path("out") / channel_id / "short.mp4"
+
+    if not manifest_path.exists():
+        raise FileNotFoundError(
+            f"Manifest not found: {manifest_path}. "
+            "Run pipeline.py first."
+        )
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    comp_id = _comp_id(channel_id)
+
+    # Remotion compositions expect { "manifest": <VideoManifest> } as their
+    # input props (matching defaultProps={{ manifest: EMPTY_MANIFEST }} in
+    # Root.tsx). The pipeline writes the raw manifest to manifest.json, so we
+    # wrap it here before passing to --props.
+    with open(manifest_path) as f:
+        manifest_data = json.load(f)
+    props_path = output_path.parent / "props.json"
+    with open(props_path, "w") as f:
+        json.dump({"manifest": manifest_data}, f)
+
+    # Ensure Chromium path is forwarded to the subprocess.
+    chrome_exe = os.environ.get("REMOTION_CHROME_EXECUTABLE", "chromium-browser")
+    env = {**os.environ, "REMOTION_CHROME_EXECUTABLE": chrome_exe}
+
+    # Remotion 4.x CLI: composition-id and output are positional args.
+    # parsedCli._ contains only positional args — --composition= flags are
+    # stripped before reaching getCompName() and are silently ignored.
     cmd = [
         "npx", "remotion", "render",
-        comp,
-        str(out_path),
-        "--gl=swangle",
+        comp_id,              # positional: composition ID
+        str(output_path),     # positional: output file
+        f"--props={props_path}",
+        # --no-sandbox: required for headless CI (no user namespace isolation)
+        # --enable-unsafe-swiftshader: required for WebGL software rendering on GPU-less CI runners.
+        #   Chrome deprecated automatic SwiftShader fallback — must opt in explicitly.
+        #   This is safe for our use case (trusted content rendered in CI).
+        # --disable-dev-shm-usage: prevents /dev/shm OOM crashes on CI runners with small tmpfs
+        # --disable-gpu-sandbox: required alongside swiftshader on some Linux runner configurations
+        "--chromium-flags=--no-sandbox --enable-unsafe-swiftshader --disable-dev-shm-usage --disable-gpu-sandbox",
         "--log=verbose",
+        # Increase timeout from Remotion's default 30s to 90s per frame.
+        # SwiftShader software rendering initialises slower than hardware — first ThreeCanvas
+        # frame can take 15-25s on a cold CI runner. 90s gives safe headroom.
         "--timeout=90000",
-        "--concurrency=2",
     ]
 
-    print(f"Rendering {channel_id} ({comp})...")
-    result = subprocess.run(cmd, cwd=str(ROOT))
-    if result.returncode == 0:
-        print(f"  ✓ {channel_id} → {out_path}")
-        return True
-    else:
-        print(f"  ✗ {channel_id} render failed (exit {result.returncode})")
-        return False
+    print(f"[render] {channel_id}: npx remotion render "
+          f"{comp_id} → {output_path}")
+    sys.stdout.flush()
+
+    # Let stderr flow directly to the terminal so Remotion errors appear live
+    # in CI output right after the channel header line, not buried under
+    # subsequent channels' audio-mixing progress.
+    result = subprocess.run(
+        cmd,
+        env=env,
+    )
+
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"Remotion render failed for {channel_id} (exit {result.returncode})"
+        )
+
+    print(f"[render] ✓ {channel_id}")
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--all", action="store_true")
-    parser.add_argument("--channel", help="Single channel ID")
+def main():
+    parser = argparse.ArgumentParser(description="Render Dopamine Studios Shorts via Remotion")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--channel", type=str, metavar="ID",
+                       help="Single channel ID (e.g. ch1)")
+    group.add_argument("--all", action="store_true",
+                       help="Render all channels sequentially")
     args = parser.parse_args()
 
-    if args.all:
-        channels = list(CHANNEL_COMPOSITIONS.keys())
-    elif args.channel:
-        channels = [args.channel]
-    else:
-        parser.print_help()
-        sys.exit(1)
+    channel_ids = load_all_channel_ids()
+    targets = channel_ids if args.all else [args.channel]
 
-    failed = [ch for ch in channels if not render_channel(ch)]
+    failed = []
+    for cid in targets:
+        try:
+            render_channel(cid)
+        except Exception as exc:
+            print(f"[render] ✗ {cid}: {exc}", file=sys.stderr)
+            failed.append(cid)
+
     if failed:
-        print(f"Failed: {failed}")
+        print(f"[render] FAILED channels: {failed}", file=sys.stderr)
         sys.exit(1)
 
 

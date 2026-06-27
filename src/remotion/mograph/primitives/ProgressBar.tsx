@@ -1,49 +1,97 @@
-import React from 'react';
-import { AbsoluteFill, useCurrentFrame, spring, useVideoConfig, interpolate } from 'remotion';
-import { SPRING_GENTLE } from './SpringConfigs';
+// Ported from:
+// /tmp/refs/saas-engine/src/examples/code/progress-bar.ts
+// Adapted to use spring entrance + channel accent colour, constants-first.
 
-interface Props {
-  value?: number;
+import React from 'react';
+import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
+import { SPRING_CONFIGS } from './SpringConfigs';
+
+const BAR_HEIGHT = 24;
+const BAR_RADIUS = 12;
+const BAR_WIDTH = 700;
+const FILL_END_FRAME_FRACTION = 0.8;
+const FONT_SIZE = 40;
+
+interface ProgressBarProps {
   label?: string;
+  targetPct: number;
   accentColor?: string;
+  trackColor?: string;
   backgroundColor?: string;
-  prefix?: string;
-  suffix?: string;
+  fontFamily?: string;
+  textColor?: string;
 }
 
-export const ProgressBar: React.FC<Props> = ({
-  value = 75,
-  label = 'Progress',
-  accentColor = '#00ff88',
+export const ProgressBar: React.FC<ProgressBarProps> = ({
+  label,
+  targetPct,
+  accentColor = '#d400ff',
+  trackColor = '#333333',
   backgroundColor = 'transparent',
-  prefix = '',
-  suffix = '%',
+  fontFamily = "'Space Grotesk', sans-serif",
+  textColor = '#ffffff',
 }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const progress = spring({ frame, fps, config: SPRING_GENTLE, durationInFrames: 60 });
-  const pct = interpolate(progress, [0, 1], [0, value]);
+  const { fps, durationInFrames } = useVideoConfig();
+
+  const entryProgress = spring({
+    frame,
+    fps,
+    config: SPRING_CONFIGS.snappy,
+    durationInFrames: 40,
+  });
+  const opacity = interpolate(entryProgress, [0, 1], [0, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+
+  const progress = interpolate(
+    frame,
+    [0, durationInFrames * FILL_END_FRAME_FRACTION],
+    [0, targetPct],
+    { extrapolateRight: 'clamp' },
+  );
 
   return (
-    <AbsoluteFill style={{ backgroundColor, alignItems: 'center', justifyContent: 'center', padding: 80 }}>
-      <div style={{ width: '100%', maxWidth: 900 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-          <span style={{ fontSize: 32, fontFamily: 'Space Grotesk, sans-serif', color: 'rgba(255,255,255,0.8)' }}>{label}</span>
-          <span style={{ fontSize: 36, fontFamily: 'JetBrains Mono, monospace', color: accentColor, fontWeight: 700 }}>
-            {prefix}{Math.round(pct)}{suffix}
+    <AbsoluteFill
+      style={{
+        backgroundColor,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 24,
+        opacity,
+      }}
+    >
+      {label && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', width: BAR_WIDTH }}>
+          <span style={{ color: textColor, fontSize: FONT_SIZE, fontFamily }}>
+            {label}
+          </span>
+          <span style={{ color: accentColor, fontSize: FONT_SIZE, fontWeight: 700, fontFamily }}>
+            {Math.round(progress)}%
           </span>
         </div>
-        <div style={{ height: 20, background: `${accentColor}22`, borderRadius: 10, overflow: 'hidden' }}>
-          <div
-            style={{
-              height: '100%',
-              width: `${pct}%`,
-              background: `linear-gradient(90deg, ${accentColor}, ${accentColor}cc)`,
-              borderRadius: 10,
-              boxShadow: `0 0 16px ${accentColor}88`,
-            }}
-          />
-        </div>
+      )}
+      <div
+        style={{
+          width: BAR_WIDTH,
+          height: BAR_HEIGHT,
+          backgroundColor: trackColor,
+          borderRadius: BAR_RADIUS,
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            width: `${progress}%`,
+            height: '100%',
+            background: `linear-gradient(90deg, ${accentColor}, ${accentColor}cc)`,
+            borderRadius: BAR_RADIUS,
+            boxShadow: `0 0 12px ${accentColor}60`,
+          }}
+        />
       </div>
     </AbsoluteFill>
   );

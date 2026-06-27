@@ -1,39 +1,50 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate } from 'remotion';
+import { AbsoluteFill, useCurrentFrame } from 'remotion';
 
-interface Props {
-  text?: string;
-  accentColor?: string;
+export const TextNeon: React.FC<{
+  text: string;
+  glowColor?: string;
   fontSize?: number;
   fontFamily?: string;
-}
-
-export const TextNeon: React.FC<Props> = ({
-  text = 'NEON',
-  accentColor = '#d400ff',
-  fontSize = 96,
-  fontFamily = 'Anton, sans-serif',
+  backgroundColor?: string;
+}> = ({
+  text,
+  glowColor = '#d400ff',
+  fontSize = 100,
+  fontFamily = "'Anton', sans-serif",
+  backgroundColor = '#000000',
 }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const pulse = 0.85 + 0.15 * Math.sin(frame / fps * Math.PI * 2);
+  const pulse = 0.7 + Math.sin(frame * 0.12) * 0.3;
+  const opacity = Math.min(frame / 20, 1);
 
   return (
-    <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center' }}>
+    <AbsoluteFill
+      style={{
+        backgroundColor,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '0 60px',
+        opacity,
+      }}
+    >
       <div
         style={{
-          fontSize,
           fontFamily,
-          fontWeight: 900,
-          textTransform: 'uppercase',
-          color: accentColor,
-          textShadow: [
-            `0 0 7px ${accentColor}`,
-            `0 0 ${20 * pulse}px ${accentColor}`,
-            `0 0 ${42 * pulse}px ${accentColor}`,
-            `0 0 ${82 * pulse}px ${accentColor}88`,
-          ].join(', '),
+          fontSize,
+          fontWeight: 700,
+          color: '#ffffff',
+          textAlign: 'center',
           letterSpacing: '0.06em',
+          textTransform: 'uppercase',
+          textShadow: [
+            `0 0 ${20 * pulse}px ${glowColor}`,
+            `0 0 ${50 * pulse}px ${glowColor}88`,
+            `0 0 ${100 * pulse}px ${glowColor}44`,
+            `0 0 200px ${glowColor}22`,
+          ].join(', '),
+          filter: `drop-shadow(0 0 8px ${glowColor})`,
         }}
       >
         {text}

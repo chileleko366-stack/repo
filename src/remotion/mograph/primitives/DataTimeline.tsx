@@ -1,62 +1,53 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame, spring, useVideoConfig, interpolate } from 'remotion';
-import { SPRING_GENTLE } from './SpringConfigs';
+import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 
-interface TimelineEvent {
-  year?: string;
-  label?: string;
-  color?: string;
-}
+export interface TimelineEvent { year: string | number; label: string; }
 
-interface Props {
-  events?: TimelineEvent[];
+export const DataTimeline: React.FC<{
+  events: TimelineEvent[];
   accentColor?: string;
   backgroundColor?: string;
-}
-
-const DEFAULT_EVENTS: TimelineEvent[] = [
-  { year: '1969', label: 'Moon Landing', color: '#ff4500' },
-  { year: '1981', label: 'Space Shuttle', color: '#00d4ff' },
-  { year: '1990', label: 'Hubble Launch', color: '#ff4500' },
-  { year: '2003', label: 'Mars Rover', color: '#00d4ff' },
-  { year: '2021', label: 'James Webb', color: '#ff4500' },
-];
-
-export const DataTimeline: React.FC<Props> = ({
-  events = DEFAULT_EVENTS,
-  accentColor = '#ff4500',
-  backgroundColor = 'transparent',
+}> = ({
+  events,
+  accentColor = '#d400ff',
+  backgroundColor = '#0a0a0a',
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
   return (
-    <AbsoluteFill style={{ backgroundColor, alignItems: 'center', justifyContent: 'center', padding: '60px 80px' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 0, width: '100%' }}>
-        {events.map((ev, i) => {
-          const delay = i * 10;
-          const progress = spring({ frame: frame - delay, fps, config: SPRING_GENTLE });
-          const x = interpolate(progress, [0, 1], [-120, 0]);
-          const opacity = interpolate(progress, [0, 0.3, 1], [0, 0, 1]);
-          const color = ev.color ?? accentColor;
+    <AbsoluteFill
+      style={{
+        backgroundColor,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        padding: '60px 100px',
+      }}
+    >
+      {events.slice(0, 4).map((event, i) => {
+        const delay = i * 10;
+        const p = spring({ frame: frame - delay, fps, config: { damping: 30, stiffness: 260 }, durationInFrames: 35 });
+        const tx = interpolate(p, [0, 1], [-60, 0]);
+        const opacity = interpolate(p, [0, 0.4, 1], [0, 1, 1]);
 
-          return (
-            <div key={i} style={{ display: 'flex', alignItems: 'stretch', transform: `translateX(${x}px)`, opacity }}>
-              {/* Timeline line + dot */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 40, flexShrink: 0, marginRight: 24 }}>
-                <div style={{ width: 16, height: 16, borderRadius: '50%', background: color, flexShrink: 0, marginTop: 8 }} />
-                {i < events.length - 1 && (
-                  <div style={{ flex: 1, width: 2, background: `${color}44`, marginTop: 4 }} />
-                )}
+        return (
+          <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 32, transform: `translateX(${tx}px)`, opacity }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 20 }}>
+              <div style={{ width: 20, height: 20, borderRadius: '50%', background: accentColor, boxShadow: `0 0 16px ${accentColor}88`, flexShrink: 0, marginTop: 8 }} />
+              {i < events.length - 1 && <div style={{ width: 2, height: 60, background: `${accentColor}44`, marginTop: 4 }} />}
+            </div>
+            <div style={{ paddingBottom: 44 }}>
+              <div style={{ fontFamily: "'Anton', sans-serif", fontSize: 40, color: accentColor, letterSpacing: '0.04em' }}>
+                {event.year}
               </div>
-              <div style={{ paddingBottom: 36 }}>
-                <div style={{ fontSize: 20, fontFamily: 'JetBrains Mono, monospace', color: `${color}99`, marginBottom: 4 }}>{ev.year}</div>
-                <div style={{ fontSize: 28, fontFamily: 'Space Grotesk, sans-serif', color: '#ffffff', fontWeight: 600 }}>{ev.label}</div>
+              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 36, color: 'rgba(255,255,255,0.85)', lineHeight: 1.3, marginTop: 4 }}>
+                {event.label}
               </div>
             </div>
-          );
-        })}
-      </div>
+          </div>
+        );
+      })}
     </AbsoluteFill>
   );
 };

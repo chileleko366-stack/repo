@@ -1,48 +1,60 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame, spring, useVideoConfig, interpolate } from 'remotion';
-import { SPRING_GENTLE } from './SpringConfigs';
+import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 
-interface Props {
-  value?: number;
-  accentColor?: string;
+export const ShapeCircularProgress: React.FC<{
+  progress: number;
   label?: string;
-  color?: string;
-}
-
-export const ShapeCircularProgress: React.FC<Props> = ({
-  value = 75,
-  accentColor = '#0097a7',
-  label = '75%',
-  color = '#ffffff',
+  accentColor?: string;
+  size?: number;
+  backgroundColor?: string;
+}> = ({
+  progress: targetPct,
+  label = '',
+  accentColor = '#d400ff',
+  size = 400,
+  backgroundColor = '#000000',
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const progress = spring({ frame, fps, config: SPRING_GENTLE, durationInFrames: 60 });
-  const pct = interpolate(progress, [0, 1], [0, value / 100]);
-  const r = 200;
-  const circumference = 2 * Math.PI * r;
-  const offset = circumference * (1 - pct);
+  const anim = spring({ frame, fps, config: { damping: 32, stiffness: 160 }, durationInFrames: 90 });
+  const currentPct = interpolate(anim, [0, 1], [0, targetPct / 100]);
+
+  const R = size / 2 - 30;
+  const circumference = 2 * Math.PI * R;
+  const dashOffset = circumference * (1 - currentPct);
+  const displayValue = Math.round(interpolate(anim, [0, 1], [0, targetPct]));
 
   return (
-    <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center' }}>
-      <svg width="500" height="500" viewBox="0 0 500 500">
-        <circle cx="250" cy="250" r={r} fill="none" stroke={`${accentColor}22`} strokeWidth="20" />
+    <AbsoluteFill
+      style={{
+        backgroundColor,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        opacity: Math.min(frame / 20, 1),
+      }}
+    >
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <circle cx={size / 2} cy={size / 2} r={R} stroke={`${accentColor}22`} strokeWidth={24} fill="none" />
         <circle
-          cx="250"
-          cy="250"
-          r={r}
-          fill="none"
-          stroke={accentColor}
-          strokeWidth="20"
+          cx={size / 2} cy={size / 2} r={R}
+          stroke={accentColor} strokeWidth={24} fill="none"
           strokeDasharray={circumference}
-          strokeDashoffset={offset}
+          strokeDashoffset={dashOffset}
           strokeLinecap="round"
-          transform="rotate(-90 250 250)"
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
-        <text x="250" y="260" textAnchor="middle" fill={accentColor} fontSize="80" fontFamily="Anton, sans-serif" fontWeight="900">
-          {label}
+        <text x={size / 2} y={size / 2 + 20} textAnchor="middle"
+          fontFamily="'Anton', sans-serif" fontSize={size * 0.25} fontWeight="700" fill={accentColor}>
+          {displayValue}%
         </text>
       </svg>
+      {label && (
+        <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 44, fontWeight: 600, color: 'rgba(255,255,255,0.8)', marginTop: 16, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+          {label}
+        </div>
+      )}
     </AbsoluteFill>
   );
 };

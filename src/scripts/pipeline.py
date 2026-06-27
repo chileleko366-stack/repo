@@ -1,107 +1,248 @@
-#!/usr/bin/env python3
-"""Main pipeline orchestrator — runs all stages for each channel."""
-from __future__ import annotations
+""" 
+Main pipeline orchestrator.
+Usage:
+  python src/scripts/pipeline.py --channel ch1
+  python src/scripts/pipeline.py --channel ch1 --topic "Dunning-Kruger effect"
+  python src/scripts/pipeline.py --all            # runs all channels, auto-picks topics
+  python src/scripts/pipeline.py --all --mock     # mock research, no API calls
+  python src/scripts/pipeline.py --channel ch1 --dry-run  # skip file writes
+
+Pipeline stages:
+  1. research   — fetch real facts from Wikipedia / PubMed / NASA etc.
+  2. script     — Groq LLM → validated 35s script JSON
+  3. manifest   — timing layout → out/{channel_id}/manifest.json
+  4. tts        — edge-tts word-boundary audio per beat
+  5. assets     — resolver: person/brand/place/map
+  5b. shotbrief — Groq Shot Brief per beat (staging/composition/motion)
+  6. sound      — SFX event schedule
+"""
 
 import argparse
-import asyncio
+import glob
 import json
 import os
 import sys
 from pathlib import Path
+from dotenv import load_dotenv
 
-ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(ROOT / "src" / "scripts"))
+load_dotenv()
 
-from research import run_research
-from script_gen import run_script_gen
-from manifest_builder import run_manifest_builder
-from tts import run_tts
-from asset_resolver import run_asset_resolver
-from shot_brief import run_shot_brief
-from sound_design import run_sound_design
+# Repo root on Python path
+sys.path.insert(0, str(Path(__file__).parent))
 
-CHANNEL_IDS = ["ch1", "ch2", "ch3", "ch4", "ch5", "ch6"]
+from research import research, ResearchBrief
+from script_gen import generate_script
+from manifest_builder import build_manifest, save_manifest
+from mock_data import get_mock_brief
+from tts import generate_all_beats, manifest_to_captions
+from asset_resolver import resolve_all_beats as resolve_assets
+from shot_brief import compile_all_shot_briefs
+from sound_design import build_sound_design
 
-CHANNEL_TOPICS = {
-    "ch1": "Why scrolling feels impossible to stop",
-    "ch2": "How GameStop destroyed a hedge fund in 3 days",
-    "ch3": "Operation Paperclip: the Nazis NASA hired",
-    "ch4": "How stress physically shrinks your hippocampus",
-    "ch5": "The day the Library of Alexandria burned",
-    "ch6": "How far away Voyager 1 actually is",
+
+# ── Channel discovery ────────────────────────────────────────────────────────
+
+def load_all_channel_ids() -> list:
+    """Returns channel IDs in alphabetical config-file order."""
+    paths = sorted(glob.glob("configs/channels/*.json"))
+    if not paths:
+        raise FileNotFoundError("No channel configs found in configs/channels/*.json")
+    ids = []
+    for p in paths:
+        with open(p) as f:
+            cfg = json.load(f)
+        ids.append(cfg["id"])
+    return ids
+
+
+# ── Auto topic seeds per channel ───────────────────────────────────────────────────
+
+AUTO_TOPICS = {
+    "ch1": [
+        "Dunning-Kruger effect",
+        "confirmation bias mechanism",
+        "dopamine reward prediction error",
+        "cognitive dissonance",
+        "anchoring bias",
+    ],
+    "ch2": [
+        "Enron accounting scandal",
+        "2010 Flash Crash",
+        "GameStop short squeeze 2021",
+        "Theranos fraud",
+        "Lehman Brothers collapse",
+    ],
+    "ch3": [
+        "Operation Paperclip",
+        "MKUltra mind control program",
+        "CIA Stargate Project",
+        "Roswell incident declassified",
+        "Operation Northwoods",
+    ],
+    "ch4": [
+        "neuroplasticity synaptic pruning",
+        "amygdala fear response hijack",
+        "default mode network mind wandering",
+        "dopamine pathway reward circuit",
+        "prefrontal cortex decision making",
+    ],
+    "ch5": [
+        "Tunguska event 1908",
+        "Mary Anning fossil discovery",
+        "Night Witches Soviet bombers",
+        "Alan Turing Enigma codebreaking 1940",
+        "Voyager Golden Record selection",
+    ],
+    "ch6": [
+        "Mars dust storms planet-wide",
+        "Jupiter Great Red Spot shrinking",
+        "Voyager 1 interstellar space",
+        "black hole Sagittarius A* mass",
+        "Saturn ring age mystery",
+    ],
 }
 
 
-def green(msg: str) -> str:
-    return f"\033[92m✓ {msg}\033[0m"
+def pick_topic(channel_id: str) -> str:
+    import random
+    return random.choice(AUTO_TOPICS.get(channel_id, ["interesting fact"]))
 
 
-def red(msg: str) -> str:
-    return f"\033[91m✗ {msg}\033[0m"
+# ── Single-channel pipeline ────────────────────────────────────────────────────────
 
-
-async def run_channel(channel_id: str, topic: str | None = None) -> bool:
-    topic = topic or CHANNEL_TOPICS.get(channel_id, "general knowledge")
-    out_dir = ROOT / "out" / channel_id
-    out_dir.mkdir(parents=True, exist_ok=True)
-
+def run_pipeline(channel_id: str, topic: str, dry_run: bool = False, mock: bool = False) -> dict:
+    """
+    Runs all pipeline stages for one channel.
+    Raises on any stage failure so callers receive a non-zero exit code.
+    Returns the final manifest dict.
+    """
     print(f"\n{'='*60}")
-    print(f"  Channel: {channel_id}  |  Topic: {topic}")
-    print(f"{'='*60}")
+    print(f"  DOPAMINE STUDIOS PIPELINE")
+    print(f"  Channel : {channel_id}")
+    print(f"  Topic   : {topic}")
+    print(f"{'='*60}\n")
 
-    stages = [
-        ("Research", run_research),
-        ("Script Gen", run_script_gen),
-        ("Manifest", run_manifest_builder),
-        ("TTS", run_tts),
-        ("Assets", run_asset_resolver),
-        ("Shot Brief", run_shot_brief),
-        ("Sound Design", run_sound_design),
-    ]
+    # Stage 1: Research
+    print("▶ Stage 1: Research")
+    if mock:
+        brief = get_mock_brief(topic, channel_id)
+        print(f"  ✓ [MOCK] {len(brief.key_facts)} facts, {len(brief.named_entities)} entities\n")
+    else:
+        brief = research(topic, channel_id)
+        print(f"  ✓ {len(brief.key_facts)} facts, {len(brief.named_entities)} entities\n")
 
-    context: dict = {"channel_id": channel_id, "topic": topic, "root": str(ROOT)}
+    # Stage 2: Script generation
+    print("▶ Stage 2: Script generation")
+    script = generate_script(topic, channel_id, brief)
+    beats = script.get("beats", [])
+    print(f"  ✓ hook + context + {len(beats)} beats + twist + outro")
+    print(f"  ✓ hook: {script.get('hook', '')[:60]}...")
+    print()
 
-    for stage_name, stage_fn in stages:
-        try:
-            context = await stage_fn(context)
-            print(green(f"{stage_name}"))
-        except Exception as exc:
-            print(red(f"{stage_name}: {exc}"))
-            return False
-
+    # Stage 3: Manifest
+    print("▶ Stage 3: Manifest builder")
+    manifest = build_manifest(script, channel_id)
+    out_dir = Path("out") / channel_id
+    out_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = out_dir / "manifest.json"
-    manifest_path.write_text(json.dumps(context.get("manifest", {}), indent=2))
-    print(green(f"Manifest saved → {manifest_path}"))
-    return True
+    if not dry_run:
+        save_manifest(manifest, manifest_path)
+    print(f"  ✓ {manifest['totalFrames']} frames ({manifest['totalSeconds']}s) → {manifest_path}\n")
+
+    # Stage 4: TTS
+    # Raises on failure — no try/except so CI marks the step failed.
+    print("▶ Stage 4: TTS (voice + word boundaries)")
+    import asyncio as _asyncio
+    manifest = _asyncio.run(generate_all_beats(manifest))
+    captions = manifest_to_captions(manifest)
+    caps_path = Path("public") / "audio" / f"{channel_id}_captions.json"
+    if not dry_run:
+        caps_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(caps_path, "w") as _f:
+            json.dump(captions, _f, indent=2)
+        save_manifest(manifest, manifest_path)
+    dur = manifest.get("actualDurationS", "?")
+    print(f"  ✓ {dur}s audio, {len(captions)} caption tokens → {caps_path}\n")
+
+    # Stage 5: Asset resolver
+    print("▶ Stage 5: Asset resolver (person/brand/place/map/distance)")
+    import asyncio as _asyncio2
+    manifest = _asyncio2.run(resolve_assets(manifest))
+    resolved_count = len(manifest.get("resolvedAssets", {}))
+    if not dry_run:
+        save_manifest(manifest, manifest_path)
+    print(f"  ✓ {resolved_count} assets resolved\n")
+
+    # Stage 5b: Shot Brief compiler
+    print("▶ Stage 5b: Shot Brief compiler (staging / composition / motion)")
+    manifest = compile_all_shot_briefs(manifest)
+    briefs_compiled = sum(1 for b in manifest["beats"] if b.get("shotBrief"))
+    if not dry_run:
+        save_manifest(manifest, manifest_path)
+    print(f"  ✓ {briefs_compiled}/{len(manifest['beats'])} beats have shotBrief\n")
+
+    # Stage 6: Sound design
+    print("▶ Stage 6: Sound design (SFX schedule)")
+    sound_events = build_sound_design(manifest)
+    manifest["soundDesign"] = sound_events
+    if not dry_run:
+        save_manifest(manifest, manifest_path)
+    print(f"  ✓ {len(sound_events)} SFX events scheduled\n")
+
+    print("✅  Pipeline complete")
+    print(f"    Manifest: {manifest_path}\n")
+    return manifest
 
 
-async def main() -> None:
+# ── CLI ────────────────────────────────────────────────────────────────────────
+
+def main():
     parser = argparse.ArgumentParser(description="Dopamine Studios pipeline")
-    parser.add_argument("--channel", help="Single channel ID to run")
-    parser.add_argument("--all", action="store_true", help="Run all channels")
-    parser.add_argument("--topic", help="Override topic (only with --channel)")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--channel", type=str, metavar="ID",
+                       help="Single channel ID (e.g. ch1)")
+    group.add_argument("--all", action="store_true",
+                       help="Run all channels sequentially")
+    parser.add_argument("--topic", default="auto",
+                        help='Topic string or "auto" (only used with --channel)')
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Skip file writes")
+    parser.add_argument("--mock", action="store_true",
+                        help="Use mock research data (no network calls)")
     args = parser.parse_args()
 
-    channels: list[str] = []
+    channel_ids = load_all_channel_ids()
+
     if args.all:
-        channels = CHANNEL_IDS
-    elif args.channel:
-        channels = [args.channel]
+        failed = []
+        for cid in channel_ids:
+            topic = pick_topic(cid)
+            try:
+                run_pipeline(cid, topic, dry_run=args.dry_run, mock=args.mock)
+            except Exception as exc:
+                print(f"[pipeline] ✗ {cid}: {exc}", file=sys.stderr)
+                failed.append(cid)
+        if failed:
+            print(f"[pipeline] FAILED channels: {failed}", file=sys.stderr)
+            sys.exit(1)
     else:
-        parser.print_help()
-        sys.exit(1)
-
-    results: dict[str, bool] = {}
-    for ch in channels:
-        results[ch] = await run_channel(ch, args.topic if args.channel else None)
-
-    print("\n" + "="*60)
-    for ch, ok in results.items():
-        print(green(ch) if ok else red(ch))
-    failed = [ch for ch, ok in results.items() if not ok]
-    if failed:
-        sys.exit(1)
+        if args.channel not in channel_ids:
+            print(f"[pipeline] Unknown channel: {args.channel}. "
+                  f"Available: {channel_ids}", file=sys.stderr)
+            sys.exit(1)
+        topic = pick_topic(args.channel) if args.topic == "auto" else args.topic
+        manifest = run_pipeline(args.channel, topic,
+                                dry_run=args.dry_run, mock=args.mock)
+        print(json.dumps({
+            "channelId":    manifest["channelId"],
+            "topic":        manifest["topic"],
+            "title":        manifest.get("title", ""),
+            "totalFrames":  manifest["totalFrames"],
+            "totalSeconds": manifest["totalSeconds"],
+            "beatCount":    len(manifest["beats"]),
+            "sfxCount":     len(manifest.get("soundDesign", [])),
+        }, indent=2))
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

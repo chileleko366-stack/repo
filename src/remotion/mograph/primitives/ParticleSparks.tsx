@@ -1,48 +1,43 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate } from 'remotion';
+import { AbsoluteFill, useCurrentFrame } from 'remotion';
 
-interface Props {
-  count?: number;
+interface Spark { angle: number; speed: number; size: number; offset: number; fade: number; }
+
+const SPARKS: Spark[] = Array.from({ length: 30 }, (_, i) => ({
+  angle: (i / 30) * Math.PI * 2 + i * 0.3,
+  speed: 2 + (i * 1.7) % 4,
+  size: 4 + (i * 2.3) % 6,
+  offset: (i * 11) % 40,
+  fade: 0.5 + (i % 5) * 0.1,
+}));
+
+export const ParticleSparks: React.FC<{
   accentColor?: string;
-  originXPct?: number;
-  originYPct?: number;
-}
-
-function seededRandom(seed: number): number {
-  const x = Math.sin(seed + 1) * 10000;
-  return x - Math.floor(x);
-}
-
-export const ParticleSparks: React.FC<Props> = ({
-  count = 20,
-  accentColor = '#ff4500',
-  originXPct = 50,
-  originYPct = 60,
+  backgroundColor?: string;
+}> = ({
+  accentColor = '#d400ff',
+  backgroundColor = 'transparent',
 }) => {
   const frame = useCurrentFrame();
-  const W = 1080, H = 1920;
-  const ox = (originXPct / 100) * W;
-  const oy = (originYPct / 100) * H;
-
-  const sparks = Array.from({ length: count }).map((_, i) => {
-    const angle = seededRandom(i * 3) * Math.PI * 2;
-    const speed = 3 + seededRandom(i * 7) * 8;
-    const life = 20 + Math.floor(seededRandom(i * 11) * 30);
-    const progress = Math.min(frame / life, 1);
-    const x = ox + Math.cos(angle) * speed * frame;
-    const y = oy + Math.sin(angle) * speed * frame + 0.1 * frame * frame;
-    const opacity = interpolate(progress, [0, 0.3, 1], [1, 0.8, 0]);
-    const size = interpolate(progress, [0, 1], [4, 1]);
-
-    return { x, y, opacity, size };
-  });
+  const CX = 540, CY = 960;
 
   return (
-    <AbsoluteFill>
-      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ position: 'absolute', inset: 0 }}>
-        {sparks.map((s, i) => (
-          <circle key={i} cx={s.x} cy={s.y} r={s.size} fill={accentColor} opacity={Math.max(0, s.opacity)} />
-        ))}
+    <AbsoluteFill style={{ backgroundColor: backgroundColor === 'transparent' ? undefined : backgroundColor }}>
+      <svg width="1080" height="1920" viewBox="0 0 1080 1920"
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+        {SPARKS.map((spark, i) => {
+          const age = (frame + spark.offset) % 80;
+          const life = age / 80;
+          if (life > 0.7) return null;
+          const dist = spark.speed * life * 200;
+          const x = CX + Math.cos(spark.angle) * dist;
+          const y = CY + Math.sin(spark.angle) * dist;
+          const opacity = spark.fade * (1 - life / 0.7);
+          const size = spark.size * (1 - life * 0.5);
+          return <circle key={i} cx={x} cy={y} r={size} fill={accentColor} opacity={opacity} />;
+        })}
+        <circle cx={CX} cy={CY} r={30} fill={accentColor} opacity={0.4 + Math.sin(frame * 0.15) * 0.2} />
+        <circle cx={CX} cy={CY} r={15} fill={accentColor} opacity={0.8} />
       </svg>
     </AbsoluteFill>
   );

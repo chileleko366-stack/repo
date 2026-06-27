@@ -1,59 +1,45 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate } from 'remotion';
+import { AbsoluteFill, useCurrentFrame } from 'remotion';
 
-interface Props {
-  count?: number;
+interface Star { x: number; y: number; dx: number; dy: number; len: number; op: number; offset: number; }
+
+const STARS: Star[] = Array.from({ length: 20 }, (_, i) => ({
+  x: (i * 137.508 + 20) % 80 + 10,
+  y: (i * 97.3 + 5) % 90 + 5,
+  dx: ((i * 53 + 7) % 3 - 1.5) * 2,
+  dy: ((i * 71 + 11) % 3 - 1.5),
+  len: 40 + (i * 31) % 80,
+  op: 0.4 + (i % 5) * 0.12,
+  offset: (i * 13) % 60,
+}));
+
+export const ParticleShootingStars: React.FC<{
   accentColor?: string;
   backgroundColor?: string;
-}
-
-function seededRandom(seed: number): number {
-  const x = Math.sin(seed + 1) * 10000;
-  return x - Math.floor(x);
-}
-
-export const ParticleShootingStars: React.FC<Props> = ({
-  count = 12,
-  accentColor = '#ff4500',
-  backgroundColor = '#050010',
+}> = ({
+  accentColor = '#ffffff',
+  backgroundColor = 'transparent',
 }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const W = 1080, H = 1920;
-
-  const stars = Array.from({ length: count }).map((_, i) => {
-    const period = 40 + seededRandom(i * 3) * 60;
-    const localFrame = (frame + i * 17) % period;
-    const progress = localFrame / period;
-    const startX = seededRandom(i * 7) * W;
-    const startY = seededRandom(i * 11) * H * 0.5;
-    const angle = 20 + seededRandom(i * 5) * 30;
-    const length = 80 + seededRandom(i * 9) * 120;
-    const dx = Math.cos((angle * Math.PI) / 180) * length;
-    const dy = Math.sin((angle * Math.PI) / 180) * length;
-    const x = startX + dx * progress;
-    const y = startY + dy * progress;
-    const opacity = interpolate(progress, [0, 0.1, 0.8, 1], [0, 1, 0.8, 0]);
-
-    return { x, y, dx: -dx * 0.4, dy: -dy * 0.4, opacity };
-  });
 
   return (
-    <AbsoluteFill style={{ backgroundColor }}>
-      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ position: 'absolute', inset: 0 }}>
-        {stars.map((s, i) => (
-          <line
-            key={i}
-            x1={s.x}
-            y1={s.y}
-            x2={s.x + s.dx}
-            y2={s.y + s.dy}
-            stroke={accentColor}
-            strokeWidth={1.5}
-            opacity={s.opacity}
-            strokeLinecap="round"
-          />
-        ))}
+    <AbsoluteFill style={{ backgroundColor: backgroundColor === 'transparent' ? undefined : backgroundColor }}>
+      <svg width="1080" height="1920" viewBox="0 0 1080 1920"
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+        {STARS.map((star, i) => {
+          const period = 80 + i * 7;
+          const phase = ((frame + star.offset) % period) / period;
+          if (phase > 0.4) return null;
+          const fade = phase < 0.1 ? phase / 0.1 : phase > 0.3 ? 1 - (phase - 0.3) / 0.1 : 1;
+          const x1 = (star.x / 100) * 1080 + star.dx * phase * 200;
+          const y1 = (star.y / 100) * 1920 + star.dy * phase * 200;
+          const x2 = x1 - star.dx * (star.len / 10);
+          const y2 = y1 - star.dy * (star.len / 10);
+          return (
+            <line key={i} x1={x1} y1={y1} x2={x2} y2={y2}
+              stroke={accentColor} strokeWidth={2} strokeOpacity={star.op * fade} strokeLinecap="round" />
+          );
+        })}
       </svg>
     </AbsoluteFill>
   );

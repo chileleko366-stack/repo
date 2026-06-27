@@ -1,6 +1,23 @@
 node_modules/
-dist/
 .env
 out/
-public/audio/
-public/assets/
+build/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+assets/cache/
+public/audio/*.mp3
+public/audio/*_words.json
+public/clips/
+/tmp/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+.idea/

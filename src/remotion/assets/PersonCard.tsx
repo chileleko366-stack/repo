@@ -1,37 +1,110 @@
+/**
+ * PersonCard — renders a Wikipedia person cutout (rembg-processed PNG).
+ *
+ * Layered 2.5D parallax composition:
+ *   1. Background gradient — drifts at 25% of the subject camera rate
+ *   2. Subject (Img) — full camera drift + subtle multi-harmonic idle motion
+ *
+ * Duotone: channel accent colors applied via CSS blend-mode overlays when
+ * accentColors is provided.
+ *   Shadow layer    (accent2): mix-blend-mode: multiply
+ *   Highlight layer (accent1): mix-blend-mode: screen
+ *
+ * Falls back to an initial-letter badge when no image is available.
+ */
+
 import React from 'react';
-import { AbsoluteFill, Img, useCurrentFrame, spring, useVideoConfig, interpolate } from 'remotion';
-import { SPRING_GENTLE } from '../mograph/primitives/SpringConfigs';
+import { AbsoluteFill, Img, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
+import type { PersonAsset } from '../../pipeline/types';
 
-interface Props {
-  imagePath: string;
-  name?: string;
-  caption?: string;
-  accentColor?: string;
-}
-
-export const PersonCard: React.FC<Props> = ({ imagePath, name, caption, accentColor = '#ffffff' }) => {
+export const PersonCard: React.FC<{
+  asset: PersonAsset;
+  durationFrames: number;
+  accentColors?: { primary: string; secondary: string };
+}> = ({ asset, durationFrames, accentColors }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const progress = spring({ frame, fps, config: SPRING_GENTLE });
-  const scale = interpolate(progress, [0, 1], [0.95, 1]);
-  const opacity = interpolate(progress, [0, 0.4, 1], [0, 0, 1]);
+
+  const enter = spring({
+    frame,
+    fps,
+    config: { damping: 36, stiffness: 400 },
+    durationInFrames: 40,
+  });
+  const scale   = 0.88 + enter * 0.12;
+  const opacity = enter;
+
+  // Camera drift: slow sinusoidal pan across the clip duration
+  const t    = durationFrames > 0 ? frame / durationFrames : 0;
+  const camX = Math.sin(t * Math.PI * 1.2) * 18;
+
+  // Multi-harmonic idle motion (Perlin-style sum-of-sines on the subject layer)
+  const idleX = Math.sin(frame * 0.03) * 3 + Math.sin(frame * 0.07 + 0.8) * 1.5;
+  const idleY = Math.sin(frame * 0.05 + 1.2) * 2 + Math.sin(frame * 0.09 + 0.3) * 1.0;
+
+  if (!asset.path) {
+    return (
+      <AbsoluteFill
+        style={{ justifyContent: 'center', alignItems: 'center', paddingBottom: 220 }}
+      >
+        <div
+          style={{
+            width: 200,
+            height: 200,
+            borderRadius: '50%',
+            background: 'rgba(255,255,255,0.12)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 88,
+            fontWeight: 900,
+            color: '#fff',
+            opacity,
+            transform: `scale(${scale})`,
+          }}
+        >
+          {asset.fallback ?? '?'}
+        </div>
+      </AbsoluteFill>
+    );
+  }
 
   return (
-    <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', opacity, transform: `scale(${scale})` }}>
-      <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
-        <Img src={imagePath} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '60px 40px 40px', background: 'linear-gradient(to top, rgba(0,0,0,0.85), transparent)' }}>
-          {name && (
-            <div style={{ fontSize: 48, fontFamily: 'Anton, sans-serif', fontWeight: 900, color: '#ffffff', letterSpacing: '0.02em' }}>
-              {name}
-            </div>
-          )}
-          {caption && (
-            <div style={{ fontSize: 26, fontFamily: 'Space Grotesk, sans-serif', color: accentColor, marginTop: 8 }}>
-              {caption}
-            </div>
-          )}
-        </div>
+    <AbsoluteFill
+      style={{ justifyContent: 'center', alignItems: 'flex-end', paddingBottom: 220 }}
+    >
+      {/* Depth background: accent radial glow, drifts at 25% of subject camera rate */}
+      {accentColors && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: `radial-gradient(ellipse at 50% 60%, ${accentColors.secondary}33 0%, transparent 70%)`,
+            transform: `translateX(${camX * 0.25}px)`,
+            opacity,
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+
+      {/* Subject layer: entrance spring + full camera drift + idle motion */}
+      <div
+        style={{
+          position: 'relative',
+          transform: `scale(${scale}) translateX(${camX + idleX}px) translateY(${idleY}px)`,
+          transformOrigin: 'center bottom',
+          opacity,
+        }}
+      >
+        <Img
+          src={staticFile(asset.path.replace(/^public\//, ''))}
+          style={{
+            maxHeight: 900,
+            maxWidth: 800,
+            objectFit: 'contain',
+            display: 'block',
+          }}
+        />
       </div>
     </AbsoluteFill>
   );

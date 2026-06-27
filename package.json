@@ -1,33 +1,60 @@
 {
   "name": "dopamine-studios",
   "version": "1.0.0",
-  "description": "Automated YouTube Shorts pipeline for 6 faceless educational channels",
+  "description": "Dopamine Studios automated Shorts engine",
+  "repository": {},
+  "license": "UNLICENSED",
   "private": true,
-  "scripts": {
-    "start": "npx remotion studio",
-    "build": "npx remotion bundle",
-    "render": "npx remotion render",
-    "typecheck": "tsc --noEmit"
-  },
   "dependencies": {
+    "@fontsource/anton": "^5.1.0",
+    "@fontsource/eb-garamond": "^5.1.0",
+    "@fontsource/fraunces": "^5.1.0",
+    "@fontsource/jetbrains-mono": "^5.1.0",
+    "@fontsource/orbitron": "^5.1.0",
+    "@fontsource/space-grotesk": "^5.1.0",
+    "@fontsource/special-elite": "^5.1.0",
+    "@phosphor-icons/core": "^2.1.1",
+    "@phosphor-icons/react": "^2.1.7",
+    "@react-three/drei": "^9.122.0",
+    "@react-three/fiber": "^8.17.10",
     "@remotion/captions": "4.0.481",
     "@remotion/cli": "4.0.481",
+    "@remotion/lottie": "^4.0.481",
+    "@remotion/media-utils": "4.0.481",
+    "@remotion/motion-blur": "^4.0.481",
+    "@remotion/renderer": "4.0.481",
     "@remotion/three": "4.0.481",
     "@remotion/transitions": "4.0.481",
-    "@react-three/drei": "^9.105.6",
-    "@react-three/fiber": "^8.16.8",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
+    "@visx/axis": "^3.12.0",
+    "@visx/scale": "^3.12.0",
+    "@visx/shape": "^3.12.0",
+    "countup.js": "^2.8.0",
+    "flag-icons": "^7.2.3",
+    "flubber": "^0.4.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.12.7",
     "remotion": "4.0.481",
-    "three": "^0.164.1"
+    "simple-icons": "^13.0.0",
+    "three": "^0.169.0"
   },
   "devDependencies": {
-    "@types/react": "^18.3.1",
-    "@types/react-dom": "^18.3.0",
-    "@types/three": "^0.164.0",
-    "typescript": "^5.4.5"
+    "@remotion/eslint-config-flat": "4.0.481",
+    "@types/react": "^18.3.23",
+    "@types/react-dom": "^18.3.7",
+    "@types/three": "^0.169.0",
+    "@types/web": "0.0.166",
+    "eslint": "9.19.0",
+    "prettier": "3.8.1",
+    "typescript": "5.9.3"
   },
-  "remotion": {
-    "entryPoint": "src/Root.tsx"
-  }
+  "scripts": {
+    "dev": "remotion studio",
+    "build": "remotion bundle",
+    "upgrade": "remotion upgrade",
+    "lint": "eslint src && tsc"
+  },
+  "sideEffects": [
+    "*.css"
+  ]
 }

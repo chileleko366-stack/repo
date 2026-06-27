@@ -1,39 +1,46 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate } from 'remotion';
+import { AbsoluteFill, useCurrentFrame } from 'remotion';
 
-interface Props {
-  text?: string;
-  accentColor?: string;
+export const TextGlitch: React.FC<{
+  text: string;
+  color?: string;
   fontSize?: number;
-}
-
-export const TextGlitch: React.FC<Props> = ({
-  text = 'GLITCH',
-  accentColor = '#cc0000',
-  fontSize = 96,
+  fontFamily?: string;
+  backgroundColor?: string;
+}> = ({
+  text,
+  color = '#ffffff',
+  fontSize = 100,
+  fontFamily = "'Anton', sans-serif",
+  backgroundColor = '#000000',
 }) => {
   const frame = useCurrentFrame();
-  const glitchActive = frame % 8 < 3;
-  const rOffset = glitchActive ? (Math.random() - 0.5) * 6 : 0;
-  const bOffset = glitchActive ? (Math.random() - 0.5) * 6 : 0;
+  const intensity = Math.sin(frame * 0.3) * 0.5 + 0.5;
+  const gx1 = Math.sin(frame * 0.7 + 1) * 6 * intensity;
+  const gx2 = Math.sin(frame * 0.5 + 2) * -5 * intensity;
+  const clip = (frame * 3) % 100;
+  const opacity = Math.min(frame / 10, 1);
 
   const base: React.CSSProperties = {
+    fontFamily,
     fontSize,
-    fontFamily: 'Anton, sans-serif',
-    fontWeight: 900,
+    fontWeight: 700,
+    textAlign: 'center',
+    letterSpacing: '-0.02em',
     textTransform: 'uppercase',
-    letterSpacing: '0.04em',
     position: 'absolute',
-    whiteSpace: 'nowrap',
+    left: 0,
+    right: 0,
+    top: '50%',
+    transform: 'translateY(-50%)',
+    padding: '0 60px',
   };
 
   return (
-    <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ position: 'relative' }}>
-        <div style={{ ...base, color: '#ff0000', transform: `translate(${rOffset}px, 0)`, opacity: 0.7 }}>{text}</div>
-        <div style={{ ...base, color: '#ffffff' }}>{text}</div>
-        <div style={{ ...base, color: '#0000ff', transform: `translate(${bOffset}px, 0)`, opacity: 0.7 }}>{text}</div>
-      </div>
+    <AbsoluteFill style={{ backgroundColor, opacity }}>
+      <div style={{ ...base, color: '#ff0050', transform: `translateY(-50%) translateX(${gx1}px)`, clipPath: `inset(${clip}% 0 ${Math.max(0, 100 - clip - 20)}% 0)`, opacity: 0.9 }}>{text}</div>
+      <div style={{ ...base, color: '#00ffff', transform: `translateY(-50%) translateX(${gx2}px)`, clipPath: `inset(${(clip + 30) % 100}% 0 ${Math.max(0, 100 - (clip + 30) % 100 - 20)}% 0)`, opacity: 0.9 }}>{text}</div>
+      <div style={{ ...base, color }}>{text}</div>
     </AbsoluteFill>
   );
 };

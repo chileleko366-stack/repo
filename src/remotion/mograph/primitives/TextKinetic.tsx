@@ -1,57 +1,66 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame, spring, useVideoConfig, interpolate } from 'remotion';
-import { SPRING_WORD } from './SpringConfigs';
+import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 
-interface Props {
-  words?: string[];
+export const TextKinetic: React.FC<{
+  words: string[] | string;
   accentColor?: string;
-  accentWordIndex?: number;
-  staggerFrames?: number;
   fontSize?: number;
-  color?: string;
-}
-
-export const TextKinetic: React.FC<Props> = ({
-  words = ['Hello', 'World'],
+  fontFamily?: string;
+  backgroundColor?: string;
+}> = ({
+  words: wordsProp,
   accentColor = '#d400ff',
-  accentWordIndex = 0,
-  staggerFrames = 6,
   fontSize = 96,
-  color = '#ffffff',
+  fontFamily = "'Anton', sans-serif",
+  backgroundColor = '#000000',
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const words = typeof wordsProp === 'string' ? wordsProp.split(' ') : wordsProp;
 
   return (
-    <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: 12, padding: 48 }}>
-      {words.map((word, i) => {
-        const delay = i * staggerFrames;
-        const progress = spring({ frame: frame - delay, fps, config: SPRING_WORD });
-        const scale = interpolate(progress, [0, 1], [0, 1]);
-        const y = interpolate(progress, [0, 1], [30, 0]);
-        const blur = interpolate(progress, [0, 1], [4, 0]);
-        const isAccent = i === accentWordIndex;
+    <AbsoluteFill
+      style={{
+        backgroundColor,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '0 60px',
+      }}
+    >
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 16 }}>
+        {words.map((word, i) => {
+          const delay = i * 6;
+          const progress = spring({
+            frame: frame - delay,
+            fps,
+            config: { damping: 24, stiffness: 280, mass: 0.8 },
+            durationInFrames: 30,
+          });
+          const scale = interpolate(progress, [0, 1], [0.5, 1]);
+          const opacity = interpolate(progress, [0, 0.3, 1], [0, 1, 1]);
+          const translateY = interpolate(progress, [0, 1], [40, 0]);
 
-        return (
-          <span
-            key={i}
-            style={{
-              fontSize,
-              fontWeight: 900,
-              fontFamily: 'Anton, sans-serif',
-              color: isAccent ? accentColor : color,
-              transform: `scale(${scale}) translateY(${y}px)`,
-              filter: `blur(${blur}px)`,
-              display: 'inline-block',
-              lineHeight: 1.1,
-              textTransform: 'uppercase',
-              letterSpacing: '0.02em',
-            }}
-          >
-            {word}
-          </span>
-        );
-      })}
+          return (
+            <span
+              key={i}
+              style={{
+                fontFamily,
+                fontSize,
+                fontWeight: 700,
+                color: i === words.length - 1 ? accentColor : '#ffffff',
+                transform: `scale(${scale}) translateY(${translateY}px)`,
+                opacity,
+                display: 'inline-block',
+                textTransform: 'uppercase',
+                letterSpacing: '-0.02em',
+              }}
+            >
+              {word}
+            </span>
+          );
+        })}
+      </div>
     </AbsoluteFill>
   );
 };

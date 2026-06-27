@@ -1,29 +1,63 @@
+/**
+ * SfxLayer — renders one <Audio> per SoundEvent in manifest.soundDesign.
+ *
+ * Each event fires at its startFrame, plays for durationFrames, then stops.
+ * Volume is driven by interpolate so it fades cleanly at boundaries rather
+ * than popping. All timing is a pure function of the frame, no side-effects.
+ *
+ * SFX files live in public/sfx/{name}.mp3 (Kenney SFX pack, CC0).
+ */
+
 import React from 'react';
-import { Audio, useCurrentFrame, useVideoConfig } from 'remotion';
-import { SfxEvent } from '../../pipeline/types';
+import { Audio, Sequence, interpolate, staticFile, useCurrentFrame } from 'remotion';
+import type { SoundEvent } from '../../pipeline/types';
 
-interface Props {
-  events: SfxEvent[];
-  sfxBasePath?: string;
-}
+const FADE_FRAMES = 3;
 
-export const SfxLayer: React.FC<Props> = ({ events, sfxBasePath = '/sfx' }) => {
+const SfxEvent: React.FC<{ event: SoundEvent }> = ({ event }) => {
   const frame = useCurrentFrame();
+  const { name, durationFrames, volume = 1 } = event;
+
+  // Tiny linear fade-in/out to avoid click artifacts at boundaries.
+  // Guard: when durationFrames is very short, skip fading to keep inputRange monotonic.
+  const canFade = durationFrames > FADE_FRAMES * 2;
+  const fadeOut = canFade ? durationFrames - FADE_FRAMES : durationFrames;
+  const vol = canFade
+    ? interpolate(
+        frame,
+        [0, FADE_FRAMES, fadeOut, durationFrames],
+        [0, volume, volume, 0],
+        { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
+      )
+    : interpolate(frame, [0, durationFrames], [volume, volume], {
+        extrapolateLeft: 'clamp',
+        extrapolateRight: 'clamp',
+      });
 
   return (
+    <Audio
+      src={staticFile(`sfx/${name}.mp3`)}
+      volume={vol}
+      startFrom={0}
+    />
+  );
+};
+
+export const SfxLayer: React.FC<{
+  soundDesign: SoundEvent[];
+}> = ({ soundDesign }) => {
+  return (
     <>
-      {events.map((ev, i) => {
-        if (frame < ev.frame || frame > ev.frame + 60) return null;
-        const startFrom = frame - ev.frame;
-        return (
-          <Audio
-            key={`${ev.sfxKey}-${ev.frame}-${i}`}
-            src={`${sfxBasePath}/${ev.sfxKey}.mp3`}
-            startFrom={startFrom}
-            volume={ev.volume}
-          />
-        );
-      })}
+      {soundDesign.map((event) => (
+        <Sequence
+          key={event.id}
+          from={event.startFrame}
+          durationInFrames={event.durationFrames}
+          layout="none"
+        >
+          <SfxEvent event={event} />
+        </Sequence>
+      ))}
     </>
   );
 };

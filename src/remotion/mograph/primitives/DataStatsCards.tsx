@@ -1,61 +1,59 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame, spring, useVideoConfig, interpolate } from 'remotion';
-import { SPRING_GENTLE } from './SpringConfigs';
+import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 
-interface StatCard {
-  label?: string;
-  value?: string;
-  color?: string;
-}
+export interface StatCard { value: string; label: string; color?: string; }
 
-interface Props {
-  stats?: StatCard[];
-  accentColor?: string;
+export const DataStatsCards: React.FC<{
+  stats: StatCard[];
   backgroundColor?: string;
-}
-
-const DEFAULT_STATS: StatCard[] = [
-  { label: 'Revenue', value: '$4.2B', color: '#00ff88' },
-  { label: 'Users', value: '2.1M', color: '#d400ff' },
-  { label: 'Growth', value: '+340%', color: '#ff6b35' },
-  { label: 'Markets', value: '47', color: '#00f0ff' },
-];
-
-export const DataStatsCards: React.FC<Props> = ({
-  stats = DEFAULT_STATS,
-  accentColor = '#00ff88',
-  backgroundColor = 'transparent',
+  accentColor?: string;
+}> = ({
+  stats,
+  backgroundColor = '#0a0a0a',
+  accentColor = '#d400ff',
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const items = stats.slice(0, 4);
+  const cols = items.length <= 2 ? 1 : 2;
 
   return (
-    <AbsoluteFill style={{ backgroundColor, alignItems: 'center', justifyContent: 'center', padding: 60 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, width: '100%' }}>
-        {stats.map((stat, i) => {
+    <AbsoluteFill
+      style={{
+        backgroundColor,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 60,
+      }}
+    >
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 32, width: '100%' }}>
+        {items.map((stat, i) => {
           const delay = i * 8;
-          const progress = spring({ frame: frame - delay, fps, config: SPRING_GENTLE });
-          const scale = interpolate(progress, [0, 1], [0.8, 1]);
-          const opacity = interpolate(progress, [0, 0.3, 1], [0, 0, 1]);
-          const color = stat.color ?? accentColor;
+          const p = spring({ frame: frame - delay, fps, config: { damping: 28, stiffness: 280 }, durationInFrames: 35 });
+          const scale = interpolate(p, [0, 1], [0.8, 1]);
+          const opacity = interpolate(p, [0, 0.4, 1], [0, 1, 1]);
+          const col = stat.color || accentColor;
 
           return (
             <div
               key={i}
               style={{
-                background: `${color}11`,
-                border: `1px solid ${color}33`,
+                background: 'rgba(255,255,255,0.04)',
+                border: `1px solid ${col}44`,
                 borderRadius: 20,
-                padding: '32px 24px',
+                padding: '36px 32px',
+                textAlign: 'center',
                 transform: `scale(${scale})`,
                 opacity,
+                boxShadow: `0 0 40px ${col}22`,
               }}
             >
-              <div style={{ fontSize: 18, fontFamily: 'Space Grotesk, sans-serif', color: `${color}99`, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
-                {stat.label}
-              </div>
-              <div style={{ fontSize: 52, fontFamily: 'JetBrains Mono, monospace', fontWeight: 900, color, lineHeight: 1 }}>
+              <div style={{ fontFamily: "'Anton', sans-serif", fontSize: 72, fontWeight: 700, color: col, lineHeight: 1, letterSpacing: '-0.03em' }}>
                 {stat.value}
+              </div>
+              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 34, color: 'rgba(255,255,255,0.7)', marginTop: 12, lineHeight: 1.3 }}>
+                {stat.label}
               </div>
             </div>
           );

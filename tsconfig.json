@@ -1,16 +1,24 @@
 {
   "compilerOptions": {
-    "target": "ES2023",
-    "lib": ["DOM", "ES2023"],
+    "target": "ES2020",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "jsx": "react",
+    "jsx": "react-jsx",
     "strict": true,
-    "allowSyntheticDefaultImports": true,
+    "noEmit": true,
+    "lib": ["ES2020", "DOM"],
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "outDir": "dist"
+    "forceConsistentCasingInFileNames": true,
+    "noUnusedLocals": false,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "paths": {
+      "@/pipeline/*": ["./src/pipeline/*"],
+      "@/remotion/*": ["./src/remotion/*"],
+      "@/scripts/*": ["./src/scripts/*"]
+    }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "remotion.config.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src"],
+  "exclude": ["remotion.config.ts", "node_modules"]
 }

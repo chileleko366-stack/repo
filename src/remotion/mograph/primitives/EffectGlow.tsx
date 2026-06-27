@@ -1,40 +1,27 @@
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, useCurrentFrame } from 'remotion';
 
-interface Props {
-  color?: string;
-  radius?: number;
-  opacity?: number;
-  x?: number;
-  y?: number;
-}
-
-export const EffectGlow: React.FC<Props> = ({
-  color = '#d400ff',
-  radius = 400,
-  opacity = 0.6,
-  x = 50,
-  y = 50,
+export const EffectGlow: React.FC<{
+  accentColor?: string;
+  pulseSpeed?: number;
+}> = ({
+  accentColor = '#d400ff',
+  pulseSpeed = 0.1,
 }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const pulse = opacity * (0.85 + 0.15 * Math.sin(frame / fps * Math.PI * 1.5));
+  const pulse = 0.5 + Math.sin(frame * pulseSpeed) * 0.5;
+  const scale = 0.8 + pulse * 0.4;
 
   return (
-    <AbsoluteFill style={{ pointerEvents: 'none', mixBlendMode: 'screen' }}>
-      <div
-        style={{
-          position: 'absolute',
-          left: `${x}%`,
-          top: `${y}%`,
-          width: radius * 2,
-          height: radius * 2,
-          transform: 'translate(-50%, -50%)',
-          background: `radial-gradient(circle, ${color} 0%, ${color}44 40%, transparent 70%)`,
-          opacity: pulse,
-          filter: `blur(${radius / 4}px)`,
-        }}
-      />
+    <AbsoluteFill style={{ opacity: Math.min(frame / 30, 0.8), pointerEvents: 'none' }}>
+      <div style={{
+        position: 'absolute',
+        top: '50%', left: '50%',
+        width: 600, height: 600,
+        transform: `translate(-50%, -50%) scale(${scale})`,
+        background: `radial-gradient(ellipse at center, ${accentColor}66 0%, ${accentColor}33 40%, transparent 70%)`,
+        filter: 'blur(60px)',
+      }} />
     </AbsoluteFill>
   );
 };
