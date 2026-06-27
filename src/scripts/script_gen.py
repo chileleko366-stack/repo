@@ -75,22 +75,10 @@ PROVIDERS = [
         "model": "Meta-Llama-3.3-70B-Instruct",
     },
     {
-        "name": "xai",
-        "url": "https://api.x.ai/v1/chat/completions",
-        "key_env": "XAI_API_KEY",
-        "model": "grok-3-mini",
-    },
-    {
         "name": "gemini",
         "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
         "key_env": "GEMINI_API_KEY",
         "model": "gemini-2.0-flash",
-    },
-    {
-        "name": "cerebras",
-        "url": "https://api.cerebras.ai/v1/chat/completions",
-        "key_env": "CEREBRAS_API_KEY",
-        "model": "llama3.1-8b",
     },
     {
         "name": "nvidia",
@@ -246,6 +234,8 @@ SCRIPT_SCHEMA = '''
   "hook": "<5-7 words — SHORT, specific claim or question about the topic. No generic openers.>",
   "context": "<10-14 words — one sentence establishing the specific stakes with a real number.>",
   "beats": [
+    CRITICAL: This array MUST contain EXACTLY 5 objects — no more, no fewer.
+    beat_0, beat_1, beat_2, beat_3, beat_4. Returning 3 or 4 beats is a HARD ERROR.
     {
       "narration": "<8-15 words, one complete spoken thought — do NOT split a sentence across beats>",
       "pause_after": "<breath|beat|cut> — MUST be exactly one of those three words. breath: flows immediately into next; beat: clear pause; cut: hard scene break",
@@ -316,6 +306,8 @@ def build_system_prompt(channel_id: str, topic: str, brief: ResearchBrief) -> st
         "  ch6 (space):       'Jupiter could swallow 1,300 Earths.' | 'This star's light left before humans existed.'\n"
         "\n"
         "RULES:\n"
+        "0. CRITICAL — The 'beats' array MUST contain EXACTLY 5 objects. Not 2, not 3, not 4. EXACTLY 5.\n"
+        "   beat_0, beat_1, beat_2, beat_3, beat_4. Any other count is a validation failure.\n"
         "1. This script is about the SPECIFIC topic above - NOT a generic overview of the channel niche.\n"
         "2. Every factual claim must use one of the research facts provided below.\n"
         "3. Every mechanism beat must explain HOW something works (mechanism + implication), not just WHAT.\n"
@@ -611,7 +603,7 @@ class ValidationError(Exception):
 
 # ── Main entry point ──────────────────────────────────────────────────────────
 
-def generate_script(topic: str, channel_id: str, brief: ResearchBrief, max_retries: int = 5) -> dict:
+def generate_script(topic: str, channel_id: str, brief: ResearchBrief, max_retries: int = 8) -> dict:
     system = build_system_prompt(channel_id, topic, brief)
     base_user = build_user_prompt(topic, brief)
     user = base_user
