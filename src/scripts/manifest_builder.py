@@ -18,6 +18,36 @@ import json
 import re
 from pathlib import Path
 
+STOP_WORDS = {
+    "the","a","an","and","but","or","in","on","at","to","for",
+    "of","with","by","is","was","are","were","it","this","that",
+    "he","she","they","we","you","i","be","have","had","has",
+    "not","from","as","up","so","if","about","than","then","when",
+    "there","their","what","which","who","how","all","each","just"
+}
+
+
+def extract_hero_word(narration: str) -> str:
+    """Extract the most impactful word from a beat's narration.
+    Longest word over 4 chars that isn't a stop word. Deterministic, no LLM."""
+    if not narration:
+        return ""
+    words = narration.replace(",", "").replace(".", "").replace("?", "").replace("!", "").split()
+    candidates = [w for w in words if len(w) > 4 and w.lower() not in STOP_WORDS]
+    if not candidates:
+        return words[0].upper() if words else ""
+    return max(candidates, key=len).upper()
+
+
+CHANNEL_TRANSITION_STYLES = {
+    "ch1": "slide",
+    "ch2": "wipe",
+    "ch3": "fade",
+    "ch4": "slide",
+    "ch5": "fade",
+    "ch6": "wipe",
+}
+
 
 FPS = 60
 VIDEO_FRAMES = 2100
@@ -131,6 +161,8 @@ def build_manifest(script: dict, channel_id: str) -> dict:
             "morph_from": morph_from,
             "bg_color": bg_color,
             "captionsVisible": captions_visible(visual.get("kind", "none")),
+            "heroWord": extract_hero_word(narration),
+            "transitionType": CHANNEL_TRANSITION_STYLES.get(channel_id, "slide"),
             "audioPath": f"public/audio/{beat_id}.mp3",
             "wordBoundariesPath": f"public/audio/{beat_id}_words.json",
         })

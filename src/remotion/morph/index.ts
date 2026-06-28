@@ -1,4 +1,3 @@
-export { Counter } from './Counter';
-export { MorphShape } from './MorphShape';
-export { MorphText } from './MorphText';
-export { Odometer } from './Odometer';
+export { MorphShape } from "./MorphShape";
+export { Counter } from "./Counter";
+export { Odometer } from "./Odometer";

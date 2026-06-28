@@ -1,32 +1,17 @@
-declare module 'flubber' {
-  type InterpolateFn = (t: number) => string;
-
-  interface InterpolateOptions {
-    maxSegmentLength?: number;
-    string?: boolean;
-  }
-
+declare module "flubber" {
   export function interpolate(
     fromPath: string,
     toPath: string,
-    options?: InterpolateOptions,
-  ): InterpolateFn;
-
+    options?: { maxSegmentLength?: number }
+  ): (t: number) => string;
   export function separate(
     fromPath: string,
     toPaths: string[],
-    options?: InterpolateOptions,
-  ): InterpolateFn[];
-
+    options?: { maxSegmentLength?: number; single?: boolean }
+  ): ((t: number) => string)[];
   export function combine(
     fromPaths: string[],
     toPath: string,
-    options?: InterpolateOptions,
-  ): InterpolateFn[];
-
-  export function interpolateAll(
-    fromPaths: string[],
-    toPaths: string[],
-    options?: InterpolateOptions,
-  ): InterpolateFn[];
+    options?: { maxSegmentLength?: number; single?: boolean }
+  ): ((t: number) => string)[];
 }

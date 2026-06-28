@@ -37,7 +37,7 @@ import type { TimedBeat } from '../transitions/BeatCompositor';
 import { CaptionPage } from './CaptionPage';
 
 // Word-by-word: one page per 400ms
-const COMBINE_WITHIN_MS = 400;
+const COMBINE_WITHIN_MS = 800;
 
 export interface WordBoundary {
   word: string;
