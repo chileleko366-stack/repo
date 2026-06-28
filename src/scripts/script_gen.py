@@ -4,11 +4,9 @@ Script generation stage — multi-provider LLM with automatic rate-limit fallbac
 Provider chain (tries each in order on 429 / unavailable key):
   1. Groq          GROQ_API_KEY        llama-3.3-70b-versatile
   2. SambaNova     SAMBANOVA_API_KEY   Meta-Llama-3.3-70B-Instruct
-  3. xAI / Grok    XAI_API_KEY         grok-3-mini
-  4. Gemini        GEMINI_API_KEY      gemini-2.0-flash
-  5. Cerebras      CEREBRAS_API_KEY    llama3.3-70b   (free tier 60K TPM)
-  6. NVIDIA NIM    NVIDIA_API_KEY      meta/llama-3.3-70b-instruct (free 1K credits)
-  7. Mistral       MISTRAL_API_KEY     mistral-small-latest (free tier)
+  3. Gemini        GEMINI_API_KEY      gemini-2.0-flash
+  4. NVIDIA NIM    NVIDIA_API_KEY      meta/llama-3.3-70b-instruct (free 1K credits)
+  5. Mistral       MISTRAL_API_KEY     mistral-small-latest (free tier)
 
 All providers expose an OpenAI-compatible /chat/completions endpoint,
 so a single requests-based caller handles everything.
@@ -75,22 +73,10 @@ PROVIDERS = [
         "model": "Meta-Llama-3.3-70B-Instruct",
     },
     {
-        "name": "xai",
-        "url": "https://api.x.ai/v1/chat/completions",
-        "key_env": "XAI_API_KEY",
-        "model": "grok-3-mini",
-    },
-    {
         "name": "gemini",
         "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
         "key_env": "GEMINI_API_KEY",
         "model": "gemini-2.0-flash",
-    },
-    {
-        "name": "cerebras",
-        "url": "https://api.cerebras.ai/v1/chat/completions",
-        "key_env": "CEREBRAS_API_KEY",
-        "model": "llama3.1-8b",
     },
     {
         "name": "nvidia",

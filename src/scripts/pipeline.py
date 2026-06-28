@@ -11,7 +11,7 @@ Pipeline stages:
   1. research   — fetch real facts from Wikipedia / PubMed / NASA etc.
   2. script     — Groq LLM → validated 35s script JSON
   3. manifest   — timing layout → out/{channel_id}/manifest.json
-  4. tts        — edge-tts word-boundary audio per beat
+  4. tts        — kokoro word-boundary audio per beat
   5. assets     — resolver: person/brand/place/map
   5b. shotbrief — Groq Shot Brief per beat (staging/composition/motion)
   6. sound      — SFX event schedule

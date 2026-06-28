@@ -35,6 +35,11 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
 
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq espeak-ng
+
       - run: pip install -r requirements.txt
 
       - name: Install system deps for Remotion
@@ -50,9 +55,7 @@ jobs:
           cat > .env << 'ENVEOF'
           GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}
           SAMBANOVA_API_KEY=${{ secrets.SAMBANOVA_API_KEY }}
-          XAI_API_KEY=${{ secrets.XAI_API_KEY }}
           GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
-          CEREBRAS_API_KEY=${{ secrets.CEREBRAS_API_KEY }}
           NVIDIA_API_KEY=${{ secrets.NVIDIA_API_KEY }}
           MISTRAL_API_KEY=${{ secrets.MISTRAL_API_KEY }}
           ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
