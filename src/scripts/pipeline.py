@@ -214,8 +214,12 @@ def main():
     channel_ids = load_all_channel_ids()
 
     if args.all:
+        import time as _time
         failed = []
-        for cid in channel_ids:
+        for i, cid in enumerate(channel_ids):
+            if i > 0:
+                print(f"[pipeline] cooling down 15s before {cid} (rate-limit recovery)...")
+                _time.sleep(15)
             topic = pick_topic(cid)
             try:
                 run_pipeline(cid, topic, dry_run=args.dry_run, mock=args.mock)
