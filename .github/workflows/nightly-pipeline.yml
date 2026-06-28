@@ -79,6 +79,12 @@ jobs:
           YT_CH6_REFRESH_TOKEN=${{ secrets.YT_CH6_REFRESH_TOKEN }}
           ENVEOF
 
+      - name: Cache rembg model
+        uses: actions/cache@v4
+        with:
+          path: ~/.u2net
+          key: rembg-u2net-v0
+
       - name: Generate content (Python pipeline)
         run: |
           CH="${{ github.event.inputs.channel }}"

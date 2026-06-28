@@ -160,6 +160,8 @@ def llm_complete(system: str, user: str) -> str:
             reason = "rate limited" if e.status == 429 else f"unavailable ({e.status})"
             print(f"[script_gen] {provider['name']} {reason}, trying next...")
             skipped.append(f"{provider['name']} ({e.status})")
+            if e.status == 429:
+                time.sleep(2)
         except EnvironmentError:
             skipped.append(f"{provider['name']} (no key)")
         except Exception as e:

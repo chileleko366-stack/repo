@@ -122,17 +122,26 @@ def _generate_beat_audio_sync(narration, channel_id, beat_id, output_dir="public
     all_word_boundaries = []
     cumulative_duration_ms = 0.0
 
-    for _gs, _ps, result in pipeline(narration, voice=voice, speed=speed):
-        if result is None:
+    for gs, ps, audio in pipeline(narration, voice=voice, speed=speed):
+        if audio is None or (hasattr(audio, '__len__') and len(audio) == 0):
             continue
-        audio_chunk = getattr(result, "audio", None)
-        if audio_chunk is None or len(audio_chunk) == 0:
-            continue
-        chunk_duration_ms = len(audio_chunk) / SAMPLE_RATE * 1000
-        tokens = getattr(result, "tokens", None) or []
-        boundaries = _tokens_to_word_boundaries(tokens, cumulative_offset_ms=cumulative_duration_ms)
-        all_word_boundaries.extend(boundaries)
-        all_audio_chunks.append(audio_chunk)
+        chunk_duration_ms = len(audio) / SAMPLE_RATE * 1000.0
+        if gs and gs.strip():
+            words = [w for w in gs.split() if w.strip()]
+            if words:
+                total_chars = sum(len(w) for w in words)
+                offset_ms = cumulative_duration_ms
+                for word in words:
+                    ratio = len(word) / max(total_chars, 1)
+                    word_duration_ms = max(50, int(chunk_duration_ms * ratio))
+                    all_word_boundaries.append({
+                        "word": word,
+                        "startMs": int(offset_ms),
+                        "durationMs": word_duration_ms,
+                        "endMs": int(offset_ms) + word_duration_ms,
+                    })
+                    offset_ms += word_duration_ms
+        all_audio_chunks.append(audio)
         cumulative_duration_ms += chunk_duration_ms
 
     if not all_audio_chunks:
