@@ -32,8 +32,6 @@ import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatComposito
 import type { TimedBeat } from '../../transitions/BeatCompositor';
 import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { HardCutFlash } from './HardCutFlash';
-import { SocialFigure3D } from './SocialFigure3D';
-import type { SocialFigureVariant } from './SocialFigure3D';
 
 const CFG = CHANNEL_CONFIGS.ch1;
 
@@ -94,18 +92,6 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         />
       )}
 
-      {/* 3D social figure for non-asset, non-shotbrief beats */}
-      {!isFullscreen && !hasShotBrief && (() => {
-        const sk = beat.sectionKey ?? '';
-        const beatNum = sk.startsWith('beat_') ? parseInt(sk.replace('beat_', ''), 10) : 0;
-        const BEAT_VARIANTS: SocialFigureVariant[] = ['xbot', 'michelle', 'kira'];
-        const variant: SocialFigureVariant =
-          sk === 'hook' ? 'xbot' :
-          sk === 'context' ? 'michelle' :
-          sk === 'outro' ? 'kira' :
-          BEAT_VARIANTS[beatNum % BEAT_VARIANTS.length];
-        return <SocialFigure3D variant={variant} />;
-      })()}
 
       {/* ShotBrief-driven layout: primitive at primaryAnchor position with depth effects */}
       {hasShotBrief && !isFullscreen && (

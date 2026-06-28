@@ -30,9 +30,6 @@ import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatComposito
 import type { TimedBeat } from '../../transitions/BeatCompositor';
 import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { HardCutFlash } from './HardCutFlash';
-import { NeuroObject3D } from './NeuroObject3D';
-import type { NeuroVariant } from './NeuroObject3D';
-import { ThreeBrain } from './ThreeBrain';
 
 const CFG = CHANNEL_CONFIGS.ch4;
 
@@ -132,20 +129,6 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         />
       )}
 
-      {/* Anatomy: 3-D brain */}
-      {isAnatomy && <ThreeBrain durationFrames={durationFrames} />}
-
-      {/* Neuro objects for non-anatomy, non-fullscreen, non-shotbrief beats */}
-      {!isAnatomy && !isFullscreen && !hasShotBrief && (() => {
-        const sk = beat.sectionKey ?? '';
-        const beatNum = sk.startsWith('beat_') ? parseInt(sk.replace('beat_', ''), 10) : 0;
-        const BEAT_VARIANTS: NeuroVariant[] = ['fish', 'crystal', 'skull', 'vase', 'mosquito'];
-        const variant: NeuroVariant =
-          sk === 'hook' ? 'spheres' :
-          sk === 'context' ? 'plant' :
-          BEAT_VARIANTS[beatNum % BEAT_VARIANTS.length];
-        return <NeuroObject3D variant={variant} />;
-      })()}
 
       {/* Gradient scrim */}
       {(isFullscreen || isAnatomy) && (

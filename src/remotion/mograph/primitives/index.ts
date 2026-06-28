@@ -12,7 +12,6 @@ export type { ChatMessage } from './ChatBubbles';
 export { WordCarousel } from './WordCarousel';
 export { StaggeredSequence } from './StaggeredSequence';
 export { SocialFrame, SOCIAL_SAFE_ZONE } from './SocialFrame';
-export { Scene3D, frameRotation, frameBob } from './Scene3D';
 export { GlassCard } from './GlassCard';
 export type { GlassCardProps } from './GlassCard';
 export { TypographicCard } from './TypographicCard';

@@ -34,9 +34,6 @@ import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatComposito
 import type { TimedBeat } from '../../transitions/BeatCompositor';
 import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { CandlestickChart } from './CandlestickChart';
-import { Ferrari3D } from './Ferrari3D';
-import { LuxuryObject3D } from './LuxuryObject3D';
-import type { LuxuryVariant } from './LuxuryObject3D';
 import { TickerTape } from './TickerTape';
 
 const CFG = CHANNEL_CONFIGS.ch2;
@@ -97,17 +94,6 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         />
       )}
 
-      {/* 3D object on non-asset beats — Ferrari on hook, luxury objects elsewhere */}
-      {!isFullscreen && (() => {
-        const sk = beat.sectionKey ?? '';
-        if (sk === 'hook') return <Ferrari3D durationFrames={durationFrames} />;
-        const variant: LuxuryVariant =
-          kind === 'stat' ? 'watch' :
-          kind === 'chart' ? 'gears' :
-          sk === 'context' ? 'city' :
-          'rolex';
-        return <LuxuryObject3D variant={variant} />;
-      })()}
 
       {/* ShotBrief-driven layout: primitive at primaryAnchor */}
       {hasShotBrief && (

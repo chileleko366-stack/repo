@@ -29,9 +29,6 @@ import { Soundtrack } from '../../sound/Soundtrack';
 import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
 import type { TimedBeat } from '../../transitions/BeatCompositor';
 import { KineticTextLayer } from '../../mograph/KineticTextLayer';
-import { CelestialBody } from './CelestialBody';
-import { CosmicObject3D } from './CosmicObject3D';
-import type { CosmicVariant } from './CosmicObject3D';
 import { HardCutFlash } from './HardCutFlash';
 import { Starfield } from './Starfield';
 
@@ -133,24 +130,6 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         />
       )}
 
-      {isCelestial && (
-        <CelestialBody
-          bodyName={beat.visual.value ?? 'Jupiter'}
-          durationInFrames={durationFrames}
-        />
-      )}
-
-      {/* Cosmic object on non-celestial, non-asset, non-stat beats */}
-      {!isCelestial && !isFullscreen && !isStat && (() => {
-        const sk = beat.sectionKey ?? '';
-        const beatNum = sk.startsWith('beat_') ? parseInt(sk.replace('beat_', ''), 10) : 0;
-        const BEAT_VARIANTS: CosmicVariant[] = ['ion_drive', 'crystal', 'dispersion', 'shatter', 'shader_ball'];
-        const variant: CosmicVariant =
-          sk === 'hook' ? 'ship_hallway' :
-          sk === 'context' ? 'spheres' :
-          BEAT_VARIANTS[beatNum % BEAT_VARIANTS.length];
-        return <CosmicObject3D variant={variant} />;
-      })()}
 
       {needsScrim && (
         <div

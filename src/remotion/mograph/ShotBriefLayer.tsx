@@ -27,8 +27,6 @@ import { AbsoluteFill } from 'remotion';
 import type { ManifestBeat } from '../../pipeline/types';
 import type { ShotBrief } from '../../pipeline/shotBrief';
 import { AssetLayer } from '../assets/AssetLayer';
-import { CelestialBody } from '../channels/ch6/CelestialBody';
-import { ThreeBrain } from '../channels/ch4/ThreeBrain';
 import { CandlestickChart } from '../channels/ch2/CandlestickChart';
 import { ScrambleReveal } from '../channels/ch3/ScrambleReveal';
 import { ClassifiedStamp } from '../channels/ch3/ClassifiedStamp';
@@ -213,17 +211,8 @@ function PrimitiveDispatch({
     // ── Channel-specific bespoke components ─────────────────────────────────
 
     case 'CelestialBody':
-      if (channelId !== 'ch6') return <FallbackCard brief={brief} beat={beat} accentColor={accentColor} bgColor={bgColor} />;
-      return (
-        <CelestialBody
-          bodyName={beat.visual.value ?? 'Jupiter'}
-          durationInFrames={beat.durationFrames}
-        />
-      );
-
     case 'ThreeBrain':
-      if (channelId !== 'ch4') return <FallbackCard brief={brief} beat={beat} accentColor={accentColor} bgColor={bgColor} />;
-      return <ThreeBrain />;
+      return <FallbackCard brief={brief} beat={beat} accentColor={accentColor} bgColor={bgColor} />;
 
     case 'CandlestickChart':
       if (channelId !== 'ch2') return <FallbackCard brief={brief} beat={beat} accentColor={accentColor} bgColor={bgColor} />;
