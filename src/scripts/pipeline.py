@@ -11,7 +11,7 @@ Pipeline stages:
   1. research   — fetch real facts from Wikipedia / PubMed / NASA etc.
   2. script     — Groq LLM → validated 35s script JSON
   3. manifest   — timing layout → out/{channel_id}/manifest.json
-  4. tts        — edge-tts word-boundary audio per beat
+  4. tts        — kokoro word-boundary audio per beat
   5. assets     — resolver: person/brand/place/map
   5b. shotbrief — Groq Shot Brief per beat (staging/composition/motion)
   6. sound      — SFX event schedule
@@ -214,8 +214,12 @@ def main():
     channel_ids = load_all_channel_ids()
 
     if args.all:
+        import time as _time
         failed = []
-        for cid in channel_ids:
+        for i, cid in enumerate(channel_ids):
+            if i > 0:
+                print(f"[pipeline] cooling down 15s before {cid} (rate-limit recovery)...")
+                _time.sleep(15)
             topic = pick_topic(cid)
             try:
                 run_pipeline(cid, topic, dry_run=args.dry_run, mock=args.mock)

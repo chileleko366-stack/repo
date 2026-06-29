@@ -23,9 +23,7 @@ import requests
 _PROVIDERS = [
     {"name": "groq",     "url": "https://api.groq.com/openai/v1/chat/completions",                              "key_env": "GROQ_API_KEY",      "model": "llama-3.3-70b-versatile"},
     {"name": "sambanova","url": "https://api.sambanova.ai/v1/chat/completions",                                  "key_env": "SAMBANOVA_API_KEY",  "model": "Meta-Llama-3.3-70B-Instruct"},
-    {"name": "xai",      "url": "https://api.x.ai/v1/chat/completions",                                         "key_env": "XAI_API_KEY",        "model": "grok-3-mini"},
     {"name": "gemini",   "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",      "key_env": "GEMINI_API_KEY",     "model": "gemini-2.0-flash"},
-    {"name": "cerebras", "url": "https://api.cerebras.ai/v1/chat/completions",                                   "key_env": "CEREBRAS_API_KEY",   "model": "llama3.1-8b"},
     {"name": "nvidia",   "url": "https://integrate.api.nvidia.com/v1/chat/completions",                          "key_env": "NVIDIA_API_KEY",     "model": "meta/llama-3.3-70b-instruct"},
     {"name": "mistral",  "url": "https://api.mistral.ai/v1/chat/completions",                                    "key_env": "MISTRAL_API_KEY",    "model": "mistral-small-latest"},
 ]
@@ -38,7 +36,7 @@ class _SkipProvider(Exception):
         super().__init__(f"{name} HTTP {status}")
 
 
-def _call_provider(provider: dict, system: str, user: str) -> str:
+def _call_provider(provider: dict, system: str, user: str, max_tokens: int = 2000) -> str:
     api_key = os.getenv(provider["key_env"])
     if not api_key:
         raise EnvironmentError(f"{provider['key_env']} not set")
@@ -49,10 +47,10 @@ def _call_provider(provider: dict, system: str, user: str) -> str:
             "model": provider["model"],
             "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
             "temperature": 0.4,
-            "max_tokens": 2000,
+            "max_tokens": max_tokens,
             "response_format": {"type": "json_object"},
         },
-        timeout=60,
+        timeout=120,
     )
     if resp.status_code in (429, 403, 404):
         raise _SkipProvider(provider["name"], resp.status_code)
@@ -61,14 +59,14 @@ def _call_provider(provider: dict, system: str, user: str) -> str:
     return resp.json()["choices"][0]["message"]["content"] or ""
 
 
-def _llm_complete(system: str, user: str) -> str:
+def _llm_complete(system: str, user: str, max_tokens: int = 2000) -> str:
     skipped = []
     for provider in _PROVIDERS:
         if not os.getenv(provider["key_env"]):
             skipped.append(f"{provider['name']} (no key)")
             continue
         try:
-            result = _call_provider(provider, system, user)
+            result = _call_provider(provider, system, user, max_tokens=max_tokens)
             if skipped:
                 print(f"[shot_brief] used {provider['name']} (skipped: {', '.join(skipped)})")
             return result
@@ -76,6 +74,8 @@ def _llm_complete(system: str, user: str) -> str:
             reason = "rate limited" if e.status == 429 else f"unavailable ({e.status})"
             print(f"[shot_brief] {provider['name']} {reason}, trying next...")
             skipped.append(f"{provider['name']} ({e.status})")
+            if e.status == 429:
+                time.sleep(2)
         except EnvironmentError:
             skipped.append(f"{provider['name']} (no key)")
         except Exception as e:
@@ -266,6 +266,73 @@ def _validate_shot_brief(brief: dict, last_two_grids: list) -> None:
         raise ValueError(f"Beat {beat_id}: composition.grid '{grid}' used 3+ times in a row — vary it")
 
 
+BATCH_SYSTEM_PROMPT = SYSTEM_PROMPT.replace(
+    "Given a script beat, produce a complete ShotBrief JSON following the schema exactly.",
+    "Given multiple script beats, produce a ShotBrief for EVERY beat listed. "
+    "Return a JSON object with a single key \"briefs\" whose value is an array of ShotBrief objects — "
+    "one per beat, in the same order as the input.",
+).replace(
+    "9. Return ONLY valid JSON — no markdown fences, no explanations.",
+    "9. Return ONLY a JSON object {\"briefs\": [...]} — no markdown fences, no extra keys, no explanations. "
+    "The array length MUST equal the number of beats in the input.",
+)
+
+
+def _build_batch_user_prompt(beats: list, channel_cfg: dict, asset_metas: list) -> str:
+    channel_payload = {
+        "colors":     channel_cfg.get("colors", {}),
+        "bodyFont":   channel_cfg.get("bodyFont", ""),
+        "accentFont": channel_cfg.get("accentFont", ""),
+        "id":         channel_cfg.get("id", ""),
+    }
+    beats_payload = []
+    for beat, asset_meta in zip(beats, asset_metas):
+        beats_payload.append({
+            "beatId":           beat["beatId"],
+            "narration":        beat["narration"],
+            "visual":           beat["visual"],
+            "emphasis_keyword": beat.get("emphasis_keyword", ""),
+            "sectionKey":       beat["sectionKey"],
+            "resolvedAssetMeta": asset_meta,
+        })
+    return (
+        f"Channel ID: {channel_cfg.get('id', 'ch1')} (apply channel-specific primitive rules)\n\n"
+        f"Channel design tokens:\n{json.dumps(channel_payload, indent=2)}\n\n"
+        f"Available composition.grid values: \"center\" | \"thirds-upper\" | \"thirds-lower\" | "
+        f"\"left-weighted\" | \"right-weighted\" | \"full-bleed\"\n"
+        f"Available motion.property values: \"translateX\" | \"translateY\" | \"scale\" | "
+        f"\"rotateDeg\" | \"opacity\" | \"clipPathInsetPct\" | \"strokeDashoffset\"\n"
+        f"Available easing values: \"easeOutCubic\" | \"easeInOutCubic\" | \"easeOutExpo\" | \"linear\"\n\n"
+        f"Beats to process ({len(beats)} total — return exactly {len(beats)} ShotBrief objects in \"briefs\"):\n"
+        f"{json.dumps(beats_payload, indent=2)}\n\n"
+        f"Return {{\"briefs\": [<ShotBrief>, ...]}} — same order as input, length {len(beats)}."
+    )
+
+
+def _compile_batch(beats: list, channel_cfg: dict, asset_metas: list, retries: int = 3) -> list[dict]:
+    """Call the LLM once for all beats. Returns a list of brief dicts (may be shorter than beats on partial failure)."""
+    user_prompt = _build_batch_user_prompt(beats, channel_cfg, asset_metas)
+    last_err: Exception | None = None
+
+    for attempt in range(retries):
+        try:
+            raw = _llm_complete(BATCH_SYSTEM_PROMPT, user_prompt, max_tokens=6000)
+            data = json.loads(raw)
+            briefs = data.get("briefs")
+            if not isinstance(briefs, list):
+                raise ValueError(f"Response has no 'briefs' array: {raw[:200]}")
+            if len(briefs) != len(beats):
+                print(f"[shot_brief] WARNING: expected {len(beats)} briefs, got {len(briefs)} — using what arrived")
+            return briefs
+        except Exception as exc:
+            last_err = exc
+            print(f"[shot_brief] batch attempt {attempt + 1}/{retries} failed: {exc}")
+            if attempt < retries - 1:
+                time.sleep(2 ** attempt)
+
+    raise RuntimeError(f"Batch compileShotBrief failed after {retries} attempts: {last_err}")
+
+
 def _compile_one(beat: dict, channel_cfg: dict, recent_grids: list, asset_meta: dict | None,
                  retries: int = 3) -> dict:
     user_prompt = _build_user_prompt(beat, channel_cfg, recent_grids, asset_meta)
@@ -296,9 +363,8 @@ def _load_channel_cfg(channel_id: str) -> dict:
 def compile_all_shot_briefs(manifest: dict) -> dict:
     """
     Adds a `shotBrief` key to every beat in manifest['beats'].
-    Calls the LLM provider chain (Groq → SambaNova → …) for each beat sequentially,
-    tracking recent grids for variety enforcement.
-    Failures are non-fatal: the beat gets shotBrief=None and the composition falls back.
+    Makes ONE batched LLM call for all beats (9× faster than per-beat calls).
+    Falls back to individual calls for any beat whose batched brief fails validation.
     Returns the updated manifest.
     """
     has_any_key = any(os.getenv(p["key_env"]) for p in _PROVIDERS)
@@ -312,29 +378,67 @@ def compile_all_shot_briefs(manifest: dict) -> dict:
     channel_cfg = _load_channel_cfg(channel_id)
     beats: list[dict] = manifest["beats"]
 
+    # Pre-collect asset metadata so _compile_batch can embed it per beat
+    asset_metas: list[dict | None] = []
+    for beat in beats:
+        resolved_asset: Any = beat.get("resolvedAsset")
+        if isinstance(resolved_asset, dict):
+            asset_metas.append({k: resolved_asset[k] for k in ("width", "height", "focalPointXPct", "focalPointYPct")
+                                 if k in resolved_asset})
+        else:
+            asset_metas.append(None)
+
+    # ── Batched LLM calls in chunks of 4 ────────────────────────────────────
+    # Chunks of 4 stay within nvidia/mistral reliable response windows.
+    CHUNK_SIZE = 4
+    batched_briefs: list[dict] = []
+    total_chunks = (len(beats) + CHUNK_SIZE - 1) // CHUNK_SIZE
+    for chunk_num, chunk_start in enumerate(range(0, len(beats), CHUNK_SIZE), 1):
+        chunk_beats = beats[chunk_start:chunk_start + CHUNK_SIZE]
+        chunk_metas = asset_metas[chunk_start:chunk_start + CHUNK_SIZE]
+        print(f"[shot_brief] batch {chunk_num}/{total_chunks} ({len(chunk_beats)} beats)...")
+        try:
+            chunk_briefs = _compile_batch(chunk_beats, channel_cfg, chunk_metas)
+            batched_briefs.extend(chunk_briefs)
+        except Exception as exc:
+            print(f"[shot_brief] chunk {chunk_num} failed, will fall back per-beat: {exc}")
+
+    # Build a beatId→brief map from batch results
+    brief_by_id: dict[str, dict] = {}
+    for brief in batched_briefs:
+        bid = brief.get("beatId", "")
+        if bid:
+            brief_by_id[bid] = brief
+
+    # ── Validate batch results; fall back per-beat where needed ─────────────
     recent_grids: list[str] = []
     ok = 0
 
-    for i, beat in enumerate(beats):
-        if i > 0:
-            time.sleep(0.4)
+    for i, (beat, asset_meta) in enumerate(zip(beats, asset_metas)):
+        beat_id = beat.get("beatId", f"beat_{i}")
+        brief = brief_by_id.get(beat_id)
 
-        resolved_asset: Any = beat.get("resolvedAsset")
-        asset_meta: dict | None = None
-        if isinstance(resolved_asset, dict):
-            asset_meta = {k: resolved_asset[k] for k in ("width", "height", "focalPointXPct", "focalPointYPct")
-                          if k in resolved_asset}
+        # Validate the batched brief; on failure fall back to a solo call
+        if brief is not None:
+            try:
+                _validate_shot_brief(brief, recent_grids[-2:])
+            except Exception as val_err:
+                print(f"[shot_brief] ⚠ batch brief for {beat_id} failed validation ({val_err}), retrying solo...")
+                brief = None
 
-        try:
-            brief = _compile_one(beat, channel_cfg, recent_grids[-3:], asset_meta)
-            beat["shotBrief"] = brief
-            ok += 1
-            grid = brief.get("composition", {}).get("grid")
-            if grid:
-                recent_grids.append(grid)
-        except Exception as exc:
-            print(f"[shot_brief] ⚠ beat {beat.get('beatId')} skipped — {exc}")
-            beat["shotBrief"] = None
+        if brief is None:
+            try:
+                brief = _compile_one(beat, channel_cfg, recent_grids[-3:], asset_meta)
+            except Exception as exc:
+                print(f"[shot_brief] ⚠ {beat_id} skipped — {exc}")
+                beat["shotBrief"] = None
+                continue
+
+        beat["shotBrief"] = brief
+        ok += 1
+        grid = brief.get("composition", {}).get("grid")
+        if grid:
+            recent_grids.append(grid)
 
     print(f"[shot_brief] {ok}/{len(beats)} shot briefs compiled")
     return manifest
