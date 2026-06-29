@@ -89,15 +89,7 @@ jobs:
       - name: Pre-download rembg model if cache miss
         if: steps.cache-u2net.outputs.cache-hit != 'true'
         run: |
-          python3 -c "
-import urllib.request, os, pathlib
-pathlib.Path(os.path.expanduser('~/.u2net')).mkdir(exist_ok=True)
-url = 'https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net.onnx'
-dest = os.path.expanduser('~/.u2net/u2net.onnx')
-print('Downloading u2net.onnx...')
-urllib.request.urlretrieve(url, dest)
-print(f'Done: {os.path.getsize(dest)//1024//1024}MB')
-"
+          python3 -c "import urllib.request,os,pathlib; p=os.path.expanduser('~/.u2net'); pathlib.Path(p).mkdir(exist_ok=True); f=p+'/u2net.onnx'; urllib.request.urlretrieve('https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net.onnx',f); print(str(os.path.getsize(f)//1024//1024)+'MB')"
 
       - name: Cache HuggingFace models (Kokoro-82M)
         id: cache-hf
@@ -113,15 +105,7 @@ print(f'Done: {os.path.getsize(dest)//1024//1024}MB')
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           HF_HUB_DISABLE_PROGRESS_BARS: "1"
         run: |
-          python3 -c "
-import os
-os.environ['HF_HUB_DISABLE_PROGRESS_BARS'] = '1'
-from kokoro import KPipeline
-p = KPipeline(lang_code='a')
-for gs, ps, audio in p('test', voice='af_heart'):
-    break
-print('Kokoro model cached')
-"
+          python3 -c "import os; os.environ['HF_HUB_DISABLE_PROGRESS_BARS']='1'; from kokoro import KPipeline; p=KPipeline(lang_code='a'); next(iter(p('test',voice='af_heart')),None); print('Kokoro model cached')"
 
       - name: Generate content (Python pipeline)
         env:
