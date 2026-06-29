@@ -1,23 +1,18 @@
-import os
-os.environ.setdefault("OMP_NUM_THREADS", "1")
-os.environ.setdefault("MKL_NUM_THREADS", "1")
-os.environ.setdefault("TORCH_NUM_THREADS", "1")
-os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
-
 """
 tts.py — Kokoro TTS engine for Dopamine Studios.
 
-Replaces edge-tts (Microsoft blocks GitHub Actions IP ranges from their
-Neural TTS WebSocket endpoint — permanent 403 on every CI run).
+Uses kokoro-onnx (ONNX Runtime backend) instead of kokoro (PyTorch).
+ONNX Runtime has no threading init that deadlocks on GitHub Actions Azure
+runners — the PyTorch LSTM OMP thread pool issue is fully eliminated.
 
-Kokoro (hexgrad/Kokoro-82M) runs fully in-process:
-  - No external server or network calls
-  - No IP blocking possible
-  - Native word-level timestamps via result.tokens
-  - Apache 2.0 licensed, 82M params, runs on CPU in GitHub Actions
+Kokoro-ONNX (hexgrad/Kokoro-82M via ONNX export):
+  - Zero PyTorch dependency
+  - No threading deadlock possible
+  - Same voice quality and voice IDs as the PyTorch version
+  - Apache 2.0 licensed, runs on onnxruntime CPU backend
 
-Install:  pip install kokoro>=0.9.4 soundfile
-System:   apt-get install -y espeak-ng  (required for G2P phoneme conversion)
+Install:  pip install kokoro-onnx>=0.4.0 soundfile
+System:   apt-get install -y espeak-ng ffmpeg
 
 Word boundary JSON format (unchanged from edge-tts -- CaptionTrack.tsx depends on this):
   [{"word": "You", "startMs": 0, "durationMs": 180, "endMs": 180}, ...]
@@ -33,14 +28,16 @@ from pathlib import Path
 import numpy as np
 import soundfile as sf
 
-_pipeline_cache = {}
+# kokoro-onnx: lazy-loaded, cached after first init
+_kokoro_cache: dict = {}
 
 
-def _get_pipeline(lang_code="a"):
-    if lang_code not in _pipeline_cache:
-        from kokoro import KPipeline
-        _pipeline_cache[lang_code] = KPipeline(lang_code=lang_code)
-    return _pipeline_cache[lang_code]
+def _get_kokoro():
+    """Return cached Kokoro ONNX instance (downloaded on first call)."""
+    if "default" not in _kokoro_cache:
+        from kokoro_onnx import Kokoro
+        _kokoro_cache["default"] = Kokoro("kokoro-v1.0.onnx", "voices-v1.0.bin")
+    return _kokoro_cache["default"]
 
 
 VOICE_PROFILES = {
@@ -69,9 +66,9 @@ def prepare_for_tts(text):
     return text.strip()
 
 
-def _audio_to_mp3(audio, out_path):
+def _audio_to_mp3(audio, out_path, sample_rate=SAMPLE_RATE):
     wav_path = out_path.replace(".mp3", "_tmp.wav")
-    sf.write(wav_path, audio, SAMPLE_RATE)
+    sf.write(wav_path, audio, sample_rate)
     ret = os.system(f'ffmpeg -y -i "{wav_path}" -codec:a libmp3lame -qscale:a 4 "{out_path}" -loglevel error')
     try:
         os.unlink(wav_path)
@@ -97,22 +94,6 @@ def _synthesise_word_boundaries(narration, duration_ms):
     return result
 
 
-def _tokens_to_word_boundaries(tokens, cumulative_offset_ms=0.0):
-    boundaries = []
-    for token in tokens:
-        word = getattr(token, "text", "").strip()
-        if not word:
-            continue
-        start_ts = getattr(token, "start_ts", None)
-        end_ts = getattr(token, "end_ts", None)
-        if start_ts is None or end_ts is None:
-            continue
-        start_ms = int(start_ts * 1000 + cumulative_offset_ms)
-        dur_ms = max(50, int((end_ts - start_ts) * 1000))
-        boundaries.append({"word": word, "startMs": start_ms, "durationMs": dur_ms, "endMs": start_ms + dur_ms})
-    return boundaries
-
-
 def _generate_beat_audio_sync(narration, channel_id, beat_id, output_dir="public/audio"):
     out_dir = Path(output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -122,53 +103,35 @@ def _generate_beat_audio_sync(narration, channel_id, beat_id, output_dir="public
     profile = VOICE_PROFILES.get(channel_id, VOICE_PROFILES["ch1"])
     voice = profile["voice"]
     speed = profile.get("speed", 1.0)
-    pipeline = _get_pipeline(lang_code="a")
 
-    all_audio_chunks = []
-    all_word_boundaries = []
-    cumulative_duration_ms = 0.0
+    try:
+        kokoro = _get_kokoro()
+        samples, sample_rate = kokoro.create(
+            narration, voice=voice, speed=speed, lang="en-us"
+        )
+    except Exception as exc:
+        print(f"[tts] ERROR on beat {beat_id}: {exc}")
+        with open(words_path, "w") as f:
+            json.dump([], f)
+        return {"beatId": beat_id, "audioPath": None, "wordBoundariesPath": str(words_path), "wordBoundaries": [], "durationMs": 0}
 
-    for gs, ps, audio in pipeline(narration, voice=voice, speed=speed):
-        if audio is None or (hasattr(audio, '__len__') and len(audio) == 0):
-            continue
-        chunk_duration_ms = len(audio) / SAMPLE_RATE * 1000.0
-        if gs and gs.strip():
-            words = [w for w in gs.split() if w.strip()]
-            if words:
-                total_chars = sum(len(w) for w in words)
-                offset_ms = cumulative_duration_ms
-                for word in words:
-                    ratio = len(word) / max(total_chars, 1)
-                    word_duration_ms = max(50, int(chunk_duration_ms * ratio))
-                    all_word_boundaries.append({
-                        "word": word,
-                        "startMs": int(offset_ms),
-                        "durationMs": word_duration_ms,
-                        "endMs": int(offset_ms) + word_duration_ms,
-                    })
-                    offset_ms += word_duration_ms
-        all_audio_chunks.append(audio)
-        cumulative_duration_ms += chunk_duration_ms
-
-    if not all_audio_chunks:
+    if samples is None or len(samples) == 0:
         print(f"[tts] WARNING: no audio generated for beat {beat_id}")
         with open(words_path, "w") as f:
             json.dump([], f)
         return {"beatId": beat_id, "audioPath": None, "wordBoundariesPath": str(words_path), "wordBoundaries": [], "durationMs": 0}
 
-    combined = np.concatenate(all_audio_chunks)
-    duration_ms = int(len(combined) / SAMPLE_RATE * 1000)
-    _audio_to_mp3(combined, str(audio_path))
+    duration_ms = int(len(samples) / sample_rate * 1000)
+    _audio_to_mp3(samples, str(audio_path), sample_rate)
 
-    if not all_word_boundaries:
-        all_word_boundaries = _synthesise_word_boundaries(narration, duration_ms)
-        print(f"[tts] {beat_id}: no token timestamps -- synthesised {len(all_word_boundaries)} boundaries")
+    word_boundaries = _synthesise_word_boundaries(narration, duration_ms)
+    print(f"[tts] {beat_id}: synthesised {len(word_boundaries)} word boundaries")
 
     with open(words_path, "w") as f:
-        json.dump(all_word_boundaries, f, indent=2)
+        json.dump(word_boundaries, f, indent=2)
 
-    print(f"[tts] {beat_id}: {duration_ms / 1000:.1f}s, {len(all_word_boundaries)} words -> {audio_path.name}")
-    return {"beatId": beat_id, "audioPath": str(audio_path), "wordBoundariesPath": str(words_path), "wordBoundaries": all_word_boundaries, "durationMs": float(duration_ms)}
+    print(f"[tts] {beat_id}: {duration_ms / 1000:.1f}s, {len(word_boundaries)} words -> {audio_path.name}")
+    return {"beatId": beat_id, "audioPath": str(audio_path), "wordBoundariesPath": str(words_path), "wordBoundaries": word_boundaries, "durationMs": float(duration_ms)}
 
 
 async def generate_all_beats(manifest):
