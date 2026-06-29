@@ -23,20 +23,54 @@ import json
 import os
 import re
 import sys
+import urllib.request
 from pathlib import Path
 
 import numpy as np
 import soundfile as sf
 
-# kokoro-onnx: lazy-loaded, cached after first init
+# ── kokoro-onnx model cache ───────────────────────────────────────────────────
+KOKORO_CACHE_DIR   = os.path.join(os.path.expanduser("~"), ".cache", "kokoro-onnx")
+KOKORO_MODEL_PATH  = os.path.join(KOKORO_CACHE_DIR, "kokoro-v1.0.onnx")
+KOKORO_VOICES_PATH = os.path.join(KOKORO_CACHE_DIR, "voices-v1.0.bin")
+KOKORO_BASE_URL    = (
+    "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/"
+)
+
+
+def _download_kokoro_models() -> None:
+    """Download kokoro-onnx model files to cache dir if not already present."""
+    os.makedirs(KOKORO_CACHE_DIR, exist_ok=True)
+    files = {
+        KOKORO_MODEL_PATH:  KOKORO_BASE_URL + "kokoro-v1.0.onnx",
+        KOKORO_VOICES_PATH: KOKORO_BASE_URL + "voices-v1.0.bin",
+    }
+    for dest, url in files.items():
+        if os.path.exists(dest):
+            print(f"[tts] cached: {os.path.basename(dest)}")
+            continue
+        print(f"[tts] downloading {os.path.basename(dest)}...")
+        tmp = dest + ".tmp"
+        try:
+            urllib.request.urlretrieve(url, tmp)
+            os.rename(tmp, dest)
+            size_mb = os.path.getsize(dest) / 1024 / 1024
+            print(f"[tts] downloaded {os.path.basename(dest)} ({size_mb:.1f}MB)")
+        except Exception as e:
+            if os.path.exists(tmp):
+                os.unlink(tmp)
+            raise RuntimeError(f"Failed to download {os.path.basename(dest)}: {e}")
+
+
 _kokoro_cache: dict = {}
 
 
 def _get_kokoro():
-    """Return cached Kokoro ONNX instance (downloaded on first call)."""
+    """Return cached Kokoro ONNX instance, downloading model files if needed."""
     if "default" not in _kokoro_cache:
+        _download_kokoro_models()
         from kokoro_onnx import Kokoro
-        _kokoro_cache["default"] = Kokoro("kokoro-v1.0.onnx", "voices-v1.0.bin")
+        _kokoro_cache["default"] = Kokoro(KOKORO_MODEL_PATH, KOKORO_VOICES_PATH)
     return _kokoro_cache["default"]
 
 

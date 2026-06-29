@@ -81,23 +81,22 @@ jobs:
           YT_CH6_REFRESH_TOKEN=${{ secrets.YT_CH6_REFRESH_TOKEN }}
           ENVEOF
 
-      - name: Cache rembg u2net model
-        id: cache-u2net
-        uses: actions/cache@v4
-        with:
-          path: ~/.u2net
-          key: rembg-u2net-${{ runner.os }}-v1
-
-      - name: Pre-download rembg model if cache miss
-        if: steps.cache-u2net.outputs.cache-hit != 'true'
-        run: |
-          python3 -c "import urllib.request,os,pathlib; p=os.path.expanduser('~/.u2net'); pathlib.Path(p).mkdir(exist_ok=True); f=p+'/u2net.onnx'; urllib.request.urlretrieve('https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net.onnx',f); print(str(os.path.getsize(f)//1024//1024)+'MB')"
-
       - name: Cache kokoro-onnx models
         uses: actions/cache@v4
         with:
           path: ~/.cache/kokoro-onnx
-          key: kokoro-onnx-v1-${{ runner.os }}
+          key: kokoro-onnx-models-v1-${{ runner.os }}
+
+      - name: Pre-download kokoro-onnx models
+        timeout-minutes: 8
+        run: |
+          python3 -c "
+import sys
+sys.path.insert(0, 'src/scripts')
+from tts import _download_kokoro_models
+_download_kokoro_models()
+print('kokoro models ready')
+"
 
       - name: Generate content (Python pipeline)
         env:
