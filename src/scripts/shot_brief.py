@@ -388,13 +388,20 @@ def compile_all_shot_briefs(manifest: dict) -> dict:
         else:
             asset_metas.append(None)
 
-    # ── Single batched LLM call ──────────────────────────────────────────────
+    # ── Batched LLM calls in chunks of 4 ────────────────────────────────────
+    # Chunks of 4 stay within nvidia/mistral reliable response windows.
+    CHUNK_SIZE = 4
     batched_briefs: list[dict] = []
-    try:
-        print(f"[shot_brief] batching {len(beats)} beats into 1 LLM call...")
-        batched_briefs = _compile_batch(beats, channel_cfg, asset_metas)
-    except Exception as exc:
-        print(f"[shot_brief] batch call failed, will fall back to per-beat calls: {exc}")
+    total_chunks = (len(beats) + CHUNK_SIZE - 1) // CHUNK_SIZE
+    for chunk_num, chunk_start in enumerate(range(0, len(beats), CHUNK_SIZE), 1):
+        chunk_beats = beats[chunk_start:chunk_start + CHUNK_SIZE]
+        chunk_metas = asset_metas[chunk_start:chunk_start + CHUNK_SIZE]
+        print(f"[shot_brief] batch {chunk_num}/{total_chunks} ({len(chunk_beats)} beats)...")
+        try:
+            chunk_briefs = _compile_batch(chunk_beats, channel_cfg, chunk_metas)
+            batched_briefs.extend(chunk_briefs)
+        except Exception as exc:
+            print(f"[shot_brief] chunk {chunk_num} failed, will fall back per-beat: {exc}")
 
     # Build a beatId→brief map from batch results
     brief_by_id: dict[str, dict] = {}
