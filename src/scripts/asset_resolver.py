@@ -176,21 +176,11 @@ async def resolve_person(name: str, out_dir: Path) -> dict | None:
         if not ok:
             return {"path": None, "credit": None, "fallback": clean_name[:1].upper()}
 
-    try:
-        from rembg import remove
-        raw_bytes    = raw_path.read_bytes()
-        cutout_bytes = remove(raw_bytes)
-        cutout_path.parent.mkdir(parents=True, exist_ok=True)
-        cutout_path.write_bytes(cutout_bytes)
-        raw_path.unlink(missing_ok=True)
-        print(f"[assets] person cutout: {cutout_path.name}")
-        return {"path": str(cutout_path), "credit": credit, "fallback": None}
-    except BaseException as e:
-        print(f"[assets] rembg failed for {name!r}: {e}")
-        # Keep raw image without cutout
-        dest = cutout_path.with_suffix(".jpg")
-        raw_path.rename(dest)
-        return {"path": str(dest), "credit": credit, "fallback": None}
+    # rembg disabled — 176MB u2net.onnx download hangs CI indefinitely
+    dest = cutout_path.with_suffix(".jpg")
+    raw_path.rename(dest)
+    print(f"[assets] person image (no cutout): {dest.name}")
+    return {"path": str(dest), "credit": credit, "fallback": None}
 
 
 # ── Brand / app: simple-icons via Node.js subprocess ───────────────────────────
