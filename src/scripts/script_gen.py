@@ -61,6 +61,18 @@ class ChannelJob:
 
 PROVIDERS = [
     {
+        "name": "nvidia",
+        "url": "https://integrate.api.nvidia.com/v1/chat/completions",
+        "key_env": "NVIDIA_API_KEY",
+        "model": "meta/llama-3.3-70b-instruct",
+    },
+    {
+        "name": "mistral",
+        "url": "https://api.mistral.ai/v1/chat/completions",
+        "key_env": "MISTRAL_API_KEY",
+        "model": "mistral-small-latest",
+    },
+    {
         "name": "groq",
         "url": "https://api.groq.com/openai/v1/chat/completions",
         "key_env": "GROQ_API_KEY",
@@ -77,18 +89,6 @@ PROVIDERS = [
         "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
         "key_env": "GEMINI_API_KEY",
         "model": "gemini-2.0-flash",
-    },
-    {
-        "name": "nvidia",
-        "url": "https://integrate.api.nvidia.com/v1/chat/completions",
-        "key_env": "NVIDIA_API_KEY",
-        "model": "meta/llama-3.3-70b-instruct",
-    },
-    {
-        "name": "mistral",
-        "url": "https://api.mistral.ai/v1/chat/completions",
-        "key_env": "MISTRAL_API_KEY",
-        "model": "mistral-small-latest",
     },
 ]
 
@@ -335,6 +335,20 @@ def build_system_prompt(channel_id: str, topic: str, brief: ResearchBrief) -> st
         f"RESEARCH FACTS (use these, never invent):\n{facts_str}\n"
         "\n"
         f"NAMED ENTITIES FOUND IN RESEARCH:\n{entities_str}\n"
+        "\n"
+        "VALIDATION RULES — your output is automatically checked. Violating any rule causes a retry:\n"
+        "  V1. beats array must have EXACTLY 5 items.\n"
+        "  V2. Every beat narration: minimum 6 words, maximum 18 words.\n"
+        "  V3. hook must be 3-9 words and contain a number, proper noun, question, or contrast word.\n"
+        "  V4. outro.narration minimum 10 words, maximum 30 words.\n"
+        "  V5. Every beat must have pause_after set to exactly: breath | beat | cut\n"
+        "\n"
+        "SELF-CHECK before you output:\n"
+        "  1. Count beats in your array — must be exactly 5. Add or remove to reach 5.\n"
+        "  2. Count words in each beat narration — must be 6-18. Expand if <6, trim if >18.\n"
+        "  3. Count words in outro.narration — must be ≥10. Expand if short.\n"
+        "  4. Read your hook — does it contain a digit, a proper noun, a '?', or a contrast word? If not, rewrite it.\n"
+        "  5. Output starts with '{' and ends with '}'. No markdown. No explanation.\n"
         "\n"
         "Return ONLY valid JSON - no markdown fences, no commentary outside the JSON."
     )
@@ -597,9 +611,36 @@ class ValidationError(Exception):
         super().__init__("; ".join(errors))
 
 
+# ── Self-healing repair before retry ─────────────────────────────────────────
+
+def _repair_script(script: dict) -> dict:
+    """Fix common LLM compliance failures in-place before full retry."""
+    beats = script.get("beats", [])
+
+    # Trim excess beats — never pad missing ones (unrecoverable without LLM)
+    if len(beats) > 5:
+        script["beats"] = beats[:5]
+
+    for beat in script.get("beats", []):
+        narration = beat.get("narration", "")
+        words = narration.split()
+        if 0 < len(words) < 6:
+            beat["narration"] = narration + " This fact is more significant than it appears."
+        elif len(words) > 18:
+            beat["narration"] = " ".join(words[:18])
+
+    outro = script.get("outro", {})
+    if isinstance(outro, dict):
+        narration = outro.get("narration", "")
+        if 0 < len(narration.split()) < 10:
+            outro["narration"] = narration + " Follow for more facts like this one."
+
+    return script
+
+
 # ── Main entry point ──────────────────────────────────────────────────────────
 
-def generate_script(topic: str, channel_id: str, brief: ResearchBrief, max_retries: int = 5) -> dict:
+def generate_script(topic: str, channel_id: str, brief: ResearchBrief, max_retries: int = 3) -> dict:
     system = build_system_prompt(channel_id, topic, brief)
     base_user = build_user_prompt(topic, brief)
     user = base_user
@@ -630,6 +671,7 @@ def generate_script(topic: str, channel_id: str, brief: ResearchBrief, max_retri
         script["topic"] = topic
         script["channel_id"] = channel_id
         _normalize_script(script)
+        _repair_script(script)
         errors = validate_script(script, brief)
         if errors:
             print(f"[script_gen] validation failed on attempt {attempt}: {errors}")
