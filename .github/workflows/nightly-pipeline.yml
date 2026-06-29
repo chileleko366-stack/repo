@@ -21,10 +21,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
-      OMP_NUM_THREADS: "1"
-      MKL_NUM_THREADS: "1"
-      TORCH_NUM_THREADS: "1"
-      TOKENIZERS_PARALLELISM: "false"
       HF_HUB_DISABLE_PROGRESS_BARS: "1"
 
     steps:
@@ -44,7 +40,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq espeak-ng
+          sudo apt-get install -y -qq espeak-ng ffmpeg
 
       - run: pip install -r requirements.txt
 
@@ -52,7 +48,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
-            chromium-browser ffmpeg libgbm-dev \
+            chromium-browser libgbm-dev \
             libatk1.0-0 libatk-bridge2.0-0 libcups2 \
             libxkbcommon0 libxdamage1 libpango-1.0-0 libcairo2
 
@@ -85,45 +81,26 @@ jobs:
           YT_CH6_REFRESH_TOKEN=${{ secrets.YT_CH6_REFRESH_TOKEN }}
           ENVEOF
 
-      - name: Cache rembg u2net model
-        id: cache-u2net
+      - name: Cache kokoro-onnx models
         uses: actions/cache@v4
         with:
-          path: ~/.u2net
-          key: rembg-u2net-${{ runner.os }}-v1
+          path: ~/.cache/kokoro-onnx
+          key: kokoro-onnx-models-v1-${{ runner.os }}
 
-      - name: Pre-download rembg model if cache miss
-        if: steps.cache-u2net.outputs.cache-hit != 'true'
+      - name: Pre-download kokoro-onnx models
+        timeout-minutes: 8
         run: |
-          python3 -c "import urllib.request,os,pathlib; p=os.path.expanduser('~/.u2net'); pathlib.Path(p).mkdir(exist_ok=True); f=p+'/u2net.onnx'; urllib.request.urlretrieve('https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net.onnx',f); print(str(os.path.getsize(f)//1024//1024)+'MB')"
-
-      - name: Cache HuggingFace models (Kokoro-82M)
-        id: cache-hf
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/huggingface
-          key: hf-kokoro-82m-${{ runner.os }}-v1
-
-      - name: Pre-download Kokoro model if cache miss
-        if: steps.cache-hf.outputs.cache-hit != 'true'
-        timeout-minutes: 5
-        env:
-          OMP_NUM_THREADS: "1"
-          MKL_NUM_THREADS: "1"
-          TORCH_NUM_THREADS: "1"
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          HF_HUB_DISABLE_PROGRESS_BARS: "1"
-        run: |
-          python3 -c "import os; os.environ['HF_HUB_DISABLE_PROGRESS_BARS']='1'; from kokoro import KPipeline; p=KPipeline(lang_code='a'); next(iter(p('test',voice='af_heart')),None); print('Kokoro model cached')"
+          python3 -c "
+import sys
+sys.path.insert(0, 'src/scripts')
+from tts import _download_kokoro_models
+_download_kokoro_models()
+print('kokoro models ready')
+"
 
       - name: Generate content (Python pipeline)
         env:
-          OMP_NUM_THREADS: "1"
-          MKL_NUM_THREADS: "1"
-          TORCH_NUM_THREADS: "1"
-          TOKENIZERS_PARALLELISM: "false"
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          HF_HUB_DISABLE_PROGRESS_BARS: "1"
           TRANSFORMERS_VERBOSITY: "error"
         run: |
           CH="${{ github.event.inputs.channel }}"
