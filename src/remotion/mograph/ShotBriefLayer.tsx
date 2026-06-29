@@ -99,7 +99,7 @@ function buildBoxShadow(brief: ShotBrief): string | undefined {
 function GlowOverlays({ brief }: { brief: ShotBrief }): React.ReactElement {
   return (
     <>
-      {(brief.depth?.glowEffects ?? []).map((glow, i) => {
+      {(brief.depth?.glowEffects ?? []).filter(glow => glow?.gradient != null).map((glow, i) => {
         const { kind, angleDeg, stops } = glow.gradient;
         const stopStr = stops
           .map((s) => `${hexOpacity(s.color, s.opacity)} ${s.offsetPct}%`)
