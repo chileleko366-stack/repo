@@ -17,11 +17,20 @@ env:
 
 jobs:
   run-pipeline:
-    name: Generate → Render → Upload
+    name: ${{ matrix.channel }}
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        channel: [ch1, ch2, ch3, ch4, ch5, ch6]
     env:
       HF_HUB_DISABLE_PROGRESS_BARS: "1"
+
+    # Skip matrix entries that don't match the manually chosen channel
+    if: >-
+      github.event.inputs.channel == '' ||
+      github.event.inputs.channel == matrix.channel
 
     steps:
       - uses: actions/checkout@v4
@@ -96,25 +105,18 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           TRANSFORMERS_VERBOSITY: "error"
-        run: |
-          CH="${{ github.event.inputs.channel }}"
-          if [ -z "$CH" ]; then
-            python src/scripts/pipeline.py --all
-          else
-            python src/scripts/pipeline.py --channel "$CH"
-          fi
+        run: python src/scripts/pipeline.py --channel ${{ matrix.channel }}
 
       - name: Create silent audio placeholders if missing
         run: |
           mkdir -p public/music public/sfx public/audio
 
           # Music beds (35s loop)
-          for ch in ch1 ch2 ch3 ch4 ch5 ch6; do
-            if [ ! -f "public/music/${ch}.mp3" ]; then
-              ffmpeg -f lavfi -i anullsrc=r=44100:cl=stereo -t 35 \
-                -b:a 32k "public/music/${ch}.mp3" -y -loglevel quiet
-            fi
-          done
+          CH="${{ matrix.channel }}"
+          if [ ! -f "public/music/${CH}.mp3" ]; then
+            ffmpeg -f lavfi -i anullsrc=r=44100:cl=stereo -t 35 \
+              -b:a 32k "public/music/${CH}.mp3" -y -loglevel quiet
+          fi
 
           # SFX (0.5s silent stub for every expected file)
           for sfx in hit_electronic hit_corporate hit_dark hit_soft hit_cinematic hit_space \
@@ -125,28 +127,24 @@ jobs:
             fi
           done
 
-          # Beat audio (1s silent stub for any beat .mp3 that TTS did not produce)
-          # Track placeholders — a non-zero count means TTS failed and the
-          # video will render with silent narration, which is unacceptable.
+          # Beat audio stubs for this channel only
           MISSING_BEATS=0
-          for dir in out/ch1 out/ch2 out/ch3 out/ch4 out/ch5 out/ch6; do
-            ch=$(basename "$dir")
-            if [ -f "${dir}/manifest.json" ]; then
-              for beatid in hook context beat_0 beat_1 beat_2 beat_3 beat_4 twist outro; do
-                mp3="public/audio/${ch}_${beatid}.mp3"
-                json="public/audio/${ch}_${beatid}_words.json"
-                if [ ! -f "$mp3" ]; then
-                  echo "::warning::TTS missing — inserting silent placeholder for ${ch}_${beatid}.mp3"
-                  ffmpeg -f lavfi -i anullsrc=r=44100:cl=mono -t 1 \
-                    -b:a 32k "$mp3" -y -loglevel quiet
-                  MISSING_BEATS=$((MISSING_BEATS + 1))
-                fi
-                if [ ! -f "$json" ]; then
-                  echo '[]' > "$json"
-                fi
-              done
-            fi
-          done
+          dir="out/${CH}"
+          if [ -f "${dir}/manifest.json" ]; then
+            for beatid in hook context beat_0 beat_1 beat_2 beat_3 beat_4 twist outro; do
+              mp3="public/audio/${CH}_${beatid}.mp3"
+              json="public/audio/${CH}_${beatid}_words.json"
+              if [ ! -f "$mp3" ]; then
+                echo "::warning::TTS missing — inserting silent placeholder for ${CH}_${beatid}.mp3"
+                ffmpeg -f lavfi -i anullsrc=r=44100:cl=mono -t 1 \
+                  -b:a 32k "$mp3" -y -loglevel quiet
+                MISSING_BEATS=$((MISSING_BEATS + 1))
+              fi
+              if [ ! -f "$json" ]; then
+                echo '[]' > "$json"
+              fi
+            done
+          fi
           if [ "$MISSING_BEATS" -gt 0 ]; then
             echo "::error::${MISSING_BEATS} beat(s) have silent placeholder audio — TTS failed. Aborting upload."
             exit 1
@@ -155,30 +153,18 @@ jobs:
       - name: Bundle Remotion
         run: npx remotion bundle
 
-      - name: Render videos
+      - name: Render video
         env:
           REMOTION_CHROME_EXECUTABLE: /usr/bin/chromium-browser
-        run: |
-          CH="${{ github.event.inputs.channel }}"
-          if [ -z "$CH" ]; then
-            python src/scripts/render_all.py --all
-          else
-            python src/scripts/render_all.py --channel "$CH"
-          fi
+        run: python src/scripts/render_all.py --channel ${{ matrix.channel }}
 
       - name: Upload to YouTube
-        run: |
-          CH="${{ github.event.inputs.channel }}"
-          if [ -z "$CH" ]; then
-            python src/scripts/upload_all.py --all
-          else
-            python src/scripts/upload_all.py --channel "$CH"
-          fi
+        run: python src/scripts/upload_all.py --channel ${{ matrix.channel }}
 
-      - name: Save rendered videos (debug archive)
+      - name: Save rendered video (debug archive)
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: shorts-run-${{ github.run_number }}
-          path: out/
+          name: shorts-${{ matrix.channel }}-run-${{ github.run_number }}
+          path: out/${{ matrix.channel }}/
           retention-days: 3

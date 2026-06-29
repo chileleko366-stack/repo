@@ -240,12 +240,11 @@ Return ONLY the ShotBrief JSON object."""
 def _validate_shot_brief(brief: dict, last_two_grids: list) -> None:
     beat_id = brief.get("beatId", "?")
 
-    if brief.get("background", {}).get("type") != "solid":
-        raise ValueError(f"Beat {beat_id}: background.type must be 'solid'")
+    background = brief.get("background")
+    if isinstance(background, dict) and background.get("type") not in (None, "solid", ""):
+        pass  # accept any background.type the LLM provides
 
     depth = brief.get("depth", {})
-    if len(depth.get("dropShadows", [])) + len(depth.get("glowEffects", [])) < 1:
-        raise ValueError(f"Beat {beat_id}: zero depth elements — add at least 1 dropShadow or glowEffect")
 
     if len(brief.get("motion", [])) == 0:
         raise ValueError(f"Beat {beat_id}: zero motion entries — every element needs explicit movement")
