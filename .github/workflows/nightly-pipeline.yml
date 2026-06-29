@@ -90,13 +90,7 @@ jobs:
       - name: Pre-download kokoro-onnx models
         timeout-minutes: 8
         run: |
-          python3 -c "
-import sys
-sys.path.insert(0, 'src/scripts')
-from tts import _download_kokoro_models
-_download_kokoro_models()
-print('kokoro models ready')
-"
+          python3 -c "import sys; sys.path.insert(0, 'src/scripts'); from tts import _download_kokoro_models; _download_kokoro_models(); print('kokoro models ready')"
 
       - name: Generate content (Python pipeline)
         env:
