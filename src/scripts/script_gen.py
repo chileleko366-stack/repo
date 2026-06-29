@@ -61,6 +61,18 @@ class ChannelJob:
 
 PROVIDERS = [
     {
+        "name": "nvidia",
+        "url": "https://integrate.api.nvidia.com/v1/chat/completions",
+        "key_env": "NVIDIA_API_KEY",
+        "model": "meta/llama-3.3-70b-instruct",
+    },
+    {
+        "name": "mistral",
+        "url": "https://api.mistral.ai/v1/chat/completions",
+        "key_env": "MISTRAL_API_KEY",
+        "model": "mistral-small-latest",
+    },
+    {
         "name": "groq",
         "url": "https://api.groq.com/openai/v1/chat/completions",
         "key_env": "GROQ_API_KEY",
@@ -77,18 +89,6 @@ PROVIDERS = [
         "url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
         "key_env": "GEMINI_API_KEY",
         "model": "gemini-2.0-flash",
-    },
-    {
-        "name": "nvidia",
-        "url": "https://integrate.api.nvidia.com/v1/chat/completions",
-        "key_env": "NVIDIA_API_KEY",
-        "model": "meta/llama-3.3-70b-instruct",
-    },
-    {
-        "name": "mistral",
-        "url": "https://api.mistral.ai/v1/chat/completions",
-        "key_env": "MISTRAL_API_KEY",
-        "model": "mistral-small-latest",
     },
 ]
 
