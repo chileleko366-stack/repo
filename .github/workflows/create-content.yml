@@ -37,7 +37,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq espeak-ng ffmpeg \
-            chromium-browser libgbm-dev \
+            libgbm-dev \
             libatk1.0-0 libatk-bridge2.0-0 libcups2 \
             libxkbcommon0 libxdamage1 libpango-1.0-0 libcairo2
 
@@ -119,14 +119,12 @@ jobs:
             done
           fi
 
-          [ "$MISSING" -eq 0 ] || { echo "::error::${MISSING} beat(s) missing TTS - aborting"; exit 1; }
+          [ "$MISSING" -eq 0 ] || { echo "::error::${MISSING} beat(s) missing TTS — aborting"; exit 1; }
 
       - name: Bundle Remotion
         run: npx remotion bundle
 
       - name: Render video
-        env:
-          REMOTION_CHROME_EXECUTABLE: /usr/bin/chromium-browser
         run: python src/scripts/render_all.py --channel ${{ matrix.channel }}
 
       - name: Upload to YouTube
