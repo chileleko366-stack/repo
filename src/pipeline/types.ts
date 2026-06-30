@@ -166,6 +166,7 @@ export interface ManifestBeat {
   narration: string;
   visual: VisualTag;
   emphasis_keyword: string;
+  heroWord?: string;
   morph_from: string | null;
   bg_color: string;
   captionsVisible: boolean;
