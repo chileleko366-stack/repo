@@ -31,6 +31,8 @@ import { Soundtrack } from '../../sound/Soundtrack';
 import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
 import type { TimedBeat } from '../../transitions/BeatCompositor';
 import { KineticTextLayer } from '../../mograph/KineticTextLayer';
+import { HeroWord } from '../../mograph/HeroWord';
+import { AmbientBackground } from '../../backgrounds/AmbientBackground';
 import { HardCutFlash } from './HardCutFlash';
 
 const CFG = CHANNEL_CONFIGS.ch1;
@@ -40,7 +42,7 @@ function toStatic(p: string) {
   return staticFile(p.replace(/^public\//, ''));
 }
 
-// ── Beat section ──────────────────────────────────────────────────────────────
+// ── Beat section ──────────────────────────────────────────────────────────────────────────────
 
 const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({ beat, durationFrames }) => {
   const { visual, emphasis_keyword, resolvedAsset, bg_color, audioPath, shotBrief } = beat;
@@ -64,8 +66,8 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
 
   return (
     <AbsoluteFill>
-      {/* Base background */}
-      <AbsoluteFill style={{ background: bg }} />
+      {/* Ambient animated background */}
+      <AmbientBackground baseColor={bg} accentColor={CFG.colors.accent1} channelId="ch1" />
 
       {/* Full-screen asset */}
       {isFullscreen && (
@@ -113,6 +115,17 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         durationFrames={durationFrames}
       />
 
+      {/* Hero word — punchy accent on beat.heroWord, fires for ~18 frames */}
+      {beat.heroWord && (
+        <HeroWord
+          word={beat.heroWord}
+          accentColor={CFG.colors.accent1}
+          fontFamily={CFG.accentFont}
+          startFrame={0}
+          durationFrames={Math.min(18, durationFrames)}
+        />
+      )}
+
       {/* Beat voiceover */}
       {audioPath ? (
         <Audio src={toStatic(audioPath)} volume={1} />
@@ -124,7 +137,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
   );
 };
 
-// ── Root composition ──────────────────────────────────────────────────────────
+// ── Root composition ──────────────────────────────────────────────────────────────────────────────
 
 export const Ch1Composition: React.FC<{ manifest: VideoManifest }> = ({
   manifest,

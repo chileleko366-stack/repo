@@ -33,6 +33,8 @@ import { Soundtrack } from '../../sound/Soundtrack';
 import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
 import type { TimedBeat } from '../../transitions/BeatCompositor';
 import { KineticTextLayer } from '../../mograph/KineticTextLayer';
+import { HeroWord } from '../../mograph/HeroWord';
+import { AmbientBackground } from '../../backgrounds/AmbientBackground';
 import { CandlestickChart } from './CandlestickChart';
 import { TickerTape } from './TickerTape';
 
@@ -72,7 +74,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
 
   return (
     <AbsoluteFill>
-      <AbsoluteFill style={{ background: bg }} />
+      <AmbientBackground baseColor={bg} accentColor={CFG.colors.accent1} channelId="ch2" />
 
       {(kind === 'stat' || kind === 'none') && (
         <CandlestickChart durationFrames={durationFrames} />
@@ -178,6 +180,16 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         bodyFont={CFG.bodyFont}
         durationFrames={durationFrames}
       />
+
+      {beat.heroWord && (
+        <HeroWord
+          word={beat.heroWord}
+          accentColor={CFG.colors.accent1}
+          fontFamily={CFG.accentFont}
+          startFrame={0}
+          durationFrames={Math.min(18, durationFrames)}
+        />
+      )}
 
       {audioPath ? <Audio src={toStatic(audioPath)} volume={1} /> : null}
 
