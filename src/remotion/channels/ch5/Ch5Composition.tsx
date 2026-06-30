@@ -27,6 +27,8 @@ import { Soundtrack } from '../../sound/Soundtrack';
 import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
 import type { TimedBeat } from '../../transitions/BeatCompositor';
 import { KineticTextLayer } from '../../mograph/KineticTextLayer';
+import { HeroWord } from '../../mograph/HeroWord';
+import { AmbientBackground } from '../../backgrounds/AmbientBackground';
 import { DocumentaryQuote } from './DocumentaryQuote';
 import { FilmGrain } from './FilmGrain';
 import { HardCutFlash } from './HardCutFlash';
@@ -37,7 +39,7 @@ function toStatic(p: string) {
   return staticFile(p.replace(/^public\//, ''));
 }
 
-// ── Asset-beat narration (EB Garamond, bottom anchor) ─────────────────────────
+// ── Asset-beat narration (EB Garamond, bottom anchor) ─────────────────────────────────────
 
 const AssetNarration: React.FC<{
   text: string;
@@ -89,7 +91,7 @@ const AssetNarration: React.FC<{
   );
 };
 
-// ── Beat section ──────────────────────────────────────────────────────────────
+// ── Beat section ──────────────────────────────────────────────────────────────────────────────
 
 const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({ beat, durationFrames }) => {
   const { visual, emphasis_keyword, resolvedAsset, bg_color, audioPath, shotBrief } = beat;
@@ -111,7 +113,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
 
   return (
     <AbsoluteFill>
-      <AbsoluteFill style={{ background: bg }} />
+      <AmbientBackground baseColor={bg} accentColor={CFG.colors.accent1} channelId="ch5" />
 
       {isFullscreen && (
         <AssetLayer
@@ -198,6 +200,16 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         durationFrames={durationFrames}
       />
 
+      {beat.heroWord && (
+        <HeroWord
+          word={beat.heroWord}
+          accentColor={CFG.colors.accent1}
+          fontFamily={CFG.accentFont}
+          startFrame={0}
+          durationFrames={Math.min(18, durationFrames)}
+        />
+      )}
+
       {audioPath ? <Audio src={toStatic(audioPath)} volume={1} /> : null}
 
       <HardCutFlash />
@@ -205,7 +217,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
   );
 };
 
-// ── Root composition ──────────────────────────────────────────────────────────
+// ── Root composition ──────────────────────────────────────────────────────────────────────────────
 
 export const Ch5Composition: React.FC<{ manifest: VideoManifest }> = ({ manifest }) => {
   const { beats, soundDesign, fps, script } = manifest;

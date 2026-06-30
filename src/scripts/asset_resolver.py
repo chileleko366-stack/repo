@@ -29,7 +29,19 @@ ASSETS_DIR = Path("public/assets")
 UA = {"User-Agent": "DopamineStudios/1.0 (contact@dopaminestudios.com)"}
 
 
-# ── Wikipedia helpers ────────────────────────────────────────────────────
+def _is_valid_entity(text: str) -> bool:
+    """Reject DOIs, citation strings, and other non-visual entity names."""
+    if not text or len(text) < 3:
+        return False
+    if re.match(r'^\d+\.\d+/', text):  # DOI pattern like 10.1016/j.xxx
+        return False
+    alpha_ratio = sum(c.isalpha() for c in text) / max(len(text), 1)
+    if alpha_ratio < 0.4:
+        return False
+    return True
+
+
+# ── Wikipedia helpers ────────────────────────────────────────────────────────────────────────
 
 _KNOWN_FULL_NAMES: dict[str, str] = {
     "trump":        "Donald Trump",
@@ -141,7 +153,7 @@ async def _download_file(
         return False
 
 
-# ── Person: Wikipedia photo + rembg ────────────────────────────────────────────
+# ── Person: Wikipedia photo + rembg ─────────────────────────────────────────────────────────────────
 
 _PERSON_TITLE_PREFIXES = re.compile(
     r"^\s*(president|vice\s*president|senator|secretary|general|admiral|colonel|captain|"
@@ -183,7 +195,7 @@ async def resolve_person(name: str, out_dir: Path) -> dict | None:
     return {"path": str(dest), "credit": credit, "fallback": None}
 
 
-# ── Brand / app: simple-icons via Node.js subprocess ───────────────────────────
+# ── Brand / app: simple-icons via Node.js subprocess ───────────────────────────────────────────────
 
 def _node_get_icon(query: str) -> dict | None:
     """
@@ -234,7 +246,7 @@ async def resolve_brand(name: str, out_dir: Path) -> dict | None:
     }
 
 
-# ── Place: Wikipedia thumbnail ────────────────────────────────────────────────
+# ── Place: Wikipedia thumbnail ────────────────────────────────────────────────────────────────────────────
 
 async def resolve_place(name: str, out_dir: Path) -> dict | None:
     slug     = re.sub(r"[^a-z0-9]", "_", name.lower())
@@ -257,7 +269,7 @@ async def resolve_place(name: str, out_dir: Path) -> dict | None:
     return {"path": str(img_path), "credit": credit}
 
 
-# ── Map + Distance: OSM Nominatim + staticmap ────────────────────────────────
+# ── Map + Distance: OSM Nominatim + staticmap ──────────────────────────────────────────────────
 
 async def _nominatim(session: aiohttp.ClientSession, place: str) -> tuple[float, float] | None:
     url = (
@@ -427,18 +439,23 @@ async def resolve_distance(
     }
 
 
-# ── Beat dispatcher ─────────────────────────────────────────────────────────────
+# ── Beat dispatcher ─────────────────────────────────────────────────────────────────────────────────
 
 async def resolve_beat_asset(beat: dict, out_dir: Path) -> dict | None:
     visual = beat.get("visual", {})
     kind   = visual.get("kind", "none")
+    value  = visual.get("value", "")
+
+    if kind in ("person", "brand", "product", "app", "place") and not _is_valid_entity(value):
+        print(f"[assets] skipping invalid entity for {beat.get('beatId')}: {value!r}")
+        return None
 
     if kind == "person":
-        return await resolve_person(visual.get("value", ""), out_dir)
+        return await resolve_person(value, out_dir)
     elif kind in ("brand", "product", "app"):
-        return await resolve_brand(visual.get("value", ""), out_dir)
+        return await resolve_brand(value, out_dir)
     elif kind == "place":
-        return await resolve_place(visual.get("value", ""), out_dir)
+        return await resolve_place(value, out_dir)
     elif kind == "map":
         return await resolve_map(
             visual.get("place", visual.get("value", "")),
@@ -489,7 +506,7 @@ async def resolve_all_beats(manifest: dict) -> dict:
     return manifest
 
 
-# ── CLI ───────────────────────────────────────────────────────────────────────
+# ── CLI ──────────────────────────────────────────────────────────────────────────────────────
 
 async def _main() -> None:
     import sys
