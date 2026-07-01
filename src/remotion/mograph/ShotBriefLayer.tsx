@@ -168,7 +168,7 @@ function FallbackCard({
   accentColor: string;
   bgColor: string;
 }): React.ReactElement {
-  const primaryTypo = brief.typography.find((t) => t.role === 'primary');
+  const primaryTypo = (brief.typography ?? []).find((t) => t.role === 'primary');
   return (
     <TypographicCard
       value={primaryTypo?.text ?? beat.emphasis_keyword ?? beat.visual.value ?? '?'}
@@ -230,7 +230,7 @@ function PrimitiveDispatch({
   bodyFont: string;
   accentFont: string;
 }): React.ReactElement {
-  const { primitive, channelId, typography } = brief;
+  const { primitive, channelId, typography = [] } = brief;
   const primaryTypo = typography.find((t) => t.role === 'primary');
   const labelTypo   = typography.find((t) => t.role === 'label');
   const bodyTypo    = typography.find((t) => t.role === 'body');
@@ -689,12 +689,16 @@ export const ShotBriefLayer: React.FC<ShotBriefLayerProps> = ({
     );
   }
 
-  // Derive duotone accent colors from typography for resolved-asset path
-  const accent1Color = brief.typography.find((t) => t.role === 'accent')?.color
-    ?? brief.typography.find((t) => t.role === 'primary')?.color
+  // Derive duotone accent colors from typography for resolved-asset path.
+  // typography is nominally required on ShotBrief, but — like safeZones
+  // above — nothing on the Python side enforces its presence in the raw LLM
+  // JSON, so a malformed brief can reach here with it undefined.
+  const typography = brief.typography ?? [];
+  const accent1Color = typography.find((t) => t.role === 'accent')?.color
+    ?? typography.find((t) => t.role === 'primary')?.color
     ?? accentColor;
-  const accent2Color = brief.typography.find((t) => t.role === 'label')?.color
-    ?? brief.typography.find((t) => t.role === 'body')?.color
+  const accent2Color = typography.find((t) => t.role === 'label')?.color
+    ?? typography.find((t) => t.role === 'body')?.color
     ?? '#7700cc';
 
   // Resolved-asset-first: real imagery always wins, wrapped in Shot Brief positioning.

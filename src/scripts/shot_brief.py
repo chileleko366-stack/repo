@@ -249,6 +249,9 @@ def _validate_shot_brief(brief: dict, last_two_grids: list) -> None:
     if len(brief.get("motion", [])) == 0:
         raise ValueError(f"Beat {beat_id}: zero motion entries — every element needs explicit movement")
 
+    if len(brief.get("typography", [])) == 0:
+        raise ValueError(f"Beat {beat_id}: zero typography entries — every primitive needs at least a primary role")
+
     for el in brief.get("composition", {}).get("secondaryElements", []):
         anchor = el.get("anchor", {})
         if anchor.get("xPct") is None or anchor.get("yPct") is None:
