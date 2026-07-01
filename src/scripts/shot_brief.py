@@ -405,6 +405,9 @@ def compile_all_shot_briefs(manifest: dict) -> dict:
     # Build a beatId→brief map from batch results
     brief_by_id: dict[str, dict] = {}
     for brief in batched_briefs:
+        if not isinstance(brief, dict):
+            print(f"[shot_brief] WARNING: skipping malformed brief entry (not a dict): {repr(brief)[:100]}")
+            continue
         bid = brief.get("beatId", "")
         if bid:
             brief_by_id[bid] = brief

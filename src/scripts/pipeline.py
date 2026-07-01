@@ -175,7 +175,12 @@ def run_pipeline(channel_id: str, topic: str, dry_run: bool = False, mock: bool 
 
     # Stage 5b: Shot Brief compiler
     print("▶ Stage 5b: Shot Brief compiler (staging / composition / motion)")
-    manifest = compile_all_shot_briefs(manifest)
+    try:
+        manifest = compile_all_shot_briefs(manifest)
+    except Exception as _sb_err:
+        print(f"[pipeline] WARNING: shot_brief compilation failed entirely ({_sb_err}), continuing with null briefs")
+        for _b in manifest.get("beats", []):
+            _b.setdefault("shotBrief", None)
     briefs_compiled = sum(1 for b in manifest["beats"] if b.get("shotBrief"))
     if not dry_run:
         save_manifest(manifest, manifest_path)
