@@ -73,7 +73,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
 
   return (
     <AbsoluteFill>
-      <AmbientBackground baseColor={bg} accentColor={CFG.colors.accent1} channelId="ch3" />
+      <AmbientBackground baseColor={bg} accentColor={CFG.colors.accent1} accentColor2={CFG.colors.accent2} channelId="ch3" />
 
       {/* Scanline texture */}
       <div

@@ -18,6 +18,7 @@
 import React from 'react';
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 import type { ManifestBeat } from '../../pipeline/types';
+import { SOCIAL_SAFE_ZONE } from './primitives';
 
 export interface KineticTextLayerProps {
   beat: ManifestBeat;
@@ -44,7 +45,8 @@ export const KineticTextLayer: React.FC<KineticTextLayerProps> = ({
   durationFrames,
 }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, width } = useVideoConfig();
+  const sidePad = Math.round(width * SOCIAL_SAFE_ZONE.sidePct);
 
   const keyword = (beat.emphasis_keyword ?? '').toUpperCase();
 
@@ -89,8 +91,8 @@ export const KineticTextLayer: React.FC<KineticTextLayerProps> = ({
         justifyContent: 'flex-end',
         alignItems: 'center',
         paddingBottom: 300,
-        paddingLeft: 40,
-        paddingRight: 40,
+        paddingLeft: sidePad,
+        paddingRight: sidePad,
       }}
     >
       <div style={{ width: '100%', maxWidth: 1000, textAlign: 'center' }}>

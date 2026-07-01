@@ -36,6 +36,7 @@ import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { HeroWord } from '../../mograph/HeroWord';
 import { AmbientBackground } from '../../backgrounds/AmbientBackground';
 import { HardCutFlash } from '../../transitions/HardCutFlash';
+import { ShapeSpinningRings } from '../../mograph/primitives/ShapeSpinningRings';
 import { CandlestickChart } from './CandlestickChart';
 import { TickerTape } from './TickerTape';
 
@@ -75,7 +76,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
 
   return (
     <AbsoluteFill>
-      <AmbientBackground baseColor={bg} accentColor={CFG.colors.accent1} channelId="ch2" />
+      <AmbientBackground baseColor={bg} accentColor={CFG.colors.accent1} accentColor2={CFG.colors.accent2} channelId="ch2" />
 
       {(kind === 'stat' || kind === 'none') && (
         <CandlestickChart durationFrames={durationFrames} />
@@ -149,24 +150,27 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
 
       {/* Fallback: stat counter */}
       {!hasShotBrief && kind === 'stat' && (
-        <div
-          style={{
-            position: 'absolute', left: 0, right: 0, top: '44%',
-            transform: 'translateY(-50%)',
-            display: 'flex', justifyContent: 'center',
-          }}
-        >
-          <Counter
-            to={parseFloat(visual.value ?? '0') || 0}
-            durationFrames={108}
-            delayFrames={108}
-            prefix={visual.prefix}
-            suffix={visual.suffix}
-            fontSize={160}
-            color={CFG.colors.accent1}
-            fontFamily="'Anton', sans-serif"
-          />
-        </div>
+        <>
+          <ShapeSpinningRings accentColor={CFG.colors.accent1} backgroundColor="transparent" />
+          <div
+            style={{
+              position: 'absolute', left: 0, right: 0, top: '44%',
+              transform: 'translateY(-50%)',
+              display: 'flex', justifyContent: 'center',
+            }}
+          >
+            <Counter
+              to={parseFloat(visual.value ?? '0') || 0}
+              durationFrames={108}
+              delayFrames={108}
+              prefix={visual.prefix}
+              suffix={visual.suffix}
+              fontSize={160}
+              color={CFG.colors.accent1}
+              fontFamily="'Anton', sans-serif"
+            />
+          </div>
+        </>
       )}
 
       {(beat.sectionKey === 'context' || (beat.sectionKey ?? '').startsWith('beat_')) && (

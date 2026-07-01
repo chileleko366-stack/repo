@@ -33,6 +33,7 @@ import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { HeroWord } from '../../mograph/HeroWord';
 import { AmbientBackground } from '../../backgrounds/AmbientBackground';
 import { HardCutFlash } from '../../transitions/HardCutFlash';
+import { ShapeSpinningRings } from '../../mograph/primitives/ShapeSpinningRings';
 import { Starfield } from './Starfield';
 
 const CFG = CHANNEL_CONFIGS.ch6;
@@ -120,7 +121,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
 
   return (
     <AbsoluteFill>
-      <AmbientBackground baseColor={bg} accentColor={CFG.colors.accent1} channelId="ch6" />
+      <AmbientBackground baseColor={bg} accentColor={CFG.colors.accent1} accentColor2={CFG.colors.accent2} channelId="ch6" />
 
       {/* Stars are always visible (behind everything) */}
       <Starfield />
@@ -169,6 +170,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
             gap: 16,
           }}
         >
+          <ShapeSpinningRings accentColor={CFG.colors.accent1} backgroundColor="transparent" />
           <Counter
             to={parseFloat(visual.stat_value?.toString() ?? visual.value ?? '0') || 0}
             prefix={visual.prefix}

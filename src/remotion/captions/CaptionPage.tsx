@@ -12,6 +12,7 @@
 import React from "react";
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import type { TikTokPage } from "@remotion/captions";
+import { SOCIAL_SAFE_ZONE } from "../mograph/primitives";
 
 export interface CaptionPageProps {
   page: TikTokPage;
@@ -28,15 +29,18 @@ export const CaptionPage: React.FC<CaptionPageProps> = ({
   enterProgress,
 }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, height } = useVideoConfig();
 
   const currentMs = (frame / fps) * 1000 + page.startMs;
+  // Clear YouTube Shorts/TikTok/Reels UI's reserved top band (profile/caption
+  // strip) rather than a magic percentage — see SOCIAL_SAFE_ZONE.
+  const topPx = Math.round(height * SOCIAL_SAFE_ZONE.topPct);
 
   return (
     <div
       style={{
         position: "absolute",
-        top: "9%",
+        top: topPx,
         left: "7%",
         right: "7%",
         textAlign: "center",

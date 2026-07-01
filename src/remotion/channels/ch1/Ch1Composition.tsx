@@ -67,7 +67,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
   return (
     <AbsoluteFill>
       {/* Ambient animated background */}
-      <AmbientBackground baseColor={bg} accentColor={CFG.colors.accent1} channelId="ch1" />
+      <AmbientBackground baseColor={bg} accentColor={CFG.colors.accent1} accentColor2={CFG.colors.accent2} channelId="ch1" />
 
       {/* Full-screen asset */}
       {isFullscreen && (

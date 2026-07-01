@@ -3,6 +3,7 @@
 
 import React from "react";
 import { useCurrentFrame, useVideoConfig, spring, interpolate } from "remotion";
+import { SOCIAL_SAFE_ZONE } from "./primitives";
 
 interface HeroWordProps {
   word: string;
@@ -20,9 +21,10 @@ export const HeroWord: React.FC<HeroWordProps> = ({
   durationFrames,
 }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, width } = useVideoConfig();
 
   const localFrame = frame - startFrame;
+  const sidePad = Math.round(width * SOCIAL_SAFE_ZONE.sidePct);
 
   const enterScale = spring({
     frame: localFrame,
@@ -75,7 +77,7 @@ export const HeroWord: React.FC<HeroWordProps> = ({
           letterSpacing: "-0.02em",
           lineHeight: 1,
           textAlign: "center",
-          padding: "0 40px",
+          padding: `0 ${sidePad}px`,
         }}
       >
         {word}
