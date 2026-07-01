@@ -37,6 +37,7 @@ import { HeroWord } from '../../mograph/HeroWord';
 import { AmbientBackground } from '../../backgrounds/AmbientBackground';
 import { HardCutFlash } from '../../transitions/HardCutFlash';
 import { ShapeSpinningRings } from '../../mograph/primitives/ShapeSpinningRings';
+import { SOCIAL_SAFE_ZONE, CAPTION_BAND_PX } from '../../mograph/primitives';
 import { CandlestickChart } from './CandlestickChart';
 import { TickerTape } from './TickerTape';
 
@@ -52,7 +53,8 @@ function norm(s: string) {
 
 const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({ beat, durationFrames }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, height } = useVideoConfig();
+  const safeTopPx = Math.round(height * SOCIAL_SAFE_ZONE.topPct) + CAPTION_BAND_PX;
   const { visual, emphasis_keyword, resolvedAsset, bg_color, audioPath, shotBrief } = beat;
   const kind    = visual.kind;
   const bg      = bg_color || CFG.colors.bgPrimary;
@@ -116,7 +118,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
           style={{
             position: 'absolute',
             left: 60, right: 60,
-            ...(isFullscreen ? { bottom: 300 } : { top: 200 }),
+            ...(isFullscreen ? { bottom: 300 } : { top: safeTopPx }),
             opacity: enter,
             transform: `translateY(${translateY}px)`,
           }}

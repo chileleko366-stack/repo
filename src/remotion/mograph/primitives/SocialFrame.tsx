@@ -45,3 +45,12 @@ export const SOCIAL_SAFE_ZONE = {
   bottomPct: 0.15,
   sidePct: 0.05,
 } as const;
+
+// CaptionPage (captions/CaptionPage.tsx) renders inside the safe zone's top
+// band — fontSize 48, lineHeight 1.35, up to ~2 lines per page — so anything
+// ELSE anchored to SOCIAL_SAFE_ZONE.topPct (e.g. a channel's fallback
+// narration text) would render directly through/under the always-on
+// caption track rather than merely clearing the platform UI edge. Any
+// top-anchored content that needs to clear captions too should add this on
+// top of the topPct offset, not just topPct alone.
+export const CAPTION_BAND_PX = 150;

@@ -32,6 +32,7 @@ import { AmbientBackground } from '../../backgrounds/AmbientBackground';
 import { DocumentaryQuote } from './DocumentaryQuote';
 import { FilmGrain } from './FilmGrain';
 import { HardCutFlash } from '../../transitions/HardCutFlash';
+import { SOCIAL_SAFE_ZONE, CAPTION_BAND_PX } from '../../mograph/primitives';
 
 const CFG = CHANNEL_CONFIGS.ch5;
 
@@ -93,6 +94,9 @@ const AssetNarration: React.FC<{
 // ── Beat section ──────────────────────────────────────────────────────────────────────────────
 
 const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({ beat, durationFrames }) => {
+  const { height } = useVideoConfig();
+  const safeTopPx = Math.round(height * SOCIAL_SAFE_ZONE.topPct) + CAPTION_BAND_PX;
+  const safeBottomPx = Math.round(height * SOCIAL_SAFE_ZONE.bottomPct);
   const { visual, emphasis_keyword, resolvedAsset, bg_color, audioPath, shotBrief } = beat;
   const kind     = visual.kind;
   const bg       = bg_color || CFG.colors.bgPrimary;
@@ -166,6 +170,8 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            paddingTop: safeTopPx,
+            paddingBottom: safeBottomPx,
           }}
         >
           <DocumentaryQuote

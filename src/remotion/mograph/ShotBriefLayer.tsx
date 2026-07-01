@@ -23,7 +23,7 @@
  */
 
 import React from 'react';
-import { AbsoluteFill } from 'remotion';
+import { AbsoluteFill, useVideoConfig } from 'remotion';
 import type { ManifestBeat } from '../../pipeline/types';
 import type { ShotBrief } from '../../pipeline/shotBrief';
 import { AssetLayer } from '../assets/AssetLayer';
@@ -94,6 +94,36 @@ function buildBoxShadow(brief: ShotBrief): string | undefined {
     (s) => `${s.offsetX}px ${s.offsetY}px ${s.blurPx}px ${hexOpacity(s.color, s.opacity)}`,
   );
   return shadows.length ? shadows.join(', ') : undefined;
+}
+
+// The LLM is asked for composition.safeZones (topReservedPx/bottomReservedPx)
+// alongside primaryAnchor, but nothing validates the two are consistent — the
+// LLM can (and does) pick a yPct that puts the anchor box inside its own
+// stated reserved band. Clamp yPct so the anchor box's vertical extent never
+// crosses the reserved bands, keeping widthPct/heightPct (the LLM's chosen
+// composition size) untouched. safeZones is nominally required on ShotBrief,
+// but — like depth.glowEffects/dropShadows elsewhere in this file — treated
+// as optional here since nothing enforces its presence in the raw LLM JSON.
+function clampYPctToSafeZone(brief: ShotBrief, videoHeight: number): number {
+  const { yPct, heightPct } = brief.composition.primaryAnchor;
+  const topReservedPx = brief.composition.safeZones?.topReservedPx ?? 0;
+  const bottomReservedPx = brief.composition.safeZones?.bottomReservedPx ?? 0;
+
+  if (videoHeight <= 0 || (topReservedPx <= 0 && bottomReservedPx <= 0)) {
+    return yPct;
+  }
+
+  const halfHeightPct = heightPct / 2;
+  const minYPct = (topReservedPx / videoHeight) * 100 + halfHeightPct;
+  const maxYPct = 100 - (bottomReservedPx / videoHeight) * 100 - halfHeightPct;
+
+  // Reserved bands too large relative to the anchor's own height to satisfy
+  // both bounds — leave the LLM's yPct alone rather than clamp to nonsense.
+  if (minYPct > maxYPct) {
+    return yPct;
+  }
+
+  return Math.min(Math.max(yPct, minYPct), maxYPct);
 }
 
 function GlowOverlays({ brief }: { brief: ShotBrief }): React.ReactElement {
@@ -645,6 +675,7 @@ export const ShotBriefLayer: React.FC<ShotBriefLayerProps> = ({
   accentFont,
   suppressPrimitive = false,
 }) => {
+  const { height: videoHeight } = useVideoConfig();
   const brief = beat.shotBrief;
   if (!brief) return null;
 
@@ -697,7 +728,8 @@ export const ShotBriefLayer: React.FC<ShotBriefLayerProps> = ({
       />
     );
 
-  const { xPct, yPct, widthPct, heightPct } = brief.composition.primaryAnchor;
+  const { xPct, widthPct, heightPct } = brief.composition.primaryAnchor;
+  const yPct = clampYPctToSafeZone(brief, videoHeight);
   const boxShadow = buildBoxShadow(brief);
 
   return (

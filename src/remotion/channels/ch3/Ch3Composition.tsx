@@ -36,6 +36,7 @@ import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { HeroWord } from '../../mograph/HeroWord';
 import { AmbientBackground } from '../../backgrounds/AmbientBackground';
 import { HardCutFlash } from '../../transitions/HardCutFlash';
+import { SOCIAL_SAFE_ZONE, CAPTION_BAND_PX } from '../../mograph/primitives';
 import { ClassifiedStamp } from './ClassifiedStamp';
 import { GlitchWord } from './GlitchWord';
 import { ScrambleReveal } from './ScrambleReveal';
@@ -48,7 +49,8 @@ function toStatic(p: string) {
 
 const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({ beat, durationFrames }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, height } = useVideoConfig();
+  const safeTopPx = Math.round(height * SOCIAL_SAFE_ZONE.topPct) + CAPTION_BAND_PX;
   const { visual, emphasis_keyword, resolvedAsset, bg_color, audioPath, shotBrief } = beat;
   const kind     = visual.kind;
   const bg       = bg_color || CFG.colors.bgPrimary;
@@ -116,7 +118,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
       {!hasShotBrief && !isFullscreen && (
         <div
           style={{
-            position: 'absolute', left: 60, right: 60, top: 200,
+            position: 'absolute', left: 60, right: 60, top: safeTopPx,
             opacity: enter,
             display: 'flex',
             flexDirection: 'column',
