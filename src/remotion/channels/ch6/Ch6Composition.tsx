@@ -8,13 +8,14 @@
  *   ─ CelestialBody       (celestial beats — 3-D rotating sphere)
  *   ─ Gradient scrim
  *   ─ Counter             (stat beats)
- *   ─ Narration text      (Orbitron, bottom-anchor on asset/celestial, centred otherwise)
+ *   ─ Narration text      (Space Grotesk, bottom-anchor on asset/celestial, centred otherwise)
  *   ─ Beat audio
  *   ─ HardCutFlash        (orange accent flash)
  * Global: Soundtrack + SfxLayer + CaptionTrack
  */
 
-import '@fontsource/orbitron';
+import '@fontsource/anton';
+import '@fontsource/space-grotesk';
 import React from 'react';
 import { AbsoluteFill, Audio, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import type { ManifestBeat, VideoManifest } from '../../../pipeline/types';
@@ -31,7 +32,7 @@ import type { TimedBeat } from '../../transitions/BeatCompositor';
 import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { HeroWord } from '../../mograph/HeroWord';
 import { AmbientBackground } from '../../backgrounds/AmbientBackground';
-import { HardCutFlash } from './HardCutFlash';
+import { HardCutFlash } from '../../transitions/HardCutFlash';
 import { Starfield } from './Starfield';
 
 const CFG = CHANNEL_CONFIGS.ch6;
@@ -40,7 +41,7 @@ function toStatic(p: string) {
   return staticFile(p.replace(/^public\//, ''));
 }
 
-// ── Narration overlay (Orbitron) ──────────────────────────────────────────────────────────────────────
+// ── Narration overlay (Space Grotesk) ──────────────────────────────────────────────────────────────────────
 
 const SpaceText: React.FC<{
   text: string;
@@ -72,7 +73,7 @@ const SpaceText: React.FC<{
           <span
             key={i}
             style={{
-              fontFamily: "'Orbitron', sans-serif",
+              fontFamily: "'Space Grotesk', sans-serif",
               fontSize: 56,
               fontWeight: isEmphasis ? 700 : 400,
               color: isEmphasis ? CFG.colors.accent1 : '#e0e8ff',
@@ -176,7 +177,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
             durationFrames={108}
             fontSize={148}
             color={CFG.colors.accent1}
-            fontFamily="'Orbitron', sans-serif"
+            fontFamily="'Anton', sans-serif"
           />
         </AbsoluteFill>
       )}

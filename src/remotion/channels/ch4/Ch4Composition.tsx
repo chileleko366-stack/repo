@@ -7,14 +7,14 @@
  *   ─ ThreeBrain      (anatomy beats — real BrainStem.glb 3D model)
  *   ─ Gradient scrim
  *   ─ Counter         (stat beats)
- *   ─ Narration text  (Fraunces italic for general, Anton for anatomy)
+ *   ─ Narration text  (Space Grotesk for general, Anton for anatomy)
  *   ─ Beat audio
  *   ─ HardCutFlash    (cyan accent flash)
  * Global: Soundtrack + SfxLayer + CaptionTrack
  */
 
-import '@fontsource/fraunces';
 import '@fontsource/anton';
+import '@fontsource/space-grotesk';
 import React from 'react';
 import { AbsoluteFill, Audio, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import type { ManifestBeat, VideoManifest } from '../../../pipeline/types';
@@ -31,7 +31,7 @@ import type { TimedBeat } from '../../transitions/BeatCompositor';
 import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { HeroWord } from '../../mograph/HeroWord';
 import { AmbientBackground } from '../../backgrounds/AmbientBackground';
-import { HardCutFlash } from './HardCutFlash';
+import { HardCutFlash } from '../../transitions/HardCutFlash';
 
 const CFG = CHANNEL_CONFIGS.ch4;
 
@@ -57,9 +57,9 @@ const NarrationText: React.FC<{
   const translateY = interpolate(enterY, [0, 1], [72, 0]);
   const opacity    = interpolate(frame, [0, 24], [0, 1], { extrapolateRight: 'clamp' });
 
-  const fontFamily = isAnatomy ? 'Anton, sans-serif' : "'Fraunces', serif";
+  const fontFamily = isAnatomy ? "'Anton', sans-serif" : "'Space Grotesk', sans-serif";
   const fontSize   = isAnatomy ? 72 : 62;
-  const fontStyle  = isAnatomy ? 'normal' : 'italic';
+  const fontStyle  = 'normal';
 
   return (
     <div

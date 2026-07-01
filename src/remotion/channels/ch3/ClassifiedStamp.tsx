@@ -40,7 +40,7 @@ export const ClassifiedStamp: React.FC<{
     >
       <span
         style={{
-          fontFamily: "'Special Elite', cursive",
+          fontFamily: "'Anton', sans-serif",
           fontSize: 92,
           color: '#cc0000',
           letterSpacing: '0.2em',

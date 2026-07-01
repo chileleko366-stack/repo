@@ -332,6 +332,7 @@ function PrimitiveDispatch({
           text={primaryText}
           color={primaryColor}
           fontSize={primaryTypo?.sizePx ?? 80}
+          fontFamily={bodyFont}
           backgroundColor={bgColor}
         />
       );

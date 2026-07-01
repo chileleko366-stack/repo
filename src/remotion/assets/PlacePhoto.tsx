@@ -3,9 +3,9 @@
  * No CSS transitions; scale and translate are pure functions of useCurrentFrame().
  * Dark gradient overlay keeps captions legible regardless of image brightness.
  *
- * When accentColors is provided, a duotone treatment is applied:
- *   shadow layer (accent2): mix-blend-mode: multiply  — tints dark areas
- *   highlight layer (accent1): mix-blend-mode: screen  — tints light areas
+ * When accentColors is provided, the image is desaturated (grayscale 85%,
+ * contrast 1.05) with a low-opacity accent-color radial overlay — the
+ * monochrome-with-a-color-pop treatment shared across all channels.
  */
 
 import React from 'react';
@@ -26,12 +26,7 @@ export const PlacePhoto: React.FC<{
   const translateY = interpolate(t, [0, 1], [0, -8],      { extrapolateRight: 'clamp' });
 
   return (
-    <AbsoluteFill
-      style={{
-        overflow: 'hidden',
-        isolation: accentColors ? 'isolate' : undefined,
-      }}
-    >
+    <AbsoluteFill style={{ overflow: 'hidden' }}>
       <Img
         src={staticFile(asset.path.replace(/^public\//, ''))}
         style={{
@@ -40,33 +35,20 @@ export const PlacePhoto: React.FC<{
           objectFit: 'cover',
           transform: `scale(${scale}) translate(${translateX}px, ${translateY}px)`,
           transformOrigin: 'center center',
-          filter: accentColors ? 'grayscale(1) contrast(1.05)' : undefined,
+          filter: accentColors ? 'grayscale(0.85) contrast(1.05)' : undefined,
         }}
       />
 
+      {/* Accent-color pop: low-opacity radial overlay, monochrome-with-a-pop look */}
       {accentColors && (
-        <>
-          {/* Duotone shadow layer: accent2 tints dark areas */}
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background: accentColors.secondary,
-              mixBlendMode: 'multiply',
-              opacity: 0.5,
-            }}
-          />
-          {/* Duotone highlight layer: accent1 tints light areas */}
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background: accentColors.primary,
-              mixBlendMode: 'screen',
-              opacity: 0.3,
-            }}
-          />
-        </>
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: `radial-gradient(ellipse at center, ${accentColors.primary}26 0%, transparent 70%)`,
+            pointerEvents: 'none',
+          }}
+        />
       )}
 
       {/* Vignette: darker edges, max black at bottom for caption readability */}

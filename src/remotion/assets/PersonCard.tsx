@@ -5,10 +5,9 @@
  *   1. Background gradient — drifts at 25% of the subject camera rate
  *   2. Subject (Img) — full camera drift + subtle multi-harmonic idle motion
  *
- * Duotone: channel accent colors applied via CSS blend-mode overlays when
- * accentColors is provided.
- *   Shadow layer    (accent2): mix-blend-mode: multiply
- *   Highlight layer (accent1): mix-blend-mode: screen
+ * When accentColors is provided, the subject is desaturated (grayscale 85%,
+ * contrast 1.05) with a low-opacity accent-color radial overlay — the
+ * monochrome-with-a-color-pop treatment shared across all channels.
  *
  * Falls back to an initial-letter badge when no image is available.
  */
@@ -103,8 +102,21 @@ export const PersonCard: React.FC<{
             maxWidth: 800,
             objectFit: 'contain',
             display: 'block',
+            filter: accentColors ? 'grayscale(0.85) contrast(1.05)' : undefined,
           }}
         />
+
+        {/* Accent-color pop: low-opacity radial overlay on the subject itself */}
+        {accentColors && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: `radial-gradient(ellipse at 50% 40%, ${accentColors.primary}26 0%, transparent 70%)`,
+              pointerEvents: 'none',
+            }}
+          />
+        )}
       </div>
     </AbsoluteFill>
   );

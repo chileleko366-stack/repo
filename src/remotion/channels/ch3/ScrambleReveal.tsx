@@ -36,7 +36,7 @@ export const ScrambleReveal: React.FC<{
   return (
     <div
       style={{
-        fontFamily: "'Special Elite', cursive",
+        fontFamily: "'Space Grotesk', sans-serif",
         fontSize,
         color,
         letterSpacing: '0.06em',

@@ -30,8 +30,8 @@ export const CHANNEL_CONFIGS: Record<ChannelId, ChannelConfig> = {
     voice: 'en-US-DavisNeural',
     voiceRate: '+10%',
     voicePitch: '-2Hz',
-    bodyFont: "'JetBrains Mono', monospace",
-    accentFont: "'Space Grotesk', sans-serif",
+    bodyFont: "'Space Grotesk', sans-serif",
+    accentFont: "'Anton', sans-serif",
     colors: {
       bgPrimary:  '#0a0e1a',
       accent1:    '#00ff88',
@@ -52,8 +52,8 @@ export const CHANNEL_CONFIGS: Record<ChannelId, ChannelConfig> = {
     voice: 'en-US-TonyNeural',
     voiceRate: '+5%',
     voicePitch: '-5Hz',
-    bodyFont: "'Special Elite', cursive",
-    accentFont: "'Special Elite', cursive",
+    bodyFont: "'Space Grotesk', sans-serif",
+    accentFont: "'Anton', sans-serif",
     colors: {
       bgPrimary:  '#080808',
       accent1:    '#cc0000',
@@ -74,7 +74,7 @@ export const CHANNEL_CONFIGS: Record<ChannelId, ChannelConfig> = {
     voice: 'en-GB-SoniaNeural',
     voiceRate: '+8%',
     voicePitch: '+0Hz',
-    bodyFont: "'Fraunces', serif",
+    bodyFont: "'Space Grotesk', sans-serif",
     accentFont: "'Anton', sans-serif",
     colors: {
       bgPrimary:  '#12121e',
@@ -96,8 +96,8 @@ export const CHANNEL_CONFIGS: Record<ChannelId, ChannelConfig> = {
     voice: 'en-GB-RyanNeural',
     voiceRate: '+3%',
     voicePitch: '+0Hz',
-    bodyFont: "'EB Garamond', serif",
-    accentFont: "'Fraunces', serif",
+    bodyFont: "'Space Grotesk', sans-serif",
+    accentFont: "'Anton', sans-serif",
     colors: {
       bgPrimary:  '#100d08',
       accent1:    '#c8a96e',
@@ -118,8 +118,8 @@ export const CHANNEL_CONFIGS: Record<ChannelId, ChannelConfig> = {
     voice: 'en-US-AriaNeural',
     voiceRate: '+12%',
     voicePitch: '+0Hz',
-    bodyFont: "'Orbitron', sans-serif",
-    accentFont: "'Orbitron', sans-serif",
+    bodyFont: "'Space Grotesk', sans-serif",
+    accentFont: "'Anton', sans-serif",
     colors: {
       bgPrimary:  '#050010',
       accent1:    '#ff4500',

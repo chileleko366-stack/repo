@@ -6,14 +6,14 @@
  *   ─ AssetLayer      (full-screen for person/brand/place)
  *   ─ Warm vignette   (always — corners darker)
  *   ─ DocumentaryQuote (non-asset beats: centred quote card)
- *   ─ Narration text   (asset beats: bottom anchor, EB Garamond)
+ *   ─ Narration text   (asset beats: bottom anchor, Space Grotesk)
  *   ─ Beat audio
  *   ─ HardCutFlash     (black fade — cinematic cut)
  * Global: Soundtrack + SfxLayer + CaptionTrack + FilmGrain
  */
 
-import '@fontsource/eb-garamond';
-import '@fontsource/fraunces';
+import '@fontsource/anton';
+import '@fontsource/space-grotesk';
 import React from 'react';
 import { AbsoluteFill, Audio, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import type { ManifestBeat, VideoManifest } from '../../../pipeline/types';
@@ -31,7 +31,7 @@ import { HeroWord } from '../../mograph/HeroWord';
 import { AmbientBackground } from '../../backgrounds/AmbientBackground';
 import { DocumentaryQuote } from './DocumentaryQuote';
 import { FilmGrain } from './FilmGrain';
-import { HardCutFlash } from './HardCutFlash';
+import { HardCutFlash } from '../../transitions/HardCutFlash';
 
 const CFG = CHANNEL_CONFIGS.ch5;
 
@@ -39,7 +39,7 @@ function toStatic(p: string) {
   return staticFile(p.replace(/^public\//, ''));
 }
 
-// ── Asset-beat narration (EB Garamond, bottom anchor) ─────────────────────────────────────
+// ── Asset-beat narration (Space Grotesk, bottom anchor) ─────────────────────────────────────
 
 const AssetNarration: React.FC<{
   text: string;
@@ -72,8 +72,7 @@ const AssetNarration: React.FC<{
           <span
             key={i}
             style={{
-              fontFamily: "'EB Garamond', serif",
-              fontStyle: 'italic',
+              fontFamily: "'Space Grotesk', sans-serif",
               fontSize: 60,
               fontWeight: 400,
               lineHeight: 1.45,
@@ -212,7 +211,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
 
       {audioPath ? <Audio src={toStatic(audioPath)} volume={1} /> : null}
 
-      <HardCutFlash />
+      <HardCutFlash color="#000000" peakOpacity={0.7} durationFrames={8} />
     </AbsoluteFill>
   );
 };

@@ -27,7 +27,7 @@ export const GlitchWord: React.FC<{
     : 0;
 
   const shared: React.CSSProperties = {
-    fontFamily: "'Special Elite', cursive",
+    fontFamily: "'Anton', sans-serif",
     fontSize,
     textTransform: 'uppercase' as const,
     letterSpacing: '0.1em',

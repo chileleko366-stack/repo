@@ -1,22 +1,22 @@
 /**
  * Ch3Composition — Redacted channel (ch3).
- * Special Elite font / #080808 bg / #cc0000 accent.
+ * Space Grotesk body / Anton accent / #080808 bg / #cc0000 accent.
  *
  * Beat layout:
  *   hook/context   → ScrambleReveal text + GlitchWord emphasis
- *   other non-asset→ plain Special Elite text + GlitchWord emphasis
+ *   other non-asset→ plain body text + GlitchWord emphasis
  *   twist          → ClassifiedStamp overlay
  *   person/place   → AssetLayer full-screen
  * Global: scanline texture, red top rule, Soundtrack, SfxLayer, CaptionTrack.
  */
 
-import '@fontsource/special-elite';
+import '@fontsource/anton';
+import '@fontsource/space-grotesk';
 import React from 'react';
 import {
   AbsoluteFill,
   Audio,
   Sequence,
-  interpolate,
   spring,
   staticFile,
   useCurrentFrame,
@@ -35,6 +35,7 @@ import type { TimedBeat } from '../../transitions/BeatCompositor';
 import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { HeroWord } from '../../mograph/HeroWord';
 import { AmbientBackground } from '../../backgrounds/AmbientBackground';
+import { HardCutFlash } from '../../transitions/HardCutFlash';
 import { ClassifiedStamp } from './ClassifiedStamp';
 import { GlitchWord } from './GlitchWord';
 import { ScrambleReveal } from './ScrambleReveal';
@@ -128,7 +129,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
           ) : (
             <div
               style={{
-                fontFamily: "'Special Elite', cursive",
+                fontFamily: "'Space Grotesk', sans-serif",
                 fontSize: 62,
                 color: CFG.colors.text,
                 lineHeight: 1.35,
@@ -182,15 +183,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
 
       {audioPath ? <Audio src={toStatic(audioPath)} volume={1} /> : null}
 
-      {/* Red cut flash */}
-      <div
-        style={{
-          position: 'absolute', inset: 0,
-          background: CFG.colors.accent1,
-          opacity: interpolate(frame, [0, 8], [0.22, 0], { extrapolateRight: 'clamp' }),
-          pointerEvents: 'none',
-        }}
-      />
+      <HardCutFlash color={CFG.colors.accent1} peakOpacity={0.22} durationFrames={8} />
     </AbsoluteFill>
   );
 };

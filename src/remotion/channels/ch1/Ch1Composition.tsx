@@ -33,7 +33,7 @@ import type { TimedBeat } from '../../transitions/BeatCompositor';
 import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { HeroWord } from '../../mograph/HeroWord';
 import { AmbientBackground } from '../../backgrounds/AmbientBackground';
-import { HardCutFlash } from './HardCutFlash';
+import { HardCutFlash } from '../../transitions/HardCutFlash';
 
 const CFG = CHANNEL_CONFIGS.ch1;
 

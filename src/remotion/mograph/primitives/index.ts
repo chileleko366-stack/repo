@@ -57,6 +57,7 @@ export { CinematicSciFi } from './CinematicSciFi';
 // Background primitives
 export { BackgroundAurora } from './BackgroundAurora';
 export { BackgroundGeometric } from './BackgroundGeometric';
+export { BackgroundDotGrid } from './BackgroundDotGrid';
 // Effect overlays
 export { EffectFilmGrain } from './EffectFilmGrain';
 export { EffectLightLeak } from './EffectLightLeak';

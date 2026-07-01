@@ -55,7 +55,7 @@ export const BrowserFrame: React.FC<{
           display: 'flex',
           alignItems: 'center',
           padding: '0 14px',
-          fontFamily: "'JetBrains Mono', monospace",
+          fontFamily: "'Space Grotesk', sans-serif",
           fontSize: 21,
           color: 'rgba(0,255,136,0.85)',
           letterSpacing: '0.02em',

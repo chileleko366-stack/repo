@@ -3,8 +3,8 @@
  *
  * Layout:
  *   ─ Left gold border that scales in (height 0→100%)
- *   ─ Quote text in EB Garamond italic, spring slide-in from left
- *   ─ Attribution line in Fraunces small caps below
+ *   ─ Quote text in Space Grotesk, spring slide-in from left
+ *   ─ Attribution line in Anton small caps below
  *
  * All animation is a pure function of useCurrentFrame().
  */
@@ -73,8 +73,7 @@ export const DocumentaryQuote: React.FC<{
         {/* Quote body */}
         <p
           style={{
-            fontFamily: "'EB Garamond', serif",
-            fontStyle: 'italic',
+            fontFamily: "'Space Grotesk', sans-serif",
             fontSize: 58,
             fontWeight: 400,
             lineHeight: 1.45,
@@ -91,7 +90,6 @@ export const DocumentaryQuote: React.FC<{
                 key={i}
                 style={{
                   color: isEmphasis ? accentColor : '#f5f0e8',
-                  fontStyle: 'italic',
                   marginRight: 7,
                 }}
               >
@@ -105,7 +103,7 @@ export const DocumentaryQuote: React.FC<{
         {attribution && (
           <p
             style={{
-              fontFamily: "'Fraunces', serif",
+              fontFamily: "'Anton', sans-serif",
               fontSize: 28,
               fontWeight: 600,
               letterSpacing: '0.12em',

@@ -17,7 +17,7 @@ export const TextScramble: React.FC<{
   text,
   color = '#00ff88',
   fontSize = 80,
-  fontFamily = "'JetBrains Mono', monospace",
+  fontFamily = "'Space Grotesk', sans-serif",
   backgroundColor = '#000000',
 }) => {
   const frame = useCurrentFrame();

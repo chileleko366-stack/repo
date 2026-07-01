@@ -41,7 +41,7 @@ export const TickerTape: React.FC<{
           position: 'absolute',
           whiteSpace: 'nowrap',
           transform: `translateX(${offset}px)`,
-          fontFamily: "'JetBrains Mono', monospace",
+          fontFamily: "'Space Grotesk', sans-serif",
           fontSize: 27,
           color: accent,
           letterSpacing: '0.04em',

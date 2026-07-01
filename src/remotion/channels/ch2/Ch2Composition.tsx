@@ -1,6 +1,6 @@
 /**
  * Ch2Composition — FinanceFiction channel (ch2).
- * JetBrains Mono body / Space Grotesk accent / #0a0e1a bg / #00ff88 accent.
+ * Space Grotesk body / Anton accent / #0a0e1a bg / #00ff88 accent.
  *
  * Beat layout:
  *   stat / none  → CandlestickChart bg + Counter or text
@@ -9,7 +9,7 @@
  * Global: TickerTape strip on every beat, Soundtrack, SfxLayer, CaptionTrack.
  */
 
-import '@fontsource/jetbrains-mono';
+import '@fontsource/anton';
 import '@fontsource/space-grotesk';
 import React from 'react';
 import {
@@ -35,6 +35,7 @@ import type { TimedBeat } from '../../transitions/BeatCompositor';
 import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { HeroWord } from '../../mograph/HeroWord';
 import { AmbientBackground } from '../../backgrounds/AmbientBackground';
+import { HardCutFlash } from '../../transitions/HardCutFlash';
 import { CandlestickChart } from './CandlestickChart';
 import { TickerTape } from './TickerTape';
 
@@ -163,7 +164,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
             suffix={visual.suffix}
             fontSize={160}
             color={CFG.colors.accent1}
-            fontFamily="'Space Grotesk', sans-serif"
+            fontFamily="'Anton', sans-serif"
           />
         </div>
       )}
@@ -193,15 +194,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
 
       {audioPath ? <Audio src={toStatic(audioPath)} volume={1} /> : null}
 
-      {/* Cut flash */}
-      <div
-        style={{
-          position: 'absolute', inset: 0,
-          background: CFG.colors.accent1,
-          opacity: interpolate(frame, [0, 8], [0.28, 0], { extrapolateRight: 'clamp' }),
-          pointerEvents: 'none',
-        }}
-      />
+      <HardCutFlash color={CFG.colors.accent1} peakOpacity={0.28} durationFrames={8} />
     </AbsoluteFill>
   );
 };
