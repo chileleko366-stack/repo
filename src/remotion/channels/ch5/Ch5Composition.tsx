@@ -205,7 +205,8 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         durationFrames={durationFrames}
       />
 
-      {beat.heroWord && (
+      {/* Suppressed on the !hasShotBrief fallback path — see ch1 for why. */}
+      {beat.heroWord && hasShotBrief && (
         <HeroWord
           word={beat.heroWord}
           accentColor={CFG.colors.accent1}

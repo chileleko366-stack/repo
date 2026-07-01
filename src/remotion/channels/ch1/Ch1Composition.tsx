@@ -34,6 +34,8 @@ import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { HeroWord } from '../../mograph/HeroWord';
 import { AmbientBackground } from '../../backgrounds/AmbientBackground';
 import { HardCutFlash } from '../../transitions/HardCutFlash';
+import { ShapeSpinningRings } from '../../mograph/primitives/ShapeSpinningRings';
+import { Counter } from '../../morph/Counter';
 
 const CFG = CHANNEL_CONFIGS.ch1;
 
@@ -60,6 +62,8 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
   // person/brand/place/map/distance take the full frame
   const isFullscreen =
     hasAsset && kind !== 'none' && kind !== 'stat' && kind !== 'anatomy' && kind !== 'celestial';
+
+  const isStat = kind === 'stat';
 
   // When shotBrief is present: use its primaryAnchor for text position; skip hardcoded layout.
   const hasShotBrief = !!shotBrief;
@@ -106,6 +110,36 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         />
       )}
 
+      {/* Fallback: stat counter (brief compilation failed for this beat).
+          ch1 is the only channel whose channelConfigs.ts beatTypes includes
+          'stat' but previously had zero isStat handling — the common,
+          brief-driven path already covers stat beats via ShotBriefLayer's
+          channel-agnostic ProgressBar/ShapeCircularProgress/DataGauge/etc.
+          dispatch; this was only missing for the fallback case. */}
+      {!hasShotBrief && isStat && (
+        <AbsoluteFill
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 16,
+          }}
+        >
+          <ShapeSpinningRings accentColor={CFG.colors.accent1} backgroundColor="transparent" />
+          <Counter
+            to={parseFloat(visual.stat_value?.toString() ?? visual.value ?? '0') || 0}
+            prefix={visual.prefix}
+            suffix={visual.suffix}
+            delayFrames={108}
+            durationFrames={108}
+            fontSize={148}
+            color={CFG.colors.accent1}
+            fontFamily="'Anton', sans-serif"
+          />
+        </AbsoluteFill>
+      )}
+
       {/* Mograph kinetic text: emphasis keyword + supporting words */}
       <KineticTextLayer
         beat={beat}
@@ -115,8 +149,12 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         durationFrames={durationFrames}
       />
 
-      {/* Hero word — punchy accent on beat.heroWord, fires for ~18 frames */}
-      {beat.heroWord && (
+      {/* Hero word — punchy accent on beat.heroWord, fires for ~18 frames.
+          Suppressed on the !hasShotBrief fallback path: the fallback
+          narration text already displays the full sentence at a fixed
+          top-anchored position, and HeroWord's fixed top:30% band can reach
+          into it during HeroWord's active window when narration is long. */}
+      {beat.heroWord && hasShotBrief && (
         <HeroWord
           word={beat.heroWord}
           accentColor={CFG.colors.accent1}
