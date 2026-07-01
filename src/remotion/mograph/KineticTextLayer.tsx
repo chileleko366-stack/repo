@@ -102,7 +102,7 @@ export const KineticTextLayer: React.FC<KineticTextLayerProps> = ({
             flexWrap: 'wrap',
             justifyContent: 'center',
             gap: '0 10px',
-            marginBottom: 16,
+            marginBottom: 32,
           }}
         >
           {supportingWords.map((word, i) => {

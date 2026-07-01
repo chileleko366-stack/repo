@@ -19,7 +19,7 @@ export const BackgroundDotGrid: React.FC<Props> = ({
   const opacity = interpolate(
     Math.sin(frame / fps * 0.8),
     [-1, 1],
-    [0.08, 0.18],
+    [0.18, 0.32],
   );
 
   const patternId = 'dotgrid';

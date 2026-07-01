@@ -27,16 +27,26 @@ STOP_WORDS = {
 }
 
 
-def extract_hero_word(narration: str) -> str:
+def extract_hero_word(narration: str, exclude: str = "") -> str:
     """Extract the most impactful word from a beat's narration.
-    Longest word over 4 chars that isn't a stop word. Deterministic, no LLM."""
+    Longest word over 4 chars that isn't a stop word. Deterministic, no LLM.
+
+    `exclude` is the beat's emphasis_keyword: KineticTextLayer already renders
+    it as the bottom-anchored headline, so HeroWord (top: 30%) must never pick
+    the same word — that produced duplicate on-screen text (e.g. "EQUATIONS"
+    rendered twice in one frame). If every non-stop-word candidate is the
+    excluded word, return "" so HeroWord simply doesn't fire that beat rather
+    than falling back to a word that still collides.
+    """
     if not narration:
         return ""
     words = narration.replace(",", "").replace(".", "").replace("?", "").replace("!", "").split()
-    candidates = [w for w in words if len(w) > 4 and w.lower() not in STOP_WORDS]
-    if not candidates:
-        return words[0].upper() if words else ""
-    return max(candidates, key=len).upper()
+    exclude_lower = exclude.strip().lower()
+    non_colliding = [w for w in words if w.lower() != exclude_lower]
+    candidates = [w for w in non_colliding if len(w) > 4 and w.lower() not in STOP_WORDS]
+    if candidates:
+        return max(candidates, key=len).upper()
+    return non_colliding[0].upper() if non_colliding else ""
 
 
 CHANNEL_TRANSITION_STYLES = {
@@ -161,7 +171,7 @@ def build_manifest(script: dict, channel_id: str) -> dict:
             "morph_from": morph_from,
             "bg_color": bg_color,
             "captionsVisible": captions_visible(visual.get("kind", "none")),
-            "heroWord": extract_hero_word(narration),
+            "heroWord": extract_hero_word(narration, exclude=emphasis_keyword),
             "transitionType": CHANNEL_TRANSITION_STYLES.get(channel_id, "slide"),
             "audioPath": f"public/audio/{beat_id}.mp3",
             "wordBoundariesPath": f"public/audio/{beat_id}_words.json",
