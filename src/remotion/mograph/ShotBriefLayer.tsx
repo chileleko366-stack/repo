@@ -97,6 +97,54 @@ function buildBoxShadow(brief: ShotBrief): string | undefined {
   return shadows.length ? shadows.join(', ') : undefined;
 }
 
+function hasRenderableResolvedAsset(beat: ManifestBeat): boolean {
+  const ra = beat.resolvedAsset;
+  if (!ra) return false;
+  const a = ra as unknown as Record<string, unknown>;
+  if ('path' in a) return a.path != null;
+  if ('svgString' in a) return true;
+  if ('map_image' in a) return true;
+  return false;
+}
+
+// Primitives whose PrimitiveDispatch case does NOT surface typography.primary
+// .text as literal, readable on-screen text — either they don't touch it at
+// all (particles/effects/backgrounds/icon), or they only consume it as
+// parsed numeric/chart data (TextCounter formats a number; DataLineChart
+// plots x/y points; ShapeCircularProgress's label falls back straight to
+// emphasis_keyword, not primaryText). ScrambleReveal renders beat.narration,
+// not primaryText. Kept in sync with the PrimitiveDispatch switch below.
+const PRIMITIVES_WITHOUT_LITERAL_PRIMARY_TEXT = new Set([
+  'AnimatedIcon', 'TextCounter', 'DataLineChart', 'ShapeCircularProgress',
+  'ShapeSpinningRings', 'ParticleShootingStars', 'ParticleSparks',
+  'CinematicNoir', 'CinematicSciFi', 'BackgroundAurora', 'BackgroundGeometric',
+  'EffectFilmGrain', 'EffectLightLeak', 'EffectVHS', 'EffectGlow',
+  'CandlestickChart', 'ClassifiedStamp', 'ScrambleReveal',
+]);
+
+/**
+ * The literal text ShotBriefLayer's chosen primitive would show on screen
+ * for this beat's typography.primary — or undefined if there's no brief, the
+ * primitive is suppressed/replaced by a resolved asset, or the primitive
+ * doesn't display primary text as readable words at all. `suppressPrimitive`
+ * must match whatever the calling composition passes to <ShotBriefLayer>
+ * (only ch4's anatomy beats currently use it).
+ *
+ * Composition files use this to detect when KineticTextLayer's
+ * emphasis_keyword headline would render the exact same word the shot
+ * brief already put on screen, and suppress the keyword on collision — the
+ * shot-brief LLM is explicitly instructed (shot_brief.py's TYPOGRAPHY RULES)
+ * to use emphasis_keyword as its typography.primary text, so this collision
+ * is expected on the common path, not a rare edge case.
+ */
+export function getShotBriefPrimaryText(beat: ManifestBeat, suppressPrimitive = false): string | undefined {
+  const brief = beat.shotBrief;
+  if (!brief || suppressPrimitive) return undefined;
+  if (hasRenderableResolvedAsset(beat) && brief.primitive !== 'AnimatedIcon') return undefined;
+  if (PRIMITIVES_WITHOUT_LITERAL_PRIMARY_TEXT.has(brief.primitive)) return undefined;
+  return (brief.typography ?? []).find((t) => t.role === 'primary')?.text;
+}
+
 // The LLM is asked for composition.safeZones (topReservedPx/bottomReservedPx)
 // alongside primaryAnchor, but nothing validates the two are consistent — the
 // LLM can (and does) pick a yPct that puts the anchor box inside its own
@@ -710,16 +758,7 @@ export const ShotBriefLayer: React.FC<ShotBriefLayerProps> = ({
     ?? '#7700cc';
 
   // Resolved-asset-first: real imagery always wins, wrapped in Shot Brief positioning.
-  // Check that the asset actually has renderable content (path != null, svgString, or map_image).
-  const hasRealAsset = (() => {
-    const ra = beat.resolvedAsset;
-    if (!ra) return false;
-    const a = ra as unknown as Record<string, unknown>;
-    if ('path' in a) return a.path != null;
-    if ('svgString' in a) return true;
-    if ('map_image' in a) return true;
-    return false;
-  })();
+  const hasRealAsset = hasRenderableResolvedAsset(beat);
 
   const content = (hasRealAsset && brief.primitive !== 'AnimatedIcon')
     ? (

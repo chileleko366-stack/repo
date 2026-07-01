@@ -18,7 +18,7 @@ import { CHANNEL_CONFIGS } from '../../../pipeline/channelConfigs';
 import { AssetLayer } from '../../assets/AssetLayer';
 import { CaptionTrack } from '../../captions/CaptionTrack';
 import { useWordBoundaries } from '../../captions/useWordBoundaries';
-import { ShotBriefLayer } from '../../mograph/ShotBriefLayer';
+import { ShotBriefLayer, getShotBriefPrimaryText } from '../../mograph/ShotBriefLayer';
 import { SfxLayer } from '../../sound/SfxLayer';
 import { Soundtrack } from '../../sound/Soundtrack';
 import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
@@ -37,7 +37,7 @@ function toStatic(p: string) {
 }
 
 const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({ beat, durationFrames }) => {
-  const { visual, resolvedAsset, bg_color, audioPath } = beat;
+  const { visual, emphasis_keyword, resolvedAsset, bg_color, audioPath } = beat;
   const kind    = visual.kind;
   const bg      = bg_color || CFG.colors.bgPrimary;
   const hasAsset = (() => {
@@ -49,6 +49,12 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
     return false;
   })();
   const isFullscreen = hasAsset && kind !== 'none' && kind !== 'stat';
+
+  // Suppress KineticTextLayer's keyword when the shot brief's own primitive
+  // already shows the same word — see getShotBriefPrimaryText.
+  const shotBriefPrimaryText = getShotBriefPrimaryText(beat);
+  const keywordCollides = !!shotBriefPrimaryText && !!emphasis_keyword &&
+    shotBriefPrimaryText.trim().toLowerCase() === emphasis_keyword.trim().toLowerCase();
 
   return (
     <AbsoluteFill>
@@ -95,6 +101,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         accentFont={CFG.accentFont}
         bodyFont={CFG.bodyFont}
         durationFrames={durationFrames}
+        suppressKeyword={keywordCollides}
       />
 
       {beat.heroWord && (

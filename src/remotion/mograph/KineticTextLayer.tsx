@@ -12,13 +12,21 @@
  * Supporting words (first 7 words of narration, minus the emphasis word) appear
  * ABOVE the keyword at 52px, white, staggered 5 frames apart with wipe-in clips.
  *
- * Exit fade: starts at 88% of durationFrames.
+ * Exit fade: starts at 88% of durationFrames, but always finishes (opacity 0)
+ * at least MAX_TRANSITION_FRAMES before the beat ends — see the comment above
+ * the exit-fade computation below for why.
+ *
+ * suppressKeyword: when the shot brief's own primitive already displays
+ * this beat's emphasis_keyword as its typography.primary text, the caller
+ * passes suppressKeyword to skip re-rendering it here — otherwise the same
+ * word appears twice in the frame. Supporting words are unaffected.
  */
 
 import React from 'react';
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 import type { ManifestBeat } from '../../pipeline/types';
 import { SOCIAL_SAFE_ZONE } from './primitives';
+import { MAX_TRANSITION_FRAMES } from '../transitions/BeatCompositor';
 
 export interface KineticTextLayerProps {
   beat: ManifestBeat;
@@ -26,6 +34,7 @@ export interface KineticTextLayerProps {
   accentFont: string;
   bodyFont: string;
   durationFrames: number;
+  suppressKeyword?: boolean;
 }
 
 function getKeywordSize(word: string): number {
@@ -43,12 +52,13 @@ export const KineticTextLayer: React.FC<KineticTextLayerProps> = ({
   accentFont,
   bodyFont,
   durationFrames,
+  suppressKeyword = false,
 }) => {
   const frame = useCurrentFrame();
   const { fps, width } = useVideoConfig();
   const sidePad = Math.round(width * SOCIAL_SAFE_ZONE.sidePct);
 
-  const keyword = (beat.emphasis_keyword ?? '').toUpperCase();
+  const keyword = suppressKeyword ? '' : (beat.emphasis_keyword ?? '').toUpperCase();
 
   const supportingWords = beat.narration
     .split(' ')
@@ -56,9 +66,17 @@ export const KineticTextLayer: React.FC<KineticTextLayerProps> = ({
     .slice(0, 7)
     .map(w => w.toUpperCase());
 
-  // Exit fade: start at 88% of duration
-  const exitStart = durationFrames * 0.88;
-  const exitProgress = interpolate(frame, [exitStart, durationFrames], [0, 1], {
+  // Exit fade: normally starts at 88% of duration, but TransitionSeries
+  // (BeatCompositor) mounts the NEXT beat's Sequence on top of this one's
+  // tail MAX_TRANSITION_FRAMES before this beat nominally ends — during that
+  // overlap window both beats' KineticTextLayer render simultaneously. If
+  // this beat's own headline hasn't finished fading out by then, two
+  // different words are visible at the same screen position at once (the
+  // reported ghosting). Clamp exitEnd so opacity always reaches 0 before
+  // that window starts, regardless of the 88% heuristic.
+  const exitEnd = Math.max(0, durationFrames - MAX_TRANSITION_FRAMES);
+  const exitStart = Math.min(durationFrames * 0.88, Math.max(0, exitEnd - 10));
+  const exitProgress = interpolate(frame, [exitStart, exitEnd], [0, 1], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
@@ -116,10 +134,12 @@ export const KineticTextLayer: React.FC<KineticTextLayerProps> = ({
               durationInFrames: 16,
             });
 
-            const rightInset = interpolate(wordReveal, [0, 1], [102, 0], {
-              extrapolateLeft: 'clamp',
-              extrapolateRight: 'clamp',
-            });
+            // Whole-word pop (opacity + scale + translateY), matching the
+            // proven token-reveal treatment in CaptionPage.tsx — not a
+            // clip-path wipe, which shows only a partial/sliced word mid-reveal.
+            const wordOpacity = interpolate(wordReveal, [0, 1], [0, 1]);
+            const wordScale = interpolate(wordReveal, [0, 1], [0.5, 1]);
+            const wordTranslateY = interpolate(wordReveal, [0, 1], [18, 0]);
 
             return (
               <span
@@ -132,7 +152,8 @@ export const KineticTextLayer: React.FC<KineticTextLayerProps> = ({
                   color: '#ffffff',
                   textTransform: 'uppercase' as const,
                   letterSpacing: '0.04em',
-                  clipPath: `inset(0 ${rightInset}% 0 0)`,
+                  opacity: wordOpacity,
+                  transform: `scale(${wordScale}) translateY(${wordTranslateY}px)`,
                   WebkitTextStroke: '5px rgba(0,0,0,0.9)',
                   paintOrder: 'stroke fill',
                 }}

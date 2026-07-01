@@ -30,6 +30,14 @@ const CROSSFADE_FRAMES = 8;   // breath — 6-10 frame soft blend
 const WIPE_FRAMES = 12;       // beat — 10-14 frame directional wipe
 const SLIDE_FRAMES = 16;      // cut — real scene break
 
+// Largest possible transition overlap window — during this many frames at the
+// tail of a beat's Sequence, TransitionSeries mounts the NEXT beat's Sequence
+// simultaneously on top of it (see @remotion/transitions' TransitionSeries.js:
+// entering/exiting children render concurrently, composited by the
+// presentation). Full-screen text layers (KineticTextLayer) must be fully
+// faded out before this window starts, or two beats' text renders overlap.
+export const MAX_TRANSITION_FRAMES = SLIDE_FRAMES;
+
 /** Maps pause type + visual-change status → transition kind */
 export function mapPauseToTransition(
   pause: PauseAfter,
@@ -52,7 +60,16 @@ function transitionFrameCount(kind: TransitionKind): number {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getTransitionPresentation(kind: TransitionKind, beatIndex: number): any {
-  if (kind === 'crossfade') return fade();
+  // shouldFadeOutExitingScene: without this, @remotion/transitions' fade()
+  // leaves the exiting scene at opacity 1 for the entire transition while the
+  // entering scene fades in on top of it — full-opacity text from both beats
+  // stacked, not a real crossfade. Fixed defensively: as of this commit,
+  // buildTimedBeats() below can never actually select 'crossfade' (see its
+  // pauseAfterMap lookup — the keys it's given never match beat.beatId, so
+  // pause always resolves to the 'cut' default), so this bug is currently
+  // unreachable in production. Fixing it anyway so it's correct the moment
+  // that lookup bug is fixed and 'breath' pacing starts working again.
+  if (kind === 'crossfade') return fade({ shouldFadeOutExitingScene: true });
   if (kind === 'wipe') {
     const dirs = ['from-left', 'from-right', 'from-top', 'from-bottom'] as const;
     return wipe({ direction: dirs[beatIndex % dirs.length] });

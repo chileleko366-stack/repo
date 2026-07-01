@@ -45,3 +45,7 @@ If a fix belongs in a shared file (anything in `mograph/`, `transitions/`, `capt
 ## Rule 7 — Don't merge to `main` without explicit confirmation the render was checked
 
 Push fixes to a feature branch. Report what you changed and what you visually confirmed (per Rule 4). Wait for explicit go-ahead before merging, unless the user has already told you in this session to merge automatically.
+
+## Rule 8 — Verification means a file the user can open, not a paragraph
+
+Any time you claim a visual change works, save the actual rendered frame(s) as PNG files and tell the user where they are. Every "confirmed via render" claim in this repo's history before this rule was Claude Code describing a frame in prose — the user had zero direct visibility into any of it until they screenshotted their own phone and caught bugs (the ch5 crash, the KineticTextLayer wipe artifact) that had already been declared "verified" through multiple rounds of fixture renders. Reasoning about a rendered frame from memory is not verification. Producing a PNG the user can open is.
