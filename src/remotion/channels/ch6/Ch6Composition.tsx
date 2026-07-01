@@ -7,8 +7,7 @@
  *   ─ AssetLayer          (full-screen for person/brand/place)
  *   ─ CelestialBody       (celestial beats — 3-D rotating sphere)
  *   ─ Gradient scrim
- *   ─ Counter             (stat beats)
- *   ─ Narration text      (Space Grotesk, bottom-anchor on asset/celestial, centred otherwise)
+ *   ─ ShotBriefLayer      (brief-driven primitive/positioning/depth for non-celestial beats)
  *   ─ Beat audio
  *   ─ HardCutFlash        (orange accent flash)
  * Global: Soundtrack + SfxLayer + CaptionTrack
@@ -17,13 +16,12 @@
 import '@fontsource/anton';
 import '@fontsource/space-grotesk';
 import React from 'react';
-import { AbsoluteFill, Audio, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, Audio, staticFile } from 'remotion';
 import type { ManifestBeat, VideoManifest } from '../../../pipeline/types';
 import { CHANNEL_CONFIGS } from '../../../pipeline/channelConfigs';
 import { AssetLayer } from '../../assets/AssetLayer';
 import { CaptionTrack } from '../../captions/CaptionTrack';
 import { useWordBoundaries } from '../../captions/useWordBoundaries';
-import { Counter } from '../../morph/Counter';
 import { ShotBriefLayer } from '../../mograph/ShotBriefLayer';
 import { SfxLayer } from '../../sound/SfxLayer';
 import { Soundtrack } from '../../sound/Soundtrack';
@@ -33,8 +31,6 @@ import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { HeroWord } from '../../mograph/HeroWord';
 import { AmbientBackground } from '../../backgrounds/AmbientBackground';
 import { HardCutFlash } from '../../transitions/HardCutFlash';
-import { ShapeSpinningRings } from '../../mograph/primitives/ShapeSpinningRings';
-import { SOCIAL_SAFE_ZONE, CAPTION_BAND_PX } from '../../mograph/primitives';
 import { Starfield } from './Starfield';
 
 const CFG = CHANNEL_CONFIGS.ch6;
@@ -43,65 +39,10 @@ function toStatic(p: string) {
   return staticFile(p.replace(/^public\//, ''));
 }
 
-// ── Narration overlay (Space Grotesk) ──────────────────────────────────────────────────────────────────────
-
-const SpaceText: React.FC<{
-  text: string;
-  emphasisWord: string;
-}> = ({ text, emphasisWord }) => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-
-  const enterY = spring({
-    frame,
-    fps,
-    config: { damping: 36, stiffness: 400 },
-  });
-  const translateY = interpolate(enterY, [0, 1], [60, 0]);
-  const opacity    = interpolate(frame, [0, 20], [0, 1], { extrapolateRight: 'clamp' });
-
-  return (
-    <div
-      style={{
-        transform: `translateY(${translateY}px)`,
-        opacity,
-        padding: '0 60px',
-        textAlign: 'center',
-      }}
-    >
-      {text.split(' ').map((word, i) => {
-        const isEmphasis = word.toLowerCase().includes(emphasisWord?.toLowerCase() ?? '____');
-        return (
-          <span
-            key={i}
-            style={{
-              fontFamily: "'Space Grotesk', sans-serif",
-              fontSize: 56,
-              fontWeight: isEmphasis ? 700 : 400,
-              color: isEmphasis ? CFG.colors.accent1 : '#e0e8ff',
-              textShadow: isEmphasis
-                ? `0 0 28px ${CFG.colors.accent1}99`
-                : '0 2px 10px rgba(0,0,0,0.8)',
-              marginRight: 10,
-              lineHeight: 1.35,
-              display: 'inline-block',
-              letterSpacing: '0.04em',
-            }}
-          >
-            {word}
-          </span>
-        );
-      })}
-    </div>
-  );
-};
-
 // ── Beat section ──────────────────────────────────────────────────────────────────────────────
 
 const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({ beat, durationFrames }) => {
-  const { height } = useVideoConfig();
-  const safeTopPx = Math.round(height * SOCIAL_SAFE_ZONE.topPct) + CAPTION_BAND_PX;
-  const { visual, emphasis_keyword, resolvedAsset, bg_color, audioPath, shotBrief } = beat;
+  const { visual, resolvedAsset, bg_color, audioPath } = beat;
   const kind        = visual.kind;
   const bg          = bg_color || CFG.colors.bgPrimary;
   const hasAsset = (() => {
@@ -113,8 +54,6 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
     return false;
   })();
   const isCelestial = kind === 'celestial';
-  const isStat      = kind === 'stat';
-  const hasShotBrief = !!shotBrief;
 
   const isFullscreen =
     hasAsset &&
@@ -152,7 +91,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
       )}
 
       {/* ShotBrief-driven layout — skip on celestial (planet owns the frame) */}
-      {hasShotBrief && !isCelestial && (
+      {!isCelestial && (
         <ShotBriefLayer
           beat={beat}
           accentColor={CFG.colors.accent1}
@@ -160,47 +99,6 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
           bodyFont={CFG.bodyFont}
           accentFont={CFG.accentFont}
         />
-      )}
-
-      {/* Fallback: stat counter */}
-      {!hasShotBrief && isStat && (
-        <AbsoluteFill
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 16,
-          }}
-        >
-          <ShapeSpinningRings accentColor={CFG.colors.accent1} backgroundColor="transparent" />
-          <Counter
-            to={parseFloat(visual.stat_value?.toString() ?? visual.value ?? '0') || 0}
-            prefix={visual.prefix}
-            suffix={visual.suffix}
-            delayFrames={108}
-            durationFrames={108}
-            fontSize={148}
-            color={CFG.colors.accent1}
-            fontFamily="'Anton', sans-serif"
-          />
-        </AbsoluteFill>
-      )}
-
-      {/* Fallback: narration text */}
-      {!hasShotBrief && !isStat && (
-        <div
-          style={{
-            position: 'absolute',
-            left: 0, right: 0,
-            bottom: needsScrim ? 300 : undefined,
-            top:    !needsScrim ? safeTopPx : undefined,
-            display: 'flex',
-            justifyContent: 'center',
-          }}
-        >
-          <SpaceText text={beat.narration} emphasisWord={emphasis_keyword} />
-        </div>
       )}
 
       {/* Mograph kinetic text: emphasis keyword + supporting words */}
@@ -212,8 +110,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         durationFrames={durationFrames}
       />
 
-      {/* Suppressed on the !hasShotBrief fallback path — see ch1 for why. */}
-      {beat.heroWord && hasShotBrief && (
+      {beat.heroWord && (
         <HeroWord
           word={beat.heroWord}
           accentColor={CFG.colors.accent1}

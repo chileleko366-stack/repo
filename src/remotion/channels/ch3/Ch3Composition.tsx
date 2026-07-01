@@ -13,15 +13,7 @@
 import '@fontsource/anton';
 import '@fontsource/space-grotesk';
 import React from 'react';
-import {
-  AbsoluteFill,
-  Audio,
-  Sequence,
-  spring,
-  staticFile,
-  useCurrentFrame,
-  useVideoConfig,
-} from 'remotion';
+import { AbsoluteFill, Audio, staticFile } from 'remotion';
 import type { ManifestBeat, VideoManifest } from '../../../pipeline/types';
 import { CHANNEL_CONFIGS } from '../../../pipeline/channelConfigs';
 import { AssetLayer } from '../../assets/AssetLayer';
@@ -36,10 +28,7 @@ import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { HeroWord } from '../../mograph/HeroWord';
 import { AmbientBackground } from '../../backgrounds/AmbientBackground';
 import { HardCutFlash } from '../../transitions/HardCutFlash';
-import { SOCIAL_SAFE_ZONE, CAPTION_BAND_PX } from '../../mograph/primitives';
 import { ClassifiedStamp } from './ClassifiedStamp';
-import { GlitchWord } from './GlitchWord';
-import { ScrambleReveal } from './ScrambleReveal';
 
 const CFG = CHANNEL_CONFIGS.ch3;
 
@@ -48,10 +37,7 @@ function toStatic(p: string) {
 }
 
 const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({ beat, durationFrames }) => {
-  const frame = useCurrentFrame();
-  const { fps, height } = useVideoConfig();
-  const safeTopPx = Math.round(height * SOCIAL_SAFE_ZONE.topPct) + CAPTION_BAND_PX;
-  const { visual, emphasis_keyword, resolvedAsset, bg_color, audioPath, shotBrief } = beat;
+  const { visual, resolvedAsset, bg_color, audioPath } = beat;
   const kind     = visual.kind;
   const bg       = bg_color || CFG.colors.bgPrimary;
   const hasAsset = (() => {
@@ -63,15 +49,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
     return false;
   })();
   const isFullscreen = hasAsset && kind !== 'none' && kind !== 'stat';
-  const isHookCtx    = beat.sectionKey === 'hook' || beat.sectionKey === 'context';
   const isTwist      = beat.sectionKey === 'twist';
-  const hasShotBrief = !!shotBrief;
-
-  const enter = spring({
-    frame, fps,
-    config: { damping: 28, stiffness: 300 },
-    durationInFrames: 44,
-  });
 
   return (
     <AbsoluteFill>
@@ -104,7 +82,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
 
 
       {/* ShotBrief-driven layout */}
-      {hasShotBrief && !isTwist && (
+      {!isTwist && (
         <ShotBriefLayer
           beat={beat}
           accentColor={CFG.colors.accent1}
@@ -112,44 +90,6 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
           bodyFont={CFG.bodyFont}
           accentFont={CFG.accentFont}
         />
-      )}
-
-      {/* Fallback: non-asset text */}
-      {!hasShotBrief && !isFullscreen && (
-        <div
-          style={{
-            position: 'absolute', left: 60, right: 60, top: safeTopPx,
-            opacity: enter,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 28,
-          }}
-        >
-          {isHookCtx ? (
-            <ScrambleReveal text={beat.narration} fontSize={62} />
-          ) : (
-            <div
-              style={{
-                fontFamily: "'Space Grotesk', sans-serif",
-                fontSize: 62,
-                color: CFG.colors.text,
-                lineHeight: 1.35,
-                textAlign: 'center',
-              }}
-            >
-              {beat.narration}
-            </div>
-          )}
-
-          {emphasis_keyword && (
-            <GlitchWord
-              text={emphasis_keyword.toUpperCase()}
-              fontSize={100}
-              color={CFG.colors.accent1}
-            />
-          )}
-        </div>
       )}
 
       {/* Classified stamp on twist */}
@@ -173,8 +113,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         durationFrames={durationFrames}
       />
 
-      {/* Suppressed on the !hasShotBrief fallback path — see ch1 for why. */}
-      {beat.heroWord && hasShotBrief && (
+      {beat.heroWord && (
         <HeroWord
           word={beat.heroWord}
           accentColor={CFG.colors.accent1}

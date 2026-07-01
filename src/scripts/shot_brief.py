@@ -367,6 +367,9 @@ def compile_all_shot_briefs(manifest: dict) -> dict:
     Adds a `shotBrief` key to every beat in manifest['beats'].
     Makes ONE batched LLM call for all beats (9× faster than per-beat calls).
     Falls back to individual calls for any beat whose batched brief fails validation.
+    Fail-loud: if a beat's solo retry also exhausts without producing a valid
+    brief, raises RuntimeError and aborts this channel's render — no beat is
+    ever left with shotBrief=None from this function once an LLM key is set.
     Returns the updated manifest.
     """
     has_any_key = any(os.getenv(p["key_env"]) for p in _PROVIDERS)
@@ -435,9 +438,10 @@ def compile_all_shot_briefs(manifest: dict) -> dict:
             try:
                 brief = _compile_one(beat, channel_cfg, recent_grids[-3:], asset_meta)
             except Exception as exc:
-                print(f"[shot_brief] ⚠ {beat_id} skipped — {exc}")
-                beat["shotBrief"] = None
-                continue
+                raise RuntimeError(
+                    f"compileShotBrief failed for beat {beat_id} — aborting render for "
+                    f"channel {channel_id}: {exc}"
+                ) from exc
 
         beat["shotBrief"] = brief
         ok += 1

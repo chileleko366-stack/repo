@@ -174,13 +174,11 @@ def run_pipeline(channel_id: str, topic: str, dry_run: bool = False, mock: bool 
     print(f"  ✓ {resolved_count} assets resolved\n")
 
     # Stage 5b: Shot Brief compiler
+    # Raises on failure — no try/except, so a beat that never compiles a valid
+    # ShotBrief aborts this channel's entire render for the cycle (matches
+    # Stage 4 TTS's fail-loud contract above). No silent degraded fallback ships.
     print("▶ Stage 5b: Shot Brief compiler (staging / composition / motion)")
-    try:
-        manifest = compile_all_shot_briefs(manifest)
-    except Exception as _sb_err:
-        print(f"[pipeline] WARNING: shot_brief compilation failed entirely ({_sb_err}), continuing with null briefs")
-        for _b in manifest.get("beats", []):
-            _b.setdefault("shotBrief", None)
+    manifest = compile_all_shot_briefs(manifest)
     briefs_compiled = sum(1 for b in manifest["beats"] if b.get("shotBrief"))
     if not dry_run:
         save_manifest(manifest, manifest_path)

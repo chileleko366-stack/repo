@@ -5,8 +5,7 @@
  *   ─ Background fill (deep sepia #100d08)
  *   ─ AssetLayer      (full-screen for person/brand/place)
  *   ─ Warm vignette   (always — corners darker)
- *   ─ DocumentaryQuote (non-asset beats: centred quote card)
- *   ─ Narration text   (asset beats: bottom anchor, Space Grotesk)
+ *   ─ ShotBriefLayer  (brief-driven primitive/positioning/depth for every beat)
  *   ─ Beat audio
  *   ─ HardCutFlash     (black fade — cinematic cut)
  * Global: Soundtrack + SfxLayer + CaptionTrack + FilmGrain
@@ -15,7 +14,7 @@
 import '@fontsource/anton';
 import '@fontsource/space-grotesk';
 import React from 'react';
-import { AbsoluteFill, Audio, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, Audio, staticFile } from 'remotion';
 import type { ManifestBeat, VideoManifest } from '../../../pipeline/types';
 import { CHANNEL_CONFIGS } from '../../../pipeline/channelConfigs';
 import { AssetLayer } from '../../assets/AssetLayer';
@@ -29,10 +28,8 @@ import type { TimedBeat } from '../../transitions/BeatCompositor';
 import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { HeroWord } from '../../mograph/HeroWord';
 import { AmbientBackground } from '../../backgrounds/AmbientBackground';
-import { DocumentaryQuote } from './DocumentaryQuote';
 import { FilmGrain } from './FilmGrain';
 import { HardCutFlash } from '../../transitions/HardCutFlash';
-import { SOCIAL_SAFE_ZONE, CAPTION_BAND_PX } from '../../mograph/primitives';
 
 const CFG = CHANNEL_CONFIGS.ch5;
 
@@ -40,64 +37,10 @@ function toStatic(p: string) {
   return staticFile(p.replace(/^public\//, ''));
 }
 
-// ── Asset-beat narration (Space Grotesk, bottom anchor) ─────────────────────────────────────
-
-const AssetNarration: React.FC<{
-  text: string;
-  emphasisWord: string;
-}> = ({ text, emphasisWord }) => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-
-  const enterY = spring({
-    frame,
-    fps,
-    config: { damping: 28, stiffness: 300 },
-    durationInFrames: 60,
-  });
-  const translateY = interpolate(enterY, [0, 1], [54, 0]);
-  const opacity    = interpolate(frame, [0, 32], [0, 1], { extrapolateRight: 'clamp' });
-
-  return (
-    <div
-      style={{
-        transform: `translateY(${translateY}px)`,
-        opacity,
-        padding: '0 72px',
-        textAlign: 'center',
-      }}
-    >
-      {text.split(' ').map((word, i) => {
-        const isEmphasis = word.toLowerCase().includes(emphasisWord?.toLowerCase() ?? '____');
-        return (
-          <span
-            key={i}
-            style={{
-              fontFamily: "'Space Grotesk', sans-serif",
-              fontSize: 60,
-              fontWeight: 400,
-              lineHeight: 1.45,
-              color: isEmphasis ? CFG.colors.accent1 : CFG.colors.text,
-              textShadow: '0 2px 12px rgba(0,0,0,0.7)',
-              marginRight: 8,
-              display: 'inline-block',
-            }}
-          >
-            {word}
-          </span>
-        );
-      })}
-    </div>
-  );
-};
-
 // ── Beat section ──────────────────────────────────────────────────────────────────────────────
 
 const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({ beat, durationFrames }) => {
-  const { height } = useVideoConfig();
-  const safeTopPx = Math.round(height * SOCIAL_SAFE_ZONE.topPct) + CAPTION_BAND_PX;
-  const safeBottomPx = Math.round(height * SOCIAL_SAFE_ZONE.bottomPct);
-  const { visual, emphasis_keyword, resolvedAsset, bg_color, audioPath, shotBrief } = beat;
+  const { visual, resolvedAsset, bg_color, audioPath } = beat;
   const kind     = visual.kind;
   const bg       = bg_color || CFG.colors.bgPrimary;
   const hasAsset = (() => {
@@ -108,7 +51,6 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
     if ('map_image' in a) return true;
     return false;
   })();
-  const hasShotBrief = !!shotBrief;
 
   const isFullscreen =
     hasAsset &&
@@ -153,48 +95,13 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
 
 
       {/* ShotBrief-driven layout */}
-      {hasShotBrief && (
-        <ShotBriefLayer
-          beat={beat}
-          accentColor={CFG.colors.accent1}
-          bgColor={bg}
-          bodyFont={CFG.bodyFont}
-          accentFont={CFG.accentFont}
-        />
-      )}
-
-      {/* Fallback: documentary quote card for non-asset beats */}
-      {!hasShotBrief && !isFullscreen && (
-        <AbsoluteFill
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingTop: safeTopPx,
-            paddingBottom: safeBottomPx,
-          }}
-        >
-          <DocumentaryQuote
-            text={beat.narration}
-            emphasisWord={emphasis_keyword}
-            accentColor={CFG.colors.accent1}
-          />
-        </AbsoluteFill>
-      )}
-
-      {/* Fallback: narration text on asset beats */}
-      {!hasShotBrief && isFullscreen && (
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 300, left: 0, right: 0,
-            display: 'flex',
-            justifyContent: 'center',
-          }}
-        >
-          <AssetNarration text={beat.narration} emphasisWord={emphasis_keyword} />
-        </div>
-      )}
+      <ShotBriefLayer
+        beat={beat}
+        accentColor={CFG.colors.accent1}
+        bgColor={bg}
+        bodyFont={CFG.bodyFont}
+        accentFont={CFG.accentFont}
+      />
 
       {/* Mograph kinetic text: emphasis keyword + supporting words */}
       <KineticTextLayer
@@ -205,8 +112,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         durationFrames={durationFrames}
       />
 
-      {/* Suppressed on the !hasShotBrief fallback path — see ch1 for why. */}
-      {beat.heroWord && hasShotBrief && (
+      {beat.heroWord && (
         <HeroWord
           word={beat.heroWord}
           accentColor={CFG.colors.accent1}

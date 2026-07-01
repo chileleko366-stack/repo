@@ -12,21 +12,12 @@
 import '@fontsource/anton';
 import '@fontsource/space-grotesk';
 import React from 'react';
-import {
-  AbsoluteFill,
-  Audio,
-  interpolate,
-  spring,
-  staticFile,
-  useCurrentFrame,
-  useVideoConfig,
-} from 'remotion';
+import { AbsoluteFill, Audio, staticFile } from 'remotion';
 import type { ManifestBeat, VideoManifest } from '../../../pipeline/types';
 import { CHANNEL_CONFIGS } from '../../../pipeline/channelConfigs';
 import { AssetLayer } from '../../assets/AssetLayer';
 import { CaptionTrack } from '../../captions/CaptionTrack';
 import { useWordBoundaries } from '../../captions/useWordBoundaries';
-import { Counter } from '../../morph/Counter';
 import { ShotBriefLayer } from '../../mograph/ShotBriefLayer';
 import { SfxLayer } from '../../sound/SfxLayer';
 import { Soundtrack } from '../../sound/Soundtrack';
@@ -36,8 +27,6 @@ import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { HeroWord } from '../../mograph/HeroWord';
 import { AmbientBackground } from '../../backgrounds/AmbientBackground';
 import { HardCutFlash } from '../../transitions/HardCutFlash';
-import { ShapeSpinningRings } from '../../mograph/primitives/ShapeSpinningRings';
-import { SOCIAL_SAFE_ZONE, CAPTION_BAND_PX } from '../../mograph/primitives';
 import { CandlestickChart } from './CandlestickChart';
 import { TickerTape } from './TickerTape';
 
@@ -47,15 +36,8 @@ function toStatic(p: string) {
   return staticFile(p.replace(/^public\//, ''));
 }
 
-function norm(s: string) {
-  return s.toLowerCase().replace(/\W/g, '');
-}
-
 const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({ beat, durationFrames }) => {
-  const frame = useCurrentFrame();
-  const { fps, height } = useVideoConfig();
-  const safeTopPx = Math.round(height * SOCIAL_SAFE_ZONE.topPct) + CAPTION_BAND_PX;
-  const { visual, emphasis_keyword, resolvedAsset, bg_color, audioPath, shotBrief } = beat;
+  const { visual, resolvedAsset, bg_color, audioPath } = beat;
   const kind    = visual.kind;
   const bg      = bg_color || CFG.colors.bgPrimary;
   const hasAsset = (() => {
@@ -67,14 +49,6 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
     return false;
   })();
   const isFullscreen = hasAsset && kind !== 'none' && kind !== 'stat';
-  const hasShotBrief = !!shotBrief;
-
-  const enter = spring({
-    frame, fps,
-    config: { damping: 36, stiffness: 400 },
-    durationInFrames: 40,
-  });
-  const translateY = interpolate(enter, [0, 1], [40, 0]);
 
   return (
     <AbsoluteFill>
@@ -102,78 +76,13 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
 
 
       {/* ShotBrief-driven layout: primitive at primaryAnchor */}
-      {hasShotBrief && (
-        <ShotBriefLayer
-          beat={beat}
-          accentColor={CFG.colors.accent1}
-          bgColor={bg}
-          bodyFont={CFG.bodyFont}
-          accentFont={CFG.accentFont}
-        />
-      )}
-
-      {/* Fallback: narration text with hardcoded anchoring */}
-      {!hasShotBrief && (
-        <div
-          style={{
-            position: 'absolute',
-            left: 60, right: 60,
-            ...(isFullscreen ? { bottom: 300 } : { top: safeTopPx }),
-            opacity: enter,
-            transform: `translateY(${translateY}px)`,
-          }}
-        >
-          <div
-            style={{
-              fontFamily: "'Space Grotesk', sans-serif",
-              fontSize: 62,
-              fontWeight: 700,
-              color: CFG.colors.text,
-              lineHeight: 1.2,
-              textAlign: 'center',
-            }}
-          >
-            {beat.narration.split(' ').map((w, i) => (
-              <span
-                key={i}
-                style={{
-                  color:
-                    emphasis_keyword && norm(w) === norm(emphasis_keyword)
-                      ? CFG.colors.accent1
-                      : CFG.colors.text,
-                }}
-              >
-                {w}{' '}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Fallback: stat counter */}
-      {!hasShotBrief && kind === 'stat' && (
-        <>
-          <ShapeSpinningRings accentColor={CFG.colors.accent1} backgroundColor="transparent" />
-          <div
-            style={{
-              position: 'absolute', left: 0, right: 0, top: '44%',
-              transform: 'translateY(-50%)',
-              display: 'flex', justifyContent: 'center',
-            }}
-          >
-            <Counter
-              to={parseFloat(visual.value ?? '0') || 0}
-              durationFrames={108}
-              delayFrames={108}
-              prefix={visual.prefix}
-              suffix={visual.suffix}
-              fontSize={160}
-              color={CFG.colors.accent1}
-              fontFamily="'Anton', sans-serif"
-            />
-          </div>
-        </>
-      )}
+      <ShotBriefLayer
+        beat={beat}
+        accentColor={CFG.colors.accent1}
+        bgColor={bg}
+        bodyFont={CFG.bodyFont}
+        accentFont={CFG.accentFont}
+      />
 
       {(beat.sectionKey === 'context' || (beat.sectionKey ?? '').startsWith('beat_')) && (
         <TickerTape durationFrames={durationFrames} accent={CFG.colors.accent1} />
@@ -188,8 +97,7 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
         durationFrames={durationFrames}
       />
 
-      {/* Suppressed on the !hasShotBrief fallback path — see ch1 for why. */}
-      {beat.heroWord && hasShotBrief && (
+      {beat.heroWord && (
         <HeroWord
           word={beat.heroWord}
           accentColor={CFG.colors.accent1}

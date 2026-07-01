@@ -11,8 +11,9 @@
  *   4. Applies depth.dropShadows as CSS box-shadow
  *   5. Renders radial/linear glow overlays from depth.glowEffects
  *
- * Returns null when beat.shotBrief is absent so the host composition's own
- * rendering (KineticTitle / PsychCard / etc.) takes over unmodified.
+ * Throws if beat.shotBrief is absent — shot-brief compilation is now
+ * required to succeed (or abort the channel's render) before Remotion runs,
+ * so every beat reaching this component is guaranteed to carry a valid brief.
  *
  * Channel-gating rules:
  *  CelestialBody     — ch6 only
@@ -677,7 +678,14 @@ export const ShotBriefLayer: React.FC<ShotBriefLayerProps> = ({
 }) => {
   const { height: videoHeight } = useVideoConfig();
   const brief = beat.shotBrief;
-  if (!brief) return null;
+  if (!brief) {
+    throw new Error(
+      `ShotBriefLayer: beat "${beat.beatId}" has no shotBrief. Shot-brief compilation ` +
+      `is now required to succeed (or abort the channel render) before Remotion ever ` +
+      `runs — reaching this component without one is a pipeline invariant violation, ` +
+      `not a case to render around.`
+    );
+  }
 
   // When the host composition already renders the full-screen visual (planet / brain),
   // only emit the ShotBrief glow atmosphere — skip the primitive card entirely.
