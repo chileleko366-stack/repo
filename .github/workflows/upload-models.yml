@@ -1,4 +1,4 @@
-name: Upload Kokoro Models to Release
+name: Upload Model Files to Release
 
 on:
   workflow_dispatch:
@@ -20,8 +20,8 @@ jobs:
 
           gh release create "$TAG" \
             --repo "$REPO" \
-            --title "Kokoro ONNX Models" \
-            --notes "kokoro-onnx model files for Dopamine Studios TTS" \
+            --title "Model Files" \
+            --notes "kokoro-onnx TTS models + rembg u2net.onnx for Dopamine Studios" \
             --latest=false 2>/dev/null || echo "Release already exists, uploading to it"
 
           echo "Downloading kokoro-v1.0.onnx..."
@@ -39,5 +39,17 @@ jobs:
 
           echo "Uploading voices-v1.0.bin..."
           gh release upload "$TAG" /tmp/voices-v1.0.bin --repo "$REPO" --clobber
+
+          echo "Downloading u2net.onnx (rembg background-removal model)..."
+          curl -fL --retry 3 -o /tmp/u2net.onnx \
+            "https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net.onnx"
+          echo "Size: $(du -sh /tmp/u2net.onnx)"
+          echo "60024c5c889badc19c04ad937298a77b  /tmp/u2net.onnx" | md5sum -c - || {
+            echo "::error::u2net.onnx checksum mismatch — not uploading"
+            exit 1
+          }
+
+          echo "Uploading u2net.onnx..."
+          gh release upload "$TAG" /tmp/u2net.onnx --repo "$REPO" --clobber
 
           echo "Done — https://github.com/$REPO/releases/tag/$TAG"
