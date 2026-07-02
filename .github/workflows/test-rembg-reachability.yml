@@ -11,6 +11,9 @@ name: Test rembg model reachability (temporary)
 
 on:
   workflow_dispatch:
+  push:
+    branches: [claude/consistency-pass]
+    paths: [.github/workflows/test-rembg-reachability.yml]
 
 jobs:
   test:
