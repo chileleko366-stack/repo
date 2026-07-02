@@ -1,20 +1,21 @@
-// Fallback primitive — renders when an asset fetch fails (person/brand/place).
-// Produces a styled name card using the mograph engine instead of a stock image.
+// Fallback primitive — renders when an asset fetch fails (person/brand/place)
+// or when no other primitive fits. Full-bleed bold typography directly on
+// the background, matching TextKinetic.tsx / LayoutGiantNumber.tsx — no
+// boxed/blurred card treatment.
 // All values constants-first, constants declared at top.
 
 import React from 'react';
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
-import { SAAS_BASE } from './SaaSTokens';
 import { SPRING_CONFIGS } from './SpringConfigs';
 
-const TITLE_FONT_SIZE = 96;
-const SUBTITLE_FONT_SIZE = 48;
+const KIND_HINT_FONT_SIZE = 48;
 const ENTRANCE_DURATION = 36;
 
-function isLightBg(hex: string): boolean {
-  const c = hex.replace('#', '');
-  if (c.length !== 6) return false;
-  return parseInt(c, 16) > 0x888888;
+function getValueFontSize(text: string): number {
+  if (text.length <= 6) return 140;
+  if (text.length <= 12) return 110;
+  if (text.length <= 20) return 80;
+  return 60;
 }
 
 interface TypographicCardProps {
@@ -38,7 +39,6 @@ export const TypographicCard: React.FC<TypographicCardProps> = ({
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const light = isLightBg(backgroundColor);
 
   const progress = spring({
     frame,
@@ -47,6 +47,10 @@ export const TypographicCard: React.FC<TypographicCardProps> = ({
     durationInFrames: ENTRANCE_DURATION,
   });
 
+  const scale = interpolate(progress, [0, 1], [0.7, 1], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
   const translateY = interpolate(progress, [0, 1], [30, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
@@ -57,61 +61,45 @@ export const TypographicCard: React.FC<TypographicCardProps> = ({
       style={{
         backgroundColor,
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
+        padding: '0 60px',
       }}
     >
-      {/* Subtle glow — element-level, not page background */}
       <div
         style={{
-          position: 'absolute',
-          width: 700,
-          height: 400,
-          background: `radial-gradient(ellipse at center, ${accentColor}20 0%, transparent 70%)`,
-          filter: 'blur(60px)',
-        }}
-      />
-      <div
-        style={{
-          ...SAAS_BASE.glass,
-          padding: '48px 64px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 20,
-          opacity: progress,
-          transform: `translateY(${translateY}px)`,
+          fontFamily: accentFont,
+          fontSize: getValueFontSize(value),
+          fontWeight: 700,
+          color: accentColor,
+          lineHeight: 1,
+          letterSpacing: '-0.02em',
+          textTransform: 'uppercase',
           textAlign: 'center',
-          maxWidth: 900,
+          textShadow: `0 0 60px ${accentColor}66`,
+          opacity: progress,
+          transform: `scale(${scale}) translateY(${translateY}px)`,
         }}
       >
+        {value}
+      </div>
+      {kindHint && (
         <div
           style={{
-            fontFamily: accentFont,
-            fontSize: TITLE_FONT_SIZE,
-            fontWeight: 700,
-            color: accentColor,
-            lineHeight: 1,
-            letterSpacing: '-0.02em',
+            fontFamily,
+            fontSize: KIND_HINT_FONT_SIZE,
+            fontWeight: 600,
+            color: 'rgba(255,255,255,0.75)',
             textTransform: 'uppercase',
+            letterSpacing: '0.1em',
+            marginTop: 24,
+            opacity: interpolate(progress, [0, 0.6, 1], [0, 0, 1]),
           }}
         >
-          {value}
+          {kindHint}
         </div>
-        {kindHint && (
-          <div
-            style={{
-              fontFamily,
-              fontSize: SUBTITLE_FONT_SIZE,
-              color: light ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.45)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.12em',
-            }}
-          >
-            {kindHint}
-          </div>
-        )}
-      </div>
+      )}
     </AbsoluteFill>
   );
 };

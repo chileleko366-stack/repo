@@ -33,7 +33,6 @@ import { ScrambleReveal } from '../channels/ch3/ScrambleReveal';
 import { ClassifiedStamp } from '../channels/ch3/ClassifiedStamp';
 import { GlitchWord } from '../channels/ch3/GlitchWord';
 import {
-  GlassCard,
   Typewriter,
   WordCarousel,
   ProgressBar,
@@ -332,20 +331,6 @@ function PrimitiveDispatch({
       );
 
     // ── Generic mograph primitives ───────────────────────────────────────────
-
-    case 'GlassCard':
-      return (
-        <GlassCard
-          primary={primaryText}
-          label={sanitizeLabel(labelTypo?.text)}
-          body={bodyTypo?.text}
-          accentColor={accentColor}
-          backgroundColor={bgColor}
-          glowColor={accentColor}
-          fontFamily={bodyFont}
-          accentFont={accentFont}
-        />
-      );
 
     case 'Typewriter':
       return (

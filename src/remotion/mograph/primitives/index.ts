@@ -1,4 +1,3 @@
-export { SAAS_BASE } from './SaaSTokens';
 export { SPRING_CONFIGS, SPRINGS } from './SpringConfigs';
 export { AnimatedIcon } from './AnimatedIcon';
 export type { IconName } from './AnimatedIcon';
@@ -12,8 +11,6 @@ export type { ChatMessage } from './ChatBubbles';
 export { WordCarousel } from './WordCarousel';
 export { StaggeredSequence } from './StaggeredSequence';
 export { SocialFrame, SOCIAL_SAFE_ZONE, CAPTION_BAND_PX } from './SocialFrame';
-export { GlassCard } from './GlassCard';
-export type { GlassCardProps } from './GlassCard';
 export { TypographicCard } from './TypographicCard';
 export { ProgressBar } from './ProgressBar';
 export { Histogram } from './Histogram';

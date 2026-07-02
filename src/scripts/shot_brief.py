@@ -101,7 +101,6 @@ HARD RULES:
 PRIMITIVE SELECTION — you MUST use one of these exact strings for "primitive":
 
 TEXT PRIMITIVES (for narration/fact display):
-  "GlassCard"          — large glassmorphism card with glow. Best for hook, context, key facts, stats.
   "Typewriter"         — text types character-by-character; emphasis word highlights at end. For reveals, twist, outro.
   "WordCarousel"       — words crossfade in sequence. For lists, entities, options. Primary must be comma-separated words.
   "TypographicCard"    — minimal text card. Fallback only when nothing else fits.
@@ -155,18 +154,18 @@ CHANNEL-SPECIFIC (channel-gated — only use on the specified channelId):
   "GlitchWord"         — ch3 ONLY. Single word glitches and stabilizes. Use for emphasis beats on ch3.
 
 PRIMITIVE SELECTION BY BEAT TYPE (follow these unless channelId overrides):
-- sectionKey="hook": prefer "GlassCard" or "TextKinetic" — big bold spring entry. Or "ClassifiedStamp" for ch3, "CinematicDocumentary" for ch5.
-- sectionKey="context": "GlassCard", "Typewriter", or "LayoutFullscreenType"
+- sectionKey="hook": prefer "TextKinetic" — big bold spring entry. Or "ClassifiedStamp" for ch3, "CinematicDocumentary" for ch5.
+- sectionKey="context": "Typewriter" or "LayoutFullscreenType"
 - sectionKey="beat_X" with visual.kind="stat" and percentage: "ProgressBar" or "ShapeCircularProgress" or "DataGauge"
-- sectionKey="beat_X" with visual.kind="stat" and large number: "LayoutGiantNumber" or "TextCounter" or "GlassCard"
-- sectionKey="beat_X" with visual.kind="person": resolvedAsset handles rendering — primitive is backup, use "GlassCard"
-- sectionKey="beat_X" with visual.kind="place": resolvedAsset handles rendering — use "CinematicDocumentary" or "GlassCard"
+- sectionKey="beat_X" with visual.kind="stat" and large number: "LayoutGiantNumber" or "TextCounter"
+- sectionKey="beat_X" with visual.kind="person": resolvedAsset handles rendering — primitive is backup, use "CinematicDocumentary"
+- sectionKey="beat_X" with visual.kind="place": resolvedAsset handles rendering — use "CinematicDocumentary"
 - sectionKey="beat_X" with visual.kind="celestial": "CelestialBody" (ch6), "ShapeSpinningRings" or "BackgroundAurora" (others)
 - sectionKey="beat_X" with visual.kind="anatomy": "ThreeBrain" (ch4), else "AnimatedIcon" with brain-idea
 - sectionKey="beat_X" with visual.kind="chart": "CandlestickChart" (ch2), "BarChart" or "DataLineChart" (others)
 - sectionKey="beat_X" with visual.kind="typography" or "none": "TextKinetic", "Typewriter", or "WordCarousel"
 - sectionKey="twist": "Typewriter" or "TextMaskReveal" — the twist is a reveal, wipe or type it in
-- sectionKey="outro": "WordCarousel", "TextGradient", or "GlassCard"
+- sectionKey="outro": "WordCarousel" or "TextGradient"
 
 TYPOGRAPHY RULES for the typography[] array:
 - "primary" role: the ONE key concept for this beat — the emphasis_keyword, a stat number, or the
