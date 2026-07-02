@@ -2,15 +2,18 @@
  * Ch6Composition — Red Space Facts (astronomy).
  *
  * Layout per beat:
- *   ─ Background (deep space #050010)
- *   ─ Starfield           (always — drifting parallax stars)
  *   ─ AssetLayer          (full-screen for person/brand/place)
  *   ─ CelestialBody       (celestial beats — 3-D rotating sphere)
  *   ─ Gradient scrim
  *   ─ ShotBriefLayer      (brief-driven primitive/positioning/depth for non-celestial beats)
  *   ─ Beat audio
  *   ─ HardCutFlash        (orange accent flash)
- * Global: Soundtrack + SfxLayer + CaptionTrack
+ * Global: AmbientBackground + Starfield (deep space #050010, drifting
+ *   parallax stars — one instance each for the whole video, see
+ *   BeatCompositor.tsx's useActiveBeatBgColor; NOT per-beat, or they'd be
+ *   nested inside BeatCompositor's TransitionSeries.Sequence and visibly
+ *   slide/wipe with each beat's transition) + Soundtrack + SfxLayer +
+ *   CaptionTrack
  */
 
 import '@fontsource/anton';
@@ -25,7 +28,7 @@ import { useWordBoundaries } from '../../captions/useWordBoundaries';
 import { ShotBriefLayer, getShotBriefPrimaryText } from '../../mograph/ShotBriefLayer';
 import { SfxLayer } from '../../sound/SfxLayer';
 import { Soundtrack } from '../../sound/Soundtrack';
-import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
+import { BeatCompositor, buildTimedBeats, useActiveBeatBgColor } from '../../transitions/BeatCompositor';
 import type { TimedBeat } from '../../transitions/BeatCompositor';
 import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { HeroWord } from '../../mograph/HeroWord';
@@ -70,11 +73,6 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
 
   return (
     <AbsoluteFill>
-      <AmbientBackground baseColor={bg} accentColor={CFG.colors.accent1} accentColor2={CFG.colors.accent2} channelId="ch6" />
-
-      {/* Stars are always visible (behind everything) */}
-      <Starfield />
-
       {isFullscreen && (
         <AssetLayer
           beat={beat}
@@ -148,6 +146,7 @@ export const Ch6Composition: React.FC<{ manifest: VideoManifest }> = ({ manifest
     pauseAfterMap[`beat_${i}`] = (sb as { pause_after?: 'breath' | 'beat' | 'cut' }).pause_after ?? 'cut';
   });
   const timedBeats: TimedBeat[] = buildTimedBeats(beats, fps ?? 30, audioDurationsMs, pauseAfterMap);
+  const activeBgColor = useActiveBeatBgColor(timedBeats, CFG.colors.bgPrimary);
 
   return (
     <AbsoluteFill
@@ -156,6 +155,20 @@ export const Ch6Composition: React.FC<{ manifest: VideoManifest }> = ({ manifest
         fontFamily: CFG.bodyFont,
       }}
     >
+      {/* Ambient background + starfield — one instance each for the whole
+          video, see BeatCompositor.tsx's useActiveBeatBgColor doc comment
+          for why (a per-beat instance nested inside BeatCompositor's
+          TransitionSeries.Sequence visibly slides/wipes with each beat's
+          transition instead of staying fixed — this applied to Starfield's
+          drifting stars too, not just the dot-grid). */}
+      <AmbientBackground
+        baseColor={activeBgColor}
+        accentColor={CFG.colors.accent1}
+        accentColor2={CFG.colors.accent2}
+        channelId="ch6"
+      />
+      <Starfield />
+
       <Soundtrack channelId="ch6" musicVolume={0.20} />
 
       <BeatCompositor

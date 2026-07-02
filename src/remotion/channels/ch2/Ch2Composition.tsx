@@ -21,7 +21,7 @@ import { useWordBoundaries } from '../../captions/useWordBoundaries';
 import { ShotBriefLayer, getShotBriefPrimaryText } from '../../mograph/ShotBriefLayer';
 import { SfxLayer } from '../../sound/SfxLayer';
 import { Soundtrack } from '../../sound/Soundtrack';
-import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
+import { BeatCompositor, buildTimedBeats, useActiveBeatBgColor } from '../../transitions/BeatCompositor';
 import type { TimedBeat } from '../../transitions/BeatCompositor';
 import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { HeroWord } from '../../mograph/HeroWord';
@@ -58,8 +58,6 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
 
   return (
     <AbsoluteFill>
-      <AmbientBackground baseColor={bg} accentColor={CFG.colors.accent1} accentColor2={CFG.colors.accent2} channelId="ch2" />
-
       {(kind === 'stat' || kind === 'none') && (
         <CandlestickChart durationFrames={durationFrames} />
       )}
@@ -134,9 +132,18 @@ export const Ch2Composition: React.FC<{ manifest: VideoManifest }> = ({
     pauseAfterMap[`beat_${i}`] = (sb as { pause_after?: 'breath' | 'beat' | 'cut' }).pause_after ?? 'cut';
   });
   const timedBeats: TimedBeat[] = buildTimedBeats(beats, fps ?? 30, audioDurationsMs, pauseAfterMap);
+  const activeBgColor = useActiveBeatBgColor(timedBeats, CFG.colors.bgPrimary);
 
   return (
     <AbsoluteFill style={{ background: CFG.colors.bgPrimary, fontFamily: CFG.bodyFont }}>
+      {/* Ambient animated background — one instance for the whole video, see
+          BeatCompositor.tsx's useActiveBeatBgColor doc comment for why. */}
+      <AmbientBackground
+        baseColor={activeBgColor}
+        accentColor={CFG.colors.accent1}
+        accentColor2={CFG.colors.accent2}
+        channelId="ch2"
+      />
       <Soundtrack channelId="ch2" musicVolume={0.14} />
       <BeatCompositor
         timedBeats={timedBeats}

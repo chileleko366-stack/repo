@@ -4,6 +4,7 @@
 // Source: /tmp/refs/saas-engine/src/skills/transitions.md + sequencing.md patterns.
 
 import React from 'react';
+import { useCurrentFrame } from 'remotion';
 import { TransitionSeries, linearTiming, springTiming } from '@remotion/transitions';
 import { fade } from '@remotion/transitions/fade';
 import { slide } from '@remotion/transitions/slide';
@@ -97,6 +98,38 @@ export function validatePacing(beats: TimedBeat[]): void {
       );
     }
   }
+}
+
+/**
+ * The active beat's bg_color (or fallbackColor if unset) at the current
+ * absolute frame — for a background layer rendered ONCE outside
+ * BeatCompositor's TransitionSeries, not remounted per beat. Must be called
+ * from a component that is NOT itself inside a <Sequence>/TransitionSeries.Sequence,
+ * since useCurrentFrame() there would be relative to that Sequence, not the
+ * whole video (see AmbientBackground's previous per-beat placement — the
+ * background wipe bug: TransitionSeries.Sequence's wipe/slide transform
+ * applies to its whole subtree, so a background mounted per-beat visibly
+ * slides/wipes with the beat instead of staying fixed).
+ *
+ * Uses the same cumulative-audioFrames-sum timeline TransitionSeries builds
+ * beat Sequences from (ignoring the few frames TransitionSeries.Transition
+ * overlaps adjacent Sequences by) — close enough for a solid background
+ * color, and the same approximation CaptionTrack.tsx already relies on for
+ * caption timing.
+ */
+export function useActiveBeatBgColor(
+  timedBeats: TimedBeat[],
+  fallbackColor: string,
+): string {
+  const frame = useCurrentFrame();
+  let cumulativeFrames = 0;
+  for (const beat of timedBeats) {
+    if (frame < cumulativeFrames + beat.audioFrames) {
+      return beat.bg_color || fallbackColor;
+    }
+    cumulativeFrames += beat.audioFrames;
+  }
+  return fallbackColor;
 }
 
 interface BeatCompositorProps {

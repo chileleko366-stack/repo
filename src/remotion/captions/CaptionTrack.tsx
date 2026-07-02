@@ -14,12 +14,15 @@
  * - One page per ~400ms of narration (word-by-word)
  * - Active word: spring scale 1.0→1.18, accent colour, accent font
  * - Page entrance: spring translateY +20→0, damping 14, stiffness 240
- * - Vertical position is per-beat, not a fixed offset: centered in whichever
- *   space (above or below) beat.shotBrief's primaryAnchor primitive box
- *   doesn't occupy — see computeCaptionCenterPct below. A fixed ~12%-from-top
- *   position collided with the primitive card whenever the LLM centered it
- *   (the common case, since ShotBriefLayer defaults composition.grid to
- *   "center" — see shot_brief.py's HARD RULES).
+ * - Vertical position is a fixed true screen center (CAPTION_CENTER_PCT,
+ *   the midpoint of the platform-UI safe area) for every beat. The
+ *   primaryAnchor-positioned primitive card is the one that defers around
+ *   the caption band when both are present in the same beat — see
+ *   ShotBriefLayer.tsx's clampYPctToSafeZone. Previously captions deferred
+ *   to primaryAnchor instead, which meant they landed in whatever thin
+ *   leftover strip the card didn't occupy — usually off-center, since
+ *   ShotBriefLayer defaults composition.grid to "center" (shot_brief.py's
+ *   HARD RULES), so the card usually sits at true center already.
  *
  * Word boundaries JSON format (public/audio/{beatId}_words.json):
  *   [ { word, startMs, durationMs, endMs }, ... ]
@@ -40,51 +43,11 @@ import {
   type Caption,
 } from '@remotion/captions';
 import type { TimedBeat } from '../transitions/BeatCompositor';
-import type { ShotBrief } from '../../pipeline/shotBrief';
-import { clampYPctToSafeZone } from '../mograph/ShotBriefLayer';
-import { SOCIAL_SAFE_ZONE } from '../mograph/primitives';
+import { CAPTION_CENTER_PCT } from '../mograph/ShotBriefLayer';
 import { CaptionPage } from './CaptionPage';
 
 // Word-by-word: one page per 400ms
 const COMBINE_WITHIN_MS = 800;
-
-const SAFE_TOP_PCT = SOCIAL_SAFE_ZONE.topPct * 100;
-const SAFE_BOTTOM_PCT = 100 - SOCIAL_SAFE_ZONE.bottomPct * 100;
-const DEFAULT_CENTER_PCT = (SAFE_TOP_PCT + SAFE_BOTTOM_PCT) / 2;
-
-/**
- * Vertical center (in % of video height) for captions during a beat, chosen
- * to avoid beat.shotBrief's primaryAnchor primitive box: centered in
- * whichever of "space above the box" / "space below the box" (within the
- * platform-UI safe area) is larger. Falls back to the safe area's own
- * midpoint when there's no usable primaryAnchor — either no shot brief
- * (shouldn't happen post-fail-loud, but this is a rendering fallback, not a
- * pipeline invariant check) or the anchor box fills the safe area with no
- * non-overlapping space to prefer.
- */
-function computeCaptionCenterPct(
-  brief: ShotBrief | null | undefined,
-  videoHeight: number,
-): number {
-  if (!brief?.composition?.primaryAnchor) {
-    return DEFAULT_CENTER_PCT;
-  }
-
-  const { heightPct } = brief.composition.primaryAnchor;
-  const yPct = clampYPctToSafeZone(brief, videoHeight);
-  const anchorTop = yPct - heightPct / 2;
-  const anchorBottom = yPct + heightPct / 2;
-
-  const spaceAbove = anchorTop - SAFE_TOP_PCT;
-  const spaceBelow = SAFE_BOTTOM_PCT - anchorBottom;
-
-  if (spaceAbove <= 0 && spaceBelow <= 0) {
-    return DEFAULT_CENTER_PCT;
-  }
-  return spaceBelow > spaceAbove
-    ? anchorBottom + spaceBelow / 2
-    : SAFE_TOP_PCT + spaceAbove / 2;
-}
 
 export interface WordBoundary {
   word: string;
@@ -111,7 +74,7 @@ export const CaptionTrack: React.FC<CaptionTrackProps> = ({
   accentFont,
   bodyFont,
 }) => {
-  const { fps, height: videoHeight } = useVideoConfig();
+  const { fps } = useVideoConfig();
 
   // Build flat Caption[] using cumulative audioFrames for accurate timing
   const allCaptions = useMemo<Caption[]>(() => {
@@ -139,30 +102,6 @@ export const CaptionTrack: React.FC<CaptionTrackProps> = ({
     }
     return out;
   }, [wordBoundariesByBeat, beats, fps]);
-
-  // Per-beat frame ranges + caption vertical center, keyed by cumulative
-  // frame position — same cumulative-sum timeline as allCaptions above, so
-  // a page's startFrame maps back to the beat it was spoken during.
-  const beatRanges = useMemo(() => {
-    const ranges: { startFrame: number; endFrame: number; centerPct: number }[] = [];
-    let cumulativeFrames = 0;
-    for (const beat of beats) {
-      const startFrame = cumulativeFrames;
-      const endFrame = cumulativeFrames + beat.audioFrames;
-      ranges.push({
-        startFrame,
-        endFrame,
-        centerPct: computeCaptionCenterPct(beat.shotBrief, videoHeight),
-      });
-      cumulativeFrames = endFrame;
-    }
-    return ranges;
-  }, [beats, videoHeight]);
-
-  const captionCenterForFrame = (frame: number): number => {
-    const range = beatRanges.find((r) => frame >= r.startFrame && frame < r.endFrame);
-    return range?.centerPct ?? DEFAULT_CENTER_PCT;
-  };
 
   const { pages } = useMemo(
     () =>
@@ -196,7 +135,7 @@ export const CaptionTrack: React.FC<CaptionTrackProps> = ({
               accentColor={accentColor}
               accentFont={accentFont}
               bodyFont={bodyFont}
-              verticalCenterPct={captionCenterForFrame(startFrame)}
+              verticalCenterPct={CAPTION_CENTER_PCT}
             />
           </Sequence>
         );

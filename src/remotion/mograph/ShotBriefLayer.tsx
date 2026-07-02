@@ -70,6 +70,7 @@ import {
   EffectLightLeak,
   EffectVHS,
   EffectGlow,
+  SOCIAL_SAFE_ZONE,
 } from './primitives';
 import type { IconName } from './primitives/AnimatedIcon';
 import type { BarData } from './primitives/BarChart';
@@ -144,6 +145,20 @@ export function getShotBriefPrimaryText(beat: ManifestBeat, suppressPrimitive = 
   return (brief.typography ?? []).find((t) => t.role === 'primary')?.text;
 }
 
+const SAFE_TOP_PCT = SOCIAL_SAFE_ZONE.topPct * 100;
+const SAFE_BOTTOM_PCT = 100 - SOCIAL_SAFE_ZONE.bottomPct * 100;
+
+// True screen-center target for captions — the midpoint of the platform-UI
+// safe area. CaptionTrack.tsx imports this so both files share one source
+// of truth rather than each computing their own copy of the same number.
+export const CAPTION_CENTER_PCT = (SAFE_TOP_PCT + SAFE_BOTTOM_PCT) / 2;
+
+// Estimated vertical footprint (half-height, in % of video height) of a
+// TikTok-style caption page — a couple of lines of large text. Not a
+// measured value; used only to keep primaryAnchor from overlapping the
+// fixed caption band now that captions no longer move to avoid the anchor.
+const CAPTION_ZONE_HALF_HEIGHT_PCT = 9;
+
 // The LLM is asked for composition.safeZones (topReservedPx/bottomReservedPx)
 // alongside primaryAnchor, but nothing validates the two are consistent — the
 // LLM can (and does) pick a yPct that puts the anchor box inside its own
@@ -152,18 +167,26 @@ export function getShotBriefPrimaryText(beat: ManifestBeat, suppressPrimitive = 
 // composition size) untouched. safeZones is nominally required on ShotBrief,
 // but — like depth.glowEffects/dropShadows elsewhere in this file — treated
 // as optional here since nothing enforces its presence in the raw LLM JSON.
+//
+// Captions now always render at true screen center (CAPTION_CENTER_PCT — see
+// CaptionTrack.tsx), so this is also where primaryAnchor defers to the
+// caption band, not the reverse: after the safeZone clamp above, if the
+// anchor box would overlap the caption band, push it to whichever side
+// (above/below) requires less displacement and still fits within the
+// safeZone bounds. Same positioning-constraint pattern as the safeZone
+// clamp itself, just a second exclusion zone.
 export function clampYPctToSafeZone(brief: ShotBrief, videoHeight: number): number {
   const { yPct, heightPct } = brief.composition.primaryAnchor;
   const topReservedPx = brief.composition.safeZones?.topReservedPx ?? 0;
   const bottomReservedPx = brief.composition.safeZones?.bottomReservedPx ?? 0;
-
-  if (videoHeight <= 0 || (topReservedPx <= 0 && bottomReservedPx <= 0)) {
-    return yPct;
-  }
-
   const halfHeightPct = heightPct / 2;
-  const minYPct = (topReservedPx / videoHeight) * 100 + halfHeightPct;
-  const maxYPct = 100 - (bottomReservedPx / videoHeight) * 100 - halfHeightPct;
+
+  const minYPct = videoHeight > 0
+    ? (topReservedPx / videoHeight) * 100 + halfHeightPct
+    : halfHeightPct;
+  const maxYPct = videoHeight > 0
+    ? 100 - (bottomReservedPx / videoHeight) * 100 - halfHeightPct
+    : 100 - halfHeightPct;
 
   // Reserved bands too large relative to the anchor's own height to satisfy
   // both bounds — leave the LLM's yPct alone rather than clamp to nonsense.
@@ -171,7 +194,33 @@ export function clampYPctToSafeZone(brief: ShotBrief, videoHeight: number): numb
     return yPct;
   }
 
-  return Math.min(Math.max(yPct, minYPct), maxYPct);
+  const safeZoneClamped = Math.min(Math.max(yPct, minYPct), maxYPct);
+
+  const captionTop = CAPTION_CENTER_PCT - CAPTION_ZONE_HALF_HEIGHT_PCT;
+  const captionBottom = CAPTION_CENTER_PCT + CAPTION_ZONE_HALF_HEIGHT_PCT;
+  const anchorTop = safeZoneClamped - halfHeightPct;
+  const anchorBottom = safeZoneClamped + halfHeightPct;
+  const overlapsCaptionBand = anchorTop < captionBottom && anchorBottom > captionTop;
+
+  if (!overlapsCaptionBand) {
+    return safeZoneClamped;
+  }
+
+  const aboveYPct = captionTop - halfHeightPct;
+  const belowYPct = captionBottom + halfHeightPct;
+  const canGoAbove = aboveYPct >= minYPct;
+  const canGoBelow = belowYPct <= maxYPct;
+
+  if (canGoAbove && canGoBelow) {
+    return Math.abs(aboveYPct - safeZoneClamped) <= Math.abs(belowYPct - safeZoneClamped)
+      ? aboveYPct
+      : belowYPct;
+  }
+  if (canGoAbove) return aboveYPct;
+  if (canGoBelow) return belowYPct;
+  // Neither direction fits within the safeZone bounds — overlap is
+  // unavoidable given this beat's reserved bands; leave as-is.
+  return safeZoneClamped;
 }
 
 function GlowOverlays({ brief }: { brief: ShotBrief }): React.ReactElement {

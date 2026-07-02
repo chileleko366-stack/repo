@@ -2,13 +2,17 @@
  * Ch5Composition — The Quiet Record (untold history).
  *
  * Layout per beat:
- *   ─ Background fill (deep sepia #100d08)
  *   ─ AssetLayer      (full-screen for person/brand/place)
  *   ─ Warm vignette   (always — corners darker)
  *   ─ ShotBriefLayer  (brief-driven primitive/positioning/depth for every beat)
  *   ─ Beat audio
  *   ─ HardCutFlash     (black fade — cinematic cut)
- * Global: Soundtrack + SfxLayer + CaptionTrack + FilmGrain
+ * Global: AmbientBackground (one instance for the whole video — see
+ *   BeatCompositor.tsx's useActiveBeatBgColor; NOT per-beat, since a
+ *   per-beat instance would be nested inside BeatCompositor's
+ *   TransitionSeries.Sequence and visibly slide/wipe with each beat's
+ *   transition instead of staying fixed) + Soundtrack + SfxLayer +
+ *   CaptionTrack + FilmGrain
  */
 
 import '@fontsource/anton';
@@ -23,7 +27,7 @@ import { useWordBoundaries } from '../../captions/useWordBoundaries';
 import { ShotBriefLayer, getShotBriefPrimaryText } from '../../mograph/ShotBriefLayer';
 import { SfxLayer } from '../../sound/SfxLayer';
 import { Soundtrack } from '../../sound/Soundtrack';
-import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
+import { BeatCompositor, buildTimedBeats, useActiveBeatBgColor } from '../../transitions/BeatCompositor';
 import type { TimedBeat } from '../../transitions/BeatCompositor';
 import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { HeroWord } from '../../mograph/HeroWord';
@@ -64,8 +68,6 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
 
   return (
     <AbsoluteFill>
-      <AmbientBackground baseColor={bg} accentColor={CFG.colors.accent1} accentColor2={CFG.colors.accent2} channelId="ch5" />
-
       {isFullscreen && (
         <AssetLayer
           beat={beat}
@@ -149,6 +151,7 @@ export const Ch5Composition: React.FC<{ manifest: VideoManifest }> = ({ manifest
     pauseAfterMap[`beat_${i}`] = (sb as { pause_after?: 'breath' | 'beat' | 'cut' }).pause_after ?? 'cut';
   });
   const timedBeats: TimedBeat[] = buildTimedBeats(beats, fps ?? 30, audioDurationsMs, pauseAfterMap);
+  const activeBgColor = useActiveBeatBgColor(timedBeats, CFG.colors.bgPrimary);
 
   return (
     <AbsoluteFill
@@ -157,6 +160,15 @@ export const Ch5Composition: React.FC<{ manifest: VideoManifest }> = ({ manifest
         fontFamily: CFG.bodyFont,
       }}
     >
+      {/* Ambient animated background — one instance for the whole video, see
+          BeatCompositor.tsx's useActiveBeatBgColor doc comment for why. */}
+      <AmbientBackground
+        baseColor={activeBgColor}
+        accentColor={CFG.colors.accent1}
+        accentColor2={CFG.colors.accent2}
+        channelId="ch5"
+      />
+
       <Soundtrack channelId="ch5" musicVolume={0.14} />
 
       <BeatCompositor

@@ -2,8 +2,14 @@
  * Ch1Composition — Dopamine Loop channel (ch1).
  *
  * Renders all 9 sections from the manifest inside frame-accurate <Sequence>s.
+ * Global:
+ *   ─ AmbientBackground (one instance for the whole video — see below; NOT
+ *     per-beat, since a per-beat instance would be nested inside
+ *     BeatCompositor's TransitionSeries.Sequence and visibly slide/wipe with
+ *     each beat's transition instead of staying fixed)
  * Layout per beat:
- *   ─ Background fill (beat.bg_color || channel bgPrimary)
+ *   ─ Background fill (beat.bg_color || channel bgPrimary — read by the
+ *     global AmbientBackground via useActiveBeatBgColor, not rendered here)
  *   ─ AssetLayer       (person/brand/place/map — full-screen)
  *   ─ Gradient scrim   (bottom 600px, asset beats only — legibility)
  *   ─ SocialFigure3D   (non-asset non-shotbrief beats — variant per section)
@@ -28,7 +34,7 @@ import { useWordBoundaries } from '../../captions/useWordBoundaries';
 import { ShotBriefLayer, getShotBriefPrimaryText } from '../../mograph/ShotBriefLayer';
 import { SfxLayer } from '../../sound/SfxLayer';
 import { Soundtrack } from '../../sound/Soundtrack';
-import { BeatCompositor, buildTimedBeats } from '../../transitions/BeatCompositor';
+import { BeatCompositor, buildTimedBeats, useActiveBeatBgColor } from '../../transitions/BeatCompositor';
 import type { TimedBeat } from '../../transitions/BeatCompositor';
 import { KineticTextLayer } from '../../mograph/KineticTextLayer';
 import { HeroWord } from '../../mograph/HeroWord';
@@ -69,9 +75,6 @@ const BeatSection: React.FC<{ beat: ManifestBeat; durationFrames: number }> = ({
 
   return (
     <AbsoluteFill>
-      {/* Ambient animated background */}
-      <AmbientBackground baseColor={bg} accentColor={CFG.colors.accent1} accentColor2={CFG.colors.accent2} channelId="ch1" />
-
       {/* Full-screen asset */}
       {isFullscreen && (
         <AssetLayer
@@ -162,6 +165,7 @@ export const Ch1Composition: React.FC<{ manifest: VideoManifest }> = ({
   });
 
   const timedBeats: TimedBeat[] = buildTimedBeats(beats, fps ?? 30, audioDurationsMs, pauseAfterMap);
+  const activeBgColor = useActiveBeatBgColor(timedBeats, CFG.colors.bgPrimary);
 
   return (
     <AbsoluteFill
@@ -170,6 +174,16 @@ export const Ch1Composition: React.FC<{ manifest: VideoManifest }> = ({
         fontFamily: CFG.bodyFont,
       }}
     >
+      {/* Ambient animated background — one instance for the whole video,
+          rendered outside BeatCompositor's TransitionSeries so it never
+          slides/wipes with a beat transition. */}
+      <AmbientBackground
+        baseColor={activeBgColor}
+        accentColor={CFG.colors.accent1}
+        accentColor2={CFG.colors.accent2}
+        channelId="ch1"
+      />
+
       {/* Music bed */}
       <Soundtrack channelId="ch1" musicVolume={0.15} />
 
