@@ -21,7 +21,6 @@ import os
 import re
 import subprocess
 import urllib.parse
-import urllib.request
 from pathlib import Path
 
 import aiohttp
@@ -30,55 +29,24 @@ from PIL import Image
 ASSETS_DIR = Path("public/assets")
 UA = {"User-Agent": "DopamineStudios/1.0 (contact@dopaminestudios.com)"}
 
-# ── rembg u2net model cache ────────────────────────────────────────────────
-# Mirrors tts.py's KOKORO_CACHE_DIR/_download_kokoro_models() pattern exactly:
-# rembg's own downloader (pooch.retrieve() hitting danielgatis/rembg's GitHub
-# release directly) is what previously hung CI indefinitely — not the
-# download itself, but that specific unreliable source. Pre-populating
-# U2NET_HOME from our own model-files-v1 release (same one kokoro's models
-# already live in, uploaded there by .github/workflows/upload-models.yml)
-# means pooch.retrieve() finds the file already present with a matching
-# checksum and never touches the network at all.
-U2NET_CACHE_DIR  = os.path.join(os.path.expanduser("~"), ".cache", "rembg")
-U2NET_MODEL_PATH = os.path.join(U2NET_CACHE_DIR, "u2net.onnx")
-U2NET_BASE_URL   = (
-    "https://github.com/chileleko366-stack/repo/releases/download/model-files-v1/"
-)
-
-
-def _download_u2net_model() -> None:
-    """Download rembg's u2net.onnx to the cache dir if not already present."""
-    os.makedirs(U2NET_CACHE_DIR, exist_ok=True)
-    if os.path.exists(U2NET_MODEL_PATH):
-        print(f"[assets] cached: {os.path.basename(U2NET_MODEL_PATH)}")
-        return
-    print("[assets] downloading u2net.onnx...")
-    tmp = U2NET_MODEL_PATH + ".tmp"
-    try:
-        urllib.request.urlretrieve(U2NET_BASE_URL + "u2net.onnx", tmp)
-        os.rename(tmp, U2NET_MODEL_PATH)
-        size_mb = os.path.getsize(U2NET_MODEL_PATH) / 1024 / 1024
-        print(f"[assets] downloaded u2net.onnx ({size_mb:.1f}MB)")
-    except Exception as e:
-        if os.path.exists(tmp):
-            os.unlink(tmp)
-        raise RuntimeError(f"Failed to download u2net.onnx: {e}")
-
-
+# ── rembg model ─────────────────────────────────────────────────────────────
+# Verified (GH Actions run, HTTP 200 / ~1-2s / checksum-matched) that
+# danielgatis/rembg's own release is directly reachable from CI, so rembg's
+# default pooch.retrieve() download-and-cache (to ~/.u2net, or U2NET_HOME if
+# set) needs no custom mirroring or pre-population — pooch already skips the
+# network on a cache hit via its own checksum check.
+#
+# u2net_human_seg (not general-purpose u2net): every rembg call in this file
+# is resolve_person() cutting out a human subject from a Wikipedia photo, and
+# this session is trained specifically for that, unlike u2net's general
+# salient-object segmentation. Same host/release/reachability as u2net.
 _rembg_session_cache: dict = {}
 
 
 def _get_rembg_session():
-    """Returns a cached rembg session, downloading/pointing at our mirrored
-    u2net.onnx first via U2NET_HOME (checked against rembg's actual source —
-    sessions/base.py's u2net_home() reads this env var; sessions/u2net.py's
-    download_models() calls pooch.retrieve() which skips the network entirely
-    once the file exists there with a matching checksum)."""
     if "default" not in _rembg_session_cache:
-        _download_u2net_model()
-        os.environ.setdefault("U2NET_HOME", U2NET_CACHE_DIR)
         from rembg import new_session
-        _rembg_session_cache["default"] = new_session("u2net")
+        _rembg_session_cache["default"] = new_session("u2net_human_seg")
     return _rembg_session_cache["default"]
 
 
