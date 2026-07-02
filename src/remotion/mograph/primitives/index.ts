@@ -10,7 +10,7 @@ export { ChatBubbles } from './ChatBubbles';
 export type { ChatMessage } from './ChatBubbles';
 export { WordCarousel } from './WordCarousel';
 export { StaggeredSequence } from './StaggeredSequence';
-export { SocialFrame, SOCIAL_SAFE_ZONE, CAPTION_BAND_PX } from './SocialFrame';
+export { SocialFrame, SOCIAL_SAFE_ZONE } from './SocialFrame';
 export { TypographicCard } from './TypographicCard';
 export { ProgressBar } from './ProgressBar';
 export { Histogram } from './Histogram';

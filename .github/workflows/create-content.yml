@@ -86,6 +86,23 @@ jobs:
         timeout-minutes: 8
         run: python3 -c "import sys; sys.path.insert(0,'src/scripts'); from tts import _download_kokoro_models; _download_kokoro_models()"
 
+      - name: Cache rembg u2net model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/rembg
+          key: rembg-u2net-v1-${{ runner.os }}
+
+      # Unlike kokoro TTS (no fallback — a failed download here must fail the
+      # job), rembg cutout genuinely degrades gracefully: asset_resolver.py's
+      # _remove_background() catches a download/model failure and falls back
+      # to the uncut photo. continue-on-error so a missing/unreachable model
+      # asset doesn't take down the whole pipeline over what's a visual
+      # enhancement, not a hard requirement.
+      - name: Download rembg model
+        timeout-minutes: 8
+        continue-on-error: true
+        run: python3 -c "import sys; sys.path.insert(0,'src/scripts'); from asset_resolver import _download_u2net_model; _download_u2net_model()"
+
       - name: Generate content
         run: |
           TOPIC="${{ github.event.inputs.topic }}"

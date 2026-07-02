@@ -1,5 +1,5 @@
 /**
- * CaptionPage — kinetic word-reveal narration captions, upper-third placement.
+ * CaptionPage — kinetic word-reveal narration captions.
  *
  * Every spoken word is rendered (muted viewers must be able to follow full
  * narration). Each word pops in with a spring scale + translateY as its
@@ -7,12 +7,16 @@
  * active word is in accent color; words that already played stay visible
  * but fade to a dimmed white rather than disappearing, avoiding the
  * choppy one-word-at-a-time TikTok read.
+ *
+ * Vertical position is per-beat (verticalCenterPct, from CaptionTrack.tsx —
+ * see computeCaptionCenterPct there), not a fixed top offset: a fixed
+ * position collides with ShotBriefLayer's primaryAnchor-positioned primitive
+ * card whenever the LLM centers it, which is the common case.
  */
 
 import React from "react";
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import type { TikTokPage } from "@remotion/captions";
-import { SOCIAL_SAFE_ZONE } from "../mograph/primitives";
 
 export interface CaptionPageProps {
   page: TikTokPage;
@@ -20,6 +24,8 @@ export interface CaptionPageProps {
   accentColor: string;
   accentFont: string;
   bodyFont: string;
+  /** Vertical center of the caption block, in % of video height. */
+  verticalCenterPct: number;
 }
 
 export const CaptionPage: React.FC<CaptionPageProps> = ({
@@ -27,22 +33,21 @@ export const CaptionPage: React.FC<CaptionPageProps> = ({
   bodyFont,
   accentColor,
   enterProgress,
+  verticalCenterPct,
 }) => {
   const frame = useCurrentFrame();
-  const { fps, height } = useVideoConfig();
+  const { fps } = useVideoConfig();
 
   const currentMs = (frame / fps) * 1000 + page.startMs;
-  // Clear YouTube Shorts/TikTok/Reels UI's reserved top band (profile/caption
-  // strip) rather than a magic percentage — see SOCIAL_SAFE_ZONE.
-  const topPx = Math.round(height * SOCIAL_SAFE_ZONE.topPct);
 
   return (
     <div
       style={{
         position: "absolute",
-        top: topPx,
+        top: `${verticalCenterPct}%`,
         left: "7%",
         right: "7%",
+        transform: "translateY(-50%)",
         textAlign: "center",
         opacity: enterProgress,
         pointerEvents: "none",

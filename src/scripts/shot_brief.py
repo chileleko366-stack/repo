@@ -251,6 +251,12 @@ def _validate_shot_brief(brief: dict, last_two_grids: list) -> None:
     if len(brief.get("typography", [])) == 0:
         raise ValueError(f"Beat {beat_id}: zero typography entries — every primitive needs at least a primary role")
 
+    primary_anchor = brief.get("composition", {}).get("primaryAnchor")
+    if not isinstance(primary_anchor, dict) or any(
+        primary_anchor.get(k) is None for k in ("xPct", "yPct", "widthPct", "heightPct")
+    ):
+        raise ValueError(f"Beat {beat_id}: composition.primaryAnchor missing explicit xPct/yPct/widthPct/heightPct")
+
     for el in brief.get("composition", {}).get("secondaryElements", []):
         anchor = el.get("anchor", {})
         if anchor.get("xPct") is None or anchor.get("yPct") is None:

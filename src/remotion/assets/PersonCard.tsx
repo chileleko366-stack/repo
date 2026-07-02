@@ -1,13 +1,19 @@
 /**
  * PersonCard — renders a Wikipedia person cutout (rembg-processed PNG).
+ * asset_resolver.py's resolve_person() runs the actual background removal;
+ * if rembg/its model is unavailable at resolve time it falls back to the
+ * uncut photo instead (asset.path then points at a plain .jpg) — this
+ * component doesn't know or care which one it got, it just renders asset.path.
  *
  * Layered 2.5D parallax composition:
  *   1. Background gradient — drifts at 25% of the subject camera rate
- *   2. Subject (Img) — full camera drift + subtle multi-harmonic idle motion
+ *   2. Subject (Img, or ImageCycleLayer when asset.paths has more than one
+ *      image) — full camera drift + subtle multi-harmonic idle motion
  *
  * When accentColors is provided, the subject is desaturated (grayscale 85%,
  * contrast 1.05) with a low-opacity accent-color radial overlay — the
- * monochrome-with-a-color-pop treatment shared across all channels.
+ * monochrome-with-a-color-pop treatment shared across all channels, applied
+ * identically to every image when cycling through more than one.
  *
  * Falls back to an initial-letter badge when no image is available.
  */
@@ -15,6 +21,7 @@
 import React from 'react';
 import { AbsoluteFill, Img, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import type { PersonAsset } from '../../pipeline/types';
+import { ImageCycleLayer } from './ImageCycleLayer';
 
 export const PersonCard: React.FC<{
   asset: PersonAsset;
@@ -41,7 +48,11 @@ export const PersonCard: React.FC<{
   const idleX = Math.sin(frame * 0.03) * 3 + Math.sin(frame * 0.07 + 0.8) * 1.5;
   const idleY = Math.sin(frame * 0.05 + 1.2) * 2 + Math.sin(frame * 0.09 + 0.3) * 1.0;
 
-  if (!asset.path) {
+  const imagePaths = asset.paths && asset.paths.length > 0
+    ? asset.paths
+    : asset.path ? [asset.path] : [];
+
+  if (imagePaths.length === 0) {
     return (
       <AbsoluteFill
         style={{ justifyContent: 'center', alignItems: 'center', paddingBottom: 220 }}
@@ -95,16 +106,28 @@ export const PersonCard: React.FC<{
           opacity,
         }}
       >
-        <Img
-          src={staticFile(asset.path.replace(/^public\//, ''))}
-          style={{
-            maxHeight: 900,
-            maxWidth: 800,
-            objectFit: 'contain',
-            display: 'block',
-            filter: accentColors ? 'grayscale(0.85) contrast(1.05)' : undefined,
-          }}
-        />
+        {imagePaths.length > 1 ? (
+          <ImageCycleLayer
+            paths={imagePaths}
+            durationFrames={durationFrames}
+            containerStyle={{ width: 800, height: 900 }}
+            imgStyle={{
+              objectFit: 'contain',
+              filter: accentColors ? 'grayscale(0.85) contrast(1.05)' : undefined,
+            }}
+          />
+        ) : (
+          <Img
+            src={staticFile(imagePaths[0].replace(/^public\//, ''))}
+            style={{
+              maxHeight: 900,
+              maxWidth: 800,
+              objectFit: 'contain',
+              display: 'block',
+              filter: accentColors ? 'grayscale(0.85) contrast(1.05)' : undefined,
+            }}
+          />
+        )}
 
         {/* Accent-color pop: low-opacity radial overlay on the subject itself */}
         {accentColors && (

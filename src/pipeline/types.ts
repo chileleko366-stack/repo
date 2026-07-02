@@ -82,6 +82,15 @@ export interface BeatAudio {
 
 export interface PersonAsset {
   path: string | null;
+  /**
+   * Additional images for the same entity, when more than one was resolved
+   * (interchange/crossfade — see ImageCycleLayer.tsx). `path` always holds
+   * the first image for backward compatibility with existing single-image
+   * consumers and the generic 'path' in resolvedAsset checks (ShotBriefLayer/
+   * channel compositions); `paths`, when present, holds the full ordered set
+   * including that first image.
+   */
+  paths?: string[];
   fallback?: string;
   credit: string | null;
 }
@@ -95,6 +104,8 @@ export interface BrandAsset {
 
 export interface PlaceAsset {
   path: string;
+  /** See PersonAsset.paths. */
+  paths?: string[];
   credit: string;
 }
 

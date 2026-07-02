@@ -5,12 +5,18 @@
  *
  * When accentColors is provided, the image is desaturated (grayscale 85%,
  * contrast 1.05) with a low-opacity accent-color radial overlay — the
- * monochrome-with-a-color-pop treatment shared across all channels.
+ * monochrome-with-a-color-pop treatment shared across all channels, applied
+ * identically to every image when asset.paths cycles through more than one.
+ *
+ * The Ken Burns pan/zoom is applied once at this layer (not per-image inside
+ * the cycle) so the camera keeps drifting continuously across the whole beat
+ * regardless of which image is currently crossfading in.
  */
 
 import React from 'react';
 import { AbsoluteFill, Img, interpolate, staticFile, useCurrentFrame } from 'remotion';
 import type { PlaceAsset } from '../../pipeline/types';
+import { ImageCycleLayer } from './ImageCycleLayer';
 
 export const PlacePhoto: React.FC<{
   asset: PlaceAsset;
@@ -25,19 +31,39 @@ export const PlacePhoto: React.FC<{
   const translateX = interpolate(t, [0, 1], [0, -24],     { extrapolateRight: 'clamp' });
   const translateY = interpolate(t, [0, 1], [0, -8],      { extrapolateRight: 'clamp' });
 
+  const imagePaths = asset.paths && asset.paths.length > 0 ? asset.paths : [asset.path];
+
   return (
     <AbsoluteFill style={{ overflow: 'hidden' }}>
-      <Img
-        src={staticFile(asset.path.replace(/^public\//, ''))}
+      <div
         style={{
           width: '100%',
           height: '100%',
-          objectFit: 'cover',
           transform: `scale(${scale}) translate(${translateX}px, ${translateY}px)`,
           transformOrigin: 'center center',
-          filter: accentColors ? 'grayscale(0.85) contrast(1.05)' : undefined,
         }}
-      />
+      >
+        {imagePaths.length > 1 ? (
+          <ImageCycleLayer
+            paths={imagePaths}
+            durationFrames={durationFrames}
+            imgStyle={{
+              objectFit: 'cover',
+              filter: accentColors ? 'grayscale(0.85) contrast(1.05)' : undefined,
+            }}
+          />
+        ) : (
+          <Img
+            src={staticFile(imagePaths[0].replace(/^public\//, ''))}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              filter: accentColors ? 'grayscale(0.85) contrast(1.05)' : undefined,
+            }}
+          />
+        )}
+      </div>
 
       {/* Accent-color pop: low-opacity radial overlay, monochrome-with-a-pop look */}
       {accentColors && (

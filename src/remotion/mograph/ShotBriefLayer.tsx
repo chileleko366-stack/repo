@@ -152,7 +152,7 @@ export function getShotBriefPrimaryText(beat: ManifestBeat, suppressPrimitive = 
 // composition size) untouched. safeZones is nominally required on ShotBrief,
 // but — like depth.glowEffects/dropShadows elsewhere in this file — treated
 // as optional here since nothing enforces its presence in the raw LLM JSON.
-function clampYPctToSafeZone(brief: ShotBrief, videoHeight: number): number {
+export function clampYPctToSafeZone(brief: ShotBrief, videoHeight: number): number {
   const { yPct, heightPct } = brief.composition.primaryAnchor;
   const topReservedPx = brief.composition.safeZones?.topReservedPx ?? 0;
   const bottomReservedPx = brief.composition.safeZones?.bottomReservedPx ?? 0;
