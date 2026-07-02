@@ -38,3 +38,18 @@ jobs:
           else
             echo "::warning::GH Actions got HTTP $HTTP_CODE from rembg's upstream URL — same restriction as the agent sandbox, or a different failure"
           fi
+
+      - name: curl u2net_human_seg.onnx (human-specific model, same release)
+        run: |
+          set -x
+          URL="https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net_human_seg.onnx"
+          START=$(date +%s)
+          HTTP_CODE=$(curl -sL -o /tmp/test_human_seg.onnx -w '%{http_code}' --max-time 120 "$URL") || true
+          END=$(date +%s)
+          echo "HTTP code: $HTTP_CODE"
+          echo "Elapsed: $((END-START))s"
+          if [ -f /tmp/test_human_seg.onnx ]; then
+            echo "Downloaded size: $(du -sh /tmp/test_human_seg.onnx | cut -f1)"
+            echo "MD5: $(md5sum /tmp/test_human_seg.onnx | cut -d' ' -f1)"
+            echo "Expected MD5: c09ddc2e0104f800e3e1bb4652583d1f"
+          fi
